@@ -20,118 +20,52 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.makemission.makeflow.data.local.AppDatabase
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.data.local.entity.CategoryEntity
-import kotlinx.coroutines.launch
+import com.makemission.makeflow.ui.components.AddCategoryBottomSheet
+import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
 
-private data class CategoryWithSpending(
-    val id: Long,
-    val name: String,
-    val budgetLimit: Double,
-    val spent: Double
-)
-
 @Composable
-fun CategoriesScreen() {
+fun CategoriesScreen(
+    viewModel: CategoriesViewModel = viewModel()
+) {
     Log.d("MakeFlowDebug", "CategoriesScreen composing")
-    val context = LocalContext.current
-    val db = remember {
-        try {
-            AppDatabase.getDatabase(context)
-        } catch (e: Exception) {
-            Log.e("MakeFlowDebug", "CategoriesScreen getDatabase failed", e)
-            return@remember null
-        }
-    } ?: return
-    val scope = rememberCoroutineScope()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val categories by db.categoryDao().getAllCategories().collectAsState(initial = emptyList())
-    val transactions by db.transactionDao().getAllTransactionsWithDetails().collectAsState(initial = emptyList())
-
-    val (monthStart, monthEnd) = remember {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.DAY_OF_MONTH, 1)
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val start = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        cal.set(Calendar.HOUR_OF_DAY, 23)
-        cal.set(Calendar.MINUTE, 59)
-        cal.set(Calendar.SECOND, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        Pair(start, cal.timeInMillis)
-    }
-
-    val thisMonthTransactions = remember(transactions, monthStart, monthEnd) {
-        transactions.filter { it.timestamp in monthStart..monthEnd }
-    }
-
-    val categorySpending = remember(categories, thisMonthTransactions) {
-        val expenseTx = thisMonthTransactions.filter { it.type == "EXPENSE" }
-        val spending = mutableMapOf<Long?, Double>()
-        for (tx in expenseTx) {
-            spending[tx.categoryId] = (spending[tx.categoryId] ?: 0.0) + tx.amount
-        }
-        categories.map { cat ->
-            CategoryWithSpending(
-                id = cat.id.toLong(),
-                name = cat.name,
-                budgetLimit = cat.budgetLimit,
-                spent = spending[cat.id.toLong()] ?: 0.0
-            )
-        }
-    }
-
-    val totalSpent = remember(categorySpending) { categorySpending.sumOf { it.spent } }
-    val totalBudget = remember(categories) { categories.sumOf { it.budgetLimit } }
-
-    val daysLeft = remember {
-        val cal = Calendar.getInstance()
-        cal.getActualMaximum(Calendar.DAY_OF_MONTH) - cal.get(Calendar.DAY_OF_MONTH)
-    }
-
-    var showDialog by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf("") }
-    var newBudget by remember { mutableStateOf("") }
+    var showSheet by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -140,72 +74,47 @@ fun CategoriesScreen() {
                 .verticalScroll(rememberScrollState())
         ) {
             CategoriesTopBar()
-            TotalBudgetCard(totalSpent = totalSpent, totalBudget = totalBudget, daysLeft = daysLeft)
-            Spacer(modifier = Modifier.height(16.dp))
-            categorySpending.forEach { cws ->
-                CategorySpendingItem(cws)
-                Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (uiState.isLoading) {
+                Text(
+                    text = "Loading categories...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else if (uiState.errorMessage != null) {
+                Text(
+                    text = uiState.errorMessage ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(16.dp)
+                )
+            } else {
+                TotalBudgetCard(
+                    totalSpent = uiState.totalSpent,
+                    totalBudget = uiState.totalBudget
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                uiState.categories.forEach { category ->
+                    CategorySpendingItem(
+                        category = category,
+                        spendingMap = uiState.spendingMap,
+                        onDelete = { viewModel.onDeleteCategory(category.id) }
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        AddCategoryButton(onClick = { showDialog = true })
+        AddCategoryButton(onClick = { showSheet = true })
     }
 
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = {
-                Text(
-                    text = "Add New Category",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = newName,
-                        onValueChange = { newName = it },
-                        label = { Text("Category Name") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    OutlinedTextField(
-                        value = newBudget,
-                        onValueChange = { newBudget = it },
-                        label = { Text("Budget Limit") },
-                        singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = KeyboardType.Number
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (newName.isNotBlank()) {
-                            scope.launch {
-                                db.categoryDao().insertCategory(
-                                    CategoryEntity(
-                                        name = newName.trim(),
-                                        budgetLimit = newBudget.toDoubleOrNull() ?: 0.0
-                                    )
-                                )
-                                showDialog = false
-                                newName = ""
-                                newBudget = ""
-                            }
-                        }
-                    }
-                ) { Text("Add") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) { Text("Cancel") }
-            }
+    if (showSheet) {
+        AddCategoryBottomSheet(
+            viewModel = viewModel,
+            onDismiss = { showSheet = false }
         )
     }
 }
@@ -229,7 +138,7 @@ private fun CategoriesTopBar() {
 }
 
 @Composable
-private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double, daysLeft: Int) {
+private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double) {
     val percentage = if (totalBudget > 0) (totalSpent / totalBudget * 100).toInt() else 0
     val progress = if (totalBudget > 0) (totalSpent / totalBudget).toFloat().coerceIn(0f, 1f) else 0f
     val fmt = remember {
@@ -237,6 +146,10 @@ private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double, daysLeft: I
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
+    }
+    val daysLeft = remember {
+        val cal = Calendar.getInstance()
+        cal.getActualMaximum(Calendar.DAY_OF_MONTH) - cal.get(Calendar.DAY_OF_MONTH)
     }
 
     ElevatedCard(
@@ -297,15 +210,21 @@ private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double, daysLeft: I
 }
 
 @Composable
-private fun CategorySpendingItem(cws: CategoryWithSpending) {
-    val progress = if (cws.budgetLimit > 0) (cws.spent / cws.budgetLimit).toFloat() else 0f
-    val isOverBudget = cws.budgetLimit > 0 && cws.spent > cws.budgetLimit
+private fun CategorySpendingItem(
+    category: CategoryEntity,
+    spendingMap: Map<String, Double>,
+    onDelete: () -> Unit
+) {
     val fmt = remember {
         NumberFormat.getNumberInstance(Locale.US).apply {
             minimumFractionDigits = 2
             maximumFractionDigits = 2
         }
     }
+    val spent = spendingMap[category.id] ?: 0.0
+    val isOverBudget = category.monthlyBudget > 0 && spent > category.monthlyBudget
+    val progress = if (category.monthlyBudget > 0)
+        (spent / category.monthlyBudget).toFloat().coerceIn(0f, 1f) else 0f
 
     ElevatedCard(
         modifier = Modifier
@@ -325,8 +244,8 @@ private fun CategorySpendingItem(cws: CategoryWithSpending) {
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = iconForCategoryName(cws.name),
-                        contentDescription = cws.name,
+                        imageVector = iconForCategoryName(category.iconName, category.name),
+                        contentDescription = category.name,
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
@@ -334,21 +253,29 @@ private fun CategorySpendingItem(cws: CategoryWithSpending) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = cws.name,
+                        text = category.name,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "$${fmt.format(cws.spent)} / $${fmt.format(cws.budgetLimit)}",
+                        text = "$${fmt.format(spent)} / $${fmt.format(category.monthlyBudget)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Filled.Delete,
+                        contentDescription = "Delete",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
@@ -367,7 +294,7 @@ private fun CategorySpendingItem(cws: CategoryWithSpending) {
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Over by $${fmt.format(cws.spent - cws.budgetLimit)}",
+                        text = "Over by $${fmt.format(spent - category.monthlyBudget)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFFE53935),
                         fontWeight = FontWeight.Medium
@@ -406,10 +333,19 @@ private fun AddCategoryButton(onClick: () -> Unit) {
     }
 }
 
-private fun iconForCategoryName(name: String): ImageVector {
-    return when (name) {
-        "Electronics" -> Icons.Filled.ShoppingCart
-        "Food & Dining" -> Icons.Filled.ShoppingCart
+private fun iconForCategoryName(iconName: String, categoryName: String): ImageVector {
+    if (iconName.isNotBlank()) {
+        return when (iconName) {
+            "Home" -> Icons.Filled.Home
+            "ShoppingCart" -> Icons.Filled.ShoppingCart
+            "LocationOn" -> Icons.Filled.LocationOn
+            "Star" -> Icons.Filled.Star
+            "Check" -> Icons.Filled.Check
+            else -> Icons.Filled.Check
+        }
+    }
+    return when (categoryName) {
+        "Electronics", "Food & Dining" -> Icons.Filled.ShoppingCart
         "Transportation" -> Icons.Filled.LocationOn
         "Entertainment" -> Icons.Filled.Star
         "Housing" -> Icons.Filled.Home

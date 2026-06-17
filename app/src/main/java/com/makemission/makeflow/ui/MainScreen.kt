@@ -22,7 +22,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.makemission.makeflow.ui.navigation.Screen
-import com.makemission.makeflow.ui.screens.AddTransactionSheet
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
 import com.makemission.makeflow.ui.screens.CategoriesScreen
 import com.makemission.makeflow.ui.screens.DashboardScreen
@@ -92,9 +91,6 @@ fun MainScreen() {
         ) {
             composable(Screen.Dashboard.route) { DashboardScreen() }
             composable(Screen.Analytics.route) { AnalyticsScreen() }
-            composable(Screen.AddTransaction.route) {
-                AddTransactionSheet(navController = navController)
-            }
             composable(Screen.Categories.route) { CategoriesScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
         }

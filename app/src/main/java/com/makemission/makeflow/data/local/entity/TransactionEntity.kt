@@ -4,16 +4,11 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 @Entity(
     tableName = "transactions",
     foreignKeys = [
-        ForeignKey(
-            entity = AccountEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["accountId"],
-            onDelete = ForeignKey.CASCADE
-        ),
         ForeignKey(
             entity = CategoryEntity::class,
             parentColumns = ["id"],
@@ -21,18 +16,13 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [
-        Index("accountId"),
-        Index("categoryId")
-    ]
+    indices = [Index("categoryId")]
 )
 data class TransactionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val amount: Double,
     val type: String,
-    val note: String?,
-    val timestamp: Long,
-    val accountId: Long,
-    val categoryId: Long?
+    val categoryId: String? = null,
+    val note: String = "",
+    val timestamp: Long = System.currentTimeMillis()
 )

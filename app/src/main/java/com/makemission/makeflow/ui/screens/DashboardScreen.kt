@@ -63,9 +63,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.DatabaseInitializer
-import com.makemission.makeflow.data.local.dao.TransactionWithDetails
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.ui.components.AddTransactionBottomSheet
+import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import com.makemission.makeflow.ui.viewmodel.DashboardViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -77,7 +79,8 @@ import java.util.Locale
 
 @Composable
 fun DashboardScreen(
-    taskViewModel: DashboardViewModel = viewModel()
+    taskViewModel: DashboardViewModel = viewModel(),
+    categoriesViewModel: CategoriesViewModel = viewModel()
 ) {
     Log.d("MakeFlowDebug", "DashboardScreen composing")
     val context = LocalContext.current
@@ -89,7 +92,7 @@ fun DashboardScreen(
     }
 
     val accounts by db.accountDao().getAllAccounts().collectAsState(initial = emptyList())
-    val transactions by db.transactionDao().getAllTransactionsWithDetails().collectAsState(initial = emptyList())
+    val transactions by db.transactionDao().getAllTransactions().collectAsState(initial = emptyList())
     val taskUiState by taskViewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
@@ -105,13 +108,14 @@ fun DashboardScreen(
     }
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAddTransaction by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        DashboardTopBar()
+        DashboardTopBar(onAddTransaction = { showAddTransaction = true })
         BalanceCard(accounts)
         MyCardsSection(accounts)
         RecentTransactionsSection(transactions)
@@ -131,6 +135,13 @@ fun DashboardScreen(
                 taskViewModel.onAddTask(title, description)
                 showAddDialog = false
             }
+        )
+    }
+
+    if (showAddTransaction) {
+        AddTransactionBottomSheet(
+            viewModel = categoriesViewModel,
+            onDismiss = { showAddTransaction = false }
         )
     }
 }
@@ -295,7 +306,7 @@ private fun AddTaskDialog(
 }
 
 @Composable
-private fun DashboardTopBar() {
+private fun DashboardTopBar(onAddTransaction: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -316,11 +327,11 @@ private fun DashboardTopBar() {
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center
         )
-        IconButton(onClick = { /* search */ }) {
+        IconButton(onClick = onAddTransaction) {
             Icon(
-                imageVector = Icons.Filled.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onBackground
+                imageVector = Icons.Filled.Add,
+                contentDescription = "Add Transaction",
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -528,7 +539,7 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
 }
 
 @Composable
-private fun RecentTransactionsSection(transactions: List<TransactionWithDetails>) {
+private fun RecentTransactionsSection(transactions: List<TransactionEntity>) {
     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -559,7 +570,7 @@ private fun RecentTransactionsSection(transactions: List<TransactionWithDetails>
 }
 
 @Composable
-private fun TransactionRow(tx: TransactionWithDetails) {
+private fun TransactionRow(tx: TransactionEntity) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -572,8 +583,8 @@ private fun TransactionRow(tx: TransactionWithDetails) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = iconForCategory(tx.categoryName),
-                contentDescription = tx.categoryName,
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
                 modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
@@ -581,7 +592,7 @@ private fun TransactionRow(tx: TransactionWithDetails) {
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = tx.note ?: "Transaction",
+                text = tx.note.ifEmpty { "Transaction" },
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground

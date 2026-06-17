@@ -23,7 +23,7 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
         TransactionEntity::class,
         TaskEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -52,6 +52,34 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS transactions")
+                db.execSQL("DROP TABLE IF EXISTS categories")
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS categories (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        iconName TEXT NOT NULL DEFAULT '',
+                        colorHex TEXT NOT NULL DEFAULT '',
+                        monthlyBudget REAL NOT NULL DEFAULT 0.0
+                    )"""
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS transactions (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        amount REAL NOT NULL,
+                        type TEXT NOT NULL,
+                        categoryId TEXT,
+                        note TEXT NOT NULL DEFAULT '',
+                        timestamp INTEGER NOT NULL,
+                        FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
+                    )"""
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_categoryId ON transactions(categoryId)")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -59,7 +87,7 @@ abstract class AppDatabase : RoomDatabase() {
                         context.applicationContext,
                         AppDatabase::class.java,
                         "makeflow_database"
-                    ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
                 } catch (e: Exception) {
                     Log.e("MakeFlowDebug", "Failed to initialize AppDatabase", e)
                     throw e

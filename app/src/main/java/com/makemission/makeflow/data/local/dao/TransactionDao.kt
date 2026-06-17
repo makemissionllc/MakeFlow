@@ -9,33 +9,17 @@ import androidx.room.Update
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
-data class TransactionWithDetails(
-    val transactionId: Long,
-    val amount: Double,
-    val type: String,
-    val note: String?,
-    val timestamp: Long,
-    val accountId: Long,
-    val categoryId: Long?,
-    val accountName: String,
-    val categoryName: String?
-)
-
 @Dao
 interface TransactionDao {
 
-    @Query("""
-        SELECT t.id AS transactionId, t.amount, t.type, t.note, t.timestamp,
-               t.accountId, t.categoryId, a.name AS accountName, c.name AS categoryName
-        FROM transactions t
-        INNER JOIN accounts a ON t.accountId = a.id
-        LEFT JOIN categories c ON t.categoryId = c.id
-        ORDER BY t.timestamp DESC
-    """)
-    fun getAllTransactionsWithDetails(): Flow<List<TransactionWithDetails>>
+    @Query("SELECT * FROM transactions ORDER BY timestamp DESC")
+    fun getAllTransactions(): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY timestamp DESC")
+    fun getTransactionsByCategory(categoryId: String): Flow<List<TransactionEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTransaction(transaction: TransactionEntity): Long
+    suspend fun insertTransaction(transaction: TransactionEntity)
 
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
@@ -44,8 +28,11 @@ interface TransactionDao {
     suspend fun deleteTransaction(transaction: TransactionEntity)
 
     @Query("SELECT * FROM transactions WHERE id = :id")
-    suspend fun getTransactionById(id: Long): TransactionEntity?
+    suspend fun getTransactionById(id: String): TransactionEntity?
 
-    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY timestamp DESC")
-    fun getTransactionsByAccount(accountId: Long): Flow<List<TransactionEntity>>
+    @Query("DELETE FROM transactions WHERE id = :id")
+    suspend fun deleteTransactionById(id: String)
+
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND timestamp >= :monthStartMillis AND timestamp <= :monthEndMillis")
+    fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
 }

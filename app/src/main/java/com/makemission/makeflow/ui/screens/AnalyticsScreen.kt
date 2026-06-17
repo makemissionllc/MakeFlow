@@ -79,7 +79,7 @@ fun AnalyticsScreen() {
             return@remember null
         }
     } ?: return
-    val transactions by db.transactionDao().getAllTransactionsWithDetails().collectAsState(initial = emptyList())
+    val transactions by db.transactionDao().getAllTransactions().collectAsState(initial = emptyList())
 
     val totalIncome = remember(transactions) {
         transactions.filter { it.type == "INCOME" }.sumOf { it.amount }

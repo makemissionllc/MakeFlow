@@ -44,7 +44,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +58,7 @@ import androidx.navigation.NavController
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -76,29 +76,21 @@ fun AddTransactionSheet(navController: NavController) {
     } ?: return
 
     val categories by db.categoryDao().getAllCategories().collectAsState(initial = emptyList())
-    val accounts by db.accountDao().getAllAccounts().collectAsState(initial = emptyList())
 
     var rawInput by remember { mutableStateOf("") }
     var transactionType by remember { mutableStateOf("EXPENSE") }
     var note by remember { mutableStateOf("") }
-    var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
-
-    val firstAccountId = accounts.firstOrNull()?.id ?: 0L
-    val firstAccountBalance = accounts.firstOrNull()?.balance ?: 0.0
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
 
     val scope = rememberCoroutineScope()
 
     val amount = parseAmount(rawInput)
-    val isFormValid = amount > 0.0 && firstAccountId != 0L
+    val isFormValid = amount > 0.0
 
     LaunchedEffect(categories) {
         if (categories.isNotEmpty() && selectedCategoryId == null) {
             val firstCategory = categories.firstOrNull { it.name != "Income" }
-            if (firstCategory != null) {
-                selectedCategoryId = firstCategory.id
-            } else {
-                selectedCategoryId = categories.first().id
-            }
+            selectedCategoryId = firstCategory?.id ?: categories.first().id
         }
     }
 
@@ -108,7 +100,7 @@ fun AddTransactionSheet(navController: NavController) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         AddTopBar(onClose = { navController.popBackStack() })
-        AmountDisplay(rawInput = rawInput, balance = firstAccountBalance)
+        AmountDisplay(rawInput = rawInput)
         TransactionTypeSelector(
             selected = transactionType,
             onSelect = { transactionType = it }
@@ -139,10 +131,9 @@ fun AddTransactionSheet(navController: NavController) {
                     val tx = TransactionEntity(
                         amount = amount,
                         type = transactionType,
-                        note = note.ifBlank { null },
-                        timestamp = System.currentTimeMillis(),
-                        accountId = firstAccountId,
-                        categoryId = selectedCategoryId
+                        categoryId = selectedCategoryId,
+                        note = note.trim(),
+                        timestamp = System.currentTimeMillis()
                     )
                     db.transactionDao().insertTransaction(tx)
                     navController.popBackStack()
@@ -180,9 +171,8 @@ private fun AddTopBar(onClose: () -> Unit) {
 }
 
 @Composable
-private fun AmountDisplay(rawInput: String, balance: Double) {
+private fun AmountDisplay(rawInput: String) {
     val display = formatNumpadDisplay(rawInput)
-    val balanceFmt = NumberFormat.getCurrencyInstance(Locale.US).format(balance)
 
     Column(
         modifier = Modifier
@@ -196,16 +186,6 @@ private fun AmountDisplay(rawInput: String, balance: Double) {
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Available: $balanceFmt",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .padding(horizontal = 14.dp, vertical = 6.dp)
         )
     }
 }
@@ -272,7 +252,7 @@ private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
             color = color,
             modifier = Modifier
                 .weight(1f)
-                .clickable { /* focus field — will wire later */ }
+                .clickable { /* focus field */ }
                 .padding(vertical = 10.dp)
         )
     }
@@ -281,8 +261,8 @@ private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
 @Composable
 private fun CategoryRow(
     categories: List<CategoryEntity>,
-    selectedId: Long?,
-    onSelect: (Long?) -> Unit
+    selectedId: String?,
+    onSelect: (String?) -> Unit
 ) {
     LazyRow(
         modifier = Modifier
@@ -293,7 +273,6 @@ private fun CategoryRow(
     ) {
         items(categories) { category ->
             val isSelected = category.id == selectedId
-            val icon = iconForCategoryName(category.name)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -312,7 +291,7 @@ private fun CategoryRow(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = icon,
+                        imageVector = iconForCategoryName(category.iconName, category.name),
                         contentDescription = category.name,
                         modifier = Modifier.size(24.dp),
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
@@ -326,30 +305,6 @@ private fun CategoryRow(
                     color = if (isSelected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
-                )
-            }
-        }
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "More",
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "More",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -444,15 +399,25 @@ private fun SubmitButton(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-private fun iconForCategoryName(name: String): ImageVector {
-    return when (name) {
+private fun iconForCategoryName(iconName: String, categoryName: String): ImageVector {
+    if (iconName.isNotBlank()) {
+        return when (iconName) {
+            "Home" -> Icons.Filled.Home
+            "ShoppingCart" -> Icons.Filled.ShoppingCart
+            "LocationOn" -> Icons.Filled.LocationOn
+            "Star" -> Icons.Filled.Star
+            "Check" -> Icons.Filled.Check
+            else -> Icons.Filled.Check
+        }
+    }
+    return when (categoryName) {
         "Electronics" -> Icons.Filled.ShoppingCart
         "Food & Dining" -> Icons.Filled.ShoppingCart
         "Transportation" -> Icons.Filled.LocationOn
         "Entertainment" -> Icons.Filled.Star
         "Housing" -> Icons.Filled.Home
         "Income" -> Icons.Filled.Check
-        else -> Icons.Filled.Home
+        else -> Icons.Filled.Check
     }
 }
 

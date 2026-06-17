@@ -20,6 +20,11 @@ sealed class Screen(
     data object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
 
     companion object {
-        val bottomNavItems = listOf(Dashboard, Analytics, AddTransaction, Categories, Settings)
+        val bottomNavItems by lazy { listOf(Dashboard, Analytics, Categories, Settings) }
+
+        private val routeIndex by lazy { (bottomNavItems + AddTransaction).associateBy { it.route } }
+
+        fun findByRoute(route: String?): Screen? =
+            if (route != null) routeIndex[route] else null
     }
 }

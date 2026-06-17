@@ -1,0 +1,77 @@
+package com.makemission.makeflow.ui.theme
+
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+data class AppDimens(
+    val paddingSmall: Dp = 8.dp,
+    val paddingMedium: Dp = 16.dp,
+    val paddingLarge: Dp = 24.dp,
+    val paddingExtra: Dp = 32.dp,
+    val cornerRadiusSmall: Dp = 8.dp,
+    val cornerRadiusMedium: Dp = 14.dp,
+    val cornerRadiusLarge: Dp = 20.dp,
+    val cornerRadiusXL: Dp = 24.dp,
+    val iconSizeSmall: Dp = 16.dp,
+    val iconSizeMedium: Dp = 24.dp,
+    val iconSizeLarge: Dp = 40.dp,
+    val cardElevation: Dp = 2.dp,
+    val cardMinHeight: Dp = 80.dp,
+    val barHeight: Dp = 8.dp,
+    val numpadKeyAspectRatio: Float = 1.5f,
+    val numpadRadius: Dp = 16.dp,
+    val navbarCornerRadius: Dp = 28.dp,
+    val navbarMaxWidth: Dp = Dp.Infinity,
+    val navbarPaddingHorizontal: Dp = 4.dp,
+    val navbarPaddingVertical: Dp = 4.dp,
+    val navbarItemSize: Dp = 24.dp,
+    val navbarMarginHorizontal: Dp = 24.dp,
+    val navbarMarginBottom: Dp = 12.dp,
+)
+
+val compactDimens = AppDimens()
+
+val mediumDimens = AppDimens(
+    paddingMedium = 20.dp,
+    paddingLarge = 28.dp,
+    paddingExtra = 40.dp,
+    cornerRadiusMedium = 16.dp,
+    cornerRadiusLarge = 24.dp,
+    cornerRadiusXL = 28.dp,
+    iconSizeLarge = 48.dp,
+    barHeight = 10.dp,
+    navbarCornerRadius = 30.dp,
+    navbarMaxWidth = 360.dp,
+    navbarPaddingHorizontal = 6.dp,
+    navbarPaddingVertical = 6.dp,
+    navbarItemSize = 26.dp,
+    navbarMarginHorizontal = 32.dp,
+    navbarMarginBottom = 16.dp,
+)
+
+val expandedDimens = AppDimens(
+    paddingMedium = 24.dp,
+    paddingLarge = 32.dp,
+    paddingExtra = 48.dp,
+    cornerRadiusSmall = 10.dp,
+    cornerRadiusMedium = 18.dp,
+    cornerRadiusLarge = 28.dp,
+    cornerRadiusXL = 32.dp,
+    iconSizeSmall = 18.dp,
+    iconSizeMedium = 28.dp,
+    iconSizeLarge = 56.dp,
+    cardElevation = 4.dp,
+    barHeight = 12.dp,
+    numpadKeyAspectRatio = 1.8f,
+    numpadRadius = 20.dp,
+    navbarCornerRadius = 32.dp,
+    navbarMaxWidth = 400.dp,
+    navbarPaddingHorizontal = 8.dp,
+    navbarPaddingVertical = 8.dp,
+    navbarItemSize = 28.dp,
+    navbarMarginHorizontal = 48.dp,
+    navbarMarginBottom = 20.dp,
+)
+
+val LocalAppDimens = staticCompositionLocalOf { compactDimens }

@@ -2,14 +2,18 @@ package com.makemission.makeflow.data.repository
 
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.CategoryWithTasks
+import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 class FinanceRepositoryImpl(
     private val categoryDao: CategoryDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val taskDao: TaskDao
 ) : FinanceRepository {
 
     override fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
@@ -21,6 +25,11 @@ class FinanceRepositoryImpl(
         categoryDao.getMonthlySpendingByCategory(monthStartMillis, monthEndMillis)
 
     override fun getAllTransactions(): Flow<List<TransactionEntity>> = transactionDao.getAllTransactions()
+
+    override fun getTransactionsInRange(
+        startMillis: Long,
+        endMillis: Long
+    ): Flow<List<TransactionEntity>> = transactionDao.getTransactionsInRange(startMillis, endMillis)
 
     override fun getMonthlyTotalExpense(
         monthStartMillis: Long,
@@ -40,4 +49,13 @@ class FinanceRepositoryImpl(
 
     override suspend fun deleteTransaction(transaction: TransactionEntity) =
         transactionDao.deleteTransaction(transaction)
+
+    override fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?> =
+        categoryDao.getCategoryWithTasks(id)
+
+    override suspend fun updateTaskCategory(taskId: String, categoryId: String?) =
+        taskDao.updateTaskCategory(taskId, categoryId)
+
+    override suspend fun updateTask(task: TaskEntity) =
+        taskDao.update(task)
 }

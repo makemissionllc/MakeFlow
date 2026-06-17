@@ -5,17 +5,30 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.CategoryWithTasks
+import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
 import com.makemission.makeflow.ui.state.CategoryUiState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import java.util.Calendar
+
+data class CategoryDetailState(
+    val categoryWithTasks: CategoryWithTasks,
+    val spent: Double,
+    val budget: Double
+)
 
 class CategoriesViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -24,10 +37,17 @@ class CategoriesViewModel(application: Application) : AndroidViewModel(applicati
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
+    private val _selectedCategoryId = MutableStateFlow<String?>(null)
+    val selectedCategoryId: StateFlow<String?> = _selectedCategoryId.asStateFlow()
+
+    private val _detailState = MutableStateFlow<CategoryDetailState?>(null)
+    val detailState: StateFlow<CategoryDetailState?> = _detailState.asStateFlow()
+
     init {
         val db = AppDatabase.getDatabase(application)
-        repository = FinanceRepositoryImpl(db.categoryDao(), db.transactionDao())
+        repository = FinanceRepositoryImpl(db.categoryDao(), db.transactionDao(), db.taskDao())
         loadCategories()
+        observeDetailState()
     }
 
     private fun loadCategories() {
@@ -59,6 +79,49 @@ class CategoriesViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun observeDetailState() {
+        viewModelScope.launch {
+            _selectedCategoryId
+                .flatMapLatest { id ->
+                    if (id != null) {
+                        val (monthStart, monthEnd) = currentMonthRange()
+                        combine(
+                            repository.getCategoryWithTasks(id),
+                            repository.getMonthlySpendingByCategory(monthStart, monthEnd)
+                        ) { catWithTasks, spending ->
+                            if (catWithTasks != null) {
+                                val spent = spending.find { it.categoryId == id }?.totalSpent ?: 0.0
+                                CategoryDetailState(
+                                    categoryWithTasks = catWithTasks,
+                                    spent = spent,
+                                    budget = catWithTasks.category.monthlyBudget
+                                )
+                            } else null
+                        }
+                    } else {
+                        flowOf(null)
+                    }
+                }
+                .flowOn(Dispatchers.Default)
+                .catch { e ->
+                    _detailState.value = null
+                }
+                .collect { state ->
+                    _detailState.value = state
+                }
+        }
+    }
+
+    fun onCategoryClick(id: String) {
+        _selectedCategoryId.value = id
+    }
+
+    fun onDismissDetail() {
+        _selectedCategoryId.value = null
+        _detailState.value = null
+    }
+
     fun onAddCategory(name: String, budget: Double, colorHex: String) {
         viewModelScope.launch {
             repository.insertCategory(
@@ -87,6 +150,18 @@ class CategoriesViewModel(application: Application) : AndroidViewModel(applicati
                     note = note.trim()
                 )
             )
+        }
+    }
+
+    fun onAssignTaskToCategory(taskId: String, categoryId: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateTaskCategory(taskId, categoryId)
+        }
+    }
+
+    fun onToggleTaskInDetailScreen(task: TaskEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateTask(task.copy(isCompleted = !task.isCompleted))
         }
     }
 

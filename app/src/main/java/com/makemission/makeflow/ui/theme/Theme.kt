@@ -5,6 +5,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalConfiguration
 
 private val DarkColorScheme = darkColorScheme(
     primary         = DarkPrimary,
@@ -42,10 +44,20 @@ fun MakeFlowTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val config = LocalConfiguration.current
+    val screenWidth = config.screenWidthDp
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    val dimens = when {
+        screenWidth < 600 -> compactDimens
+        screenWidth < 840 -> mediumDimens
+        else -> expandedDimens
+    }
+
+    CompositionLocalProvider(LocalAppDimens provides dimens) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

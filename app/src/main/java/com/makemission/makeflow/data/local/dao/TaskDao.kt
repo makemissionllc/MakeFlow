@@ -23,4 +23,7 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks ORDER BY timestamp DESC")
     fun getAllTasks(): Flow<List<TaskEntity>>
+
+    @Query("UPDATE tasks SET categoryId = :categoryId WHERE id = :taskId")
+    suspend fun updateTaskCategory(taskId: String, categoryId: String?)
 }

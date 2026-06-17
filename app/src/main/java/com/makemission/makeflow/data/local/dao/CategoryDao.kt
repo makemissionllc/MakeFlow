@@ -5,8 +5,11 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Relation
+import androidx.room.Transaction
 import androidx.room.Update
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import kotlinx.coroutines.flow.Flow
 
 data class CategorySpending(
@@ -47,4 +50,8 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories WHERE id = :id")
     suspend fun deleteCategoryById(id: String)
+
+    @Transaction
+    @Query("SELECT * FROM categories WHERE id = :id")
+    fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?>
 }

@@ -2,6 +2,10 @@
 
 package com.makemission.makeflow.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import java.text.NumberFormat
 import java.util.Locale
@@ -65,6 +70,7 @@ fun AddTransactionBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val categories = viewModel.uiState.value.categories
+    val dimens = LocalAppDimens.current
 
     var rawInput by remember { mutableStateOf("") }
     var transactionType by remember { mutableStateOf("EXPENSE") }
@@ -84,66 +90,76 @@ fun AddTransactionBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        shape = RoundedCornerShape(topStart = dimens.cornerRadiusXL, topEnd = dimens.cornerRadiusXL),
         containerColor = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp)
-        ) {
-            AmountDisplay(rawInput = rawInput)
-            TransactionTypeSelector(
-                selected = transactionType,
-                onSelect = { transactionType = it }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            NoteField(note = note, onNoteChange = { note = it })
-            Spacer(modifier = Modifier.height(8.dp))
-            CategoryGrid(
-                categories = categories,
-                selectedId = selectedCategoryId,
-                onSelect = { selectedCategoryId = it }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            NumpadRow(
-                onDigit = { d ->
-                    if (rawInput.contains(".") && rawInput.substringAfter(".").length >= 2) return@NumpadRow
-                    rawInput += d
-                },
-                onDecimal = {
-                    if (!rawInput.contains(".")) rawInput += "."
-                },
-                onBackspace = {
-                    if (rawInput.isNotEmpty()) rawInput = rawInput.dropLast(1)
-                }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            SaveButton(
-                enabled = isFormValid,
-                onClick = {
-                    viewModel.onAddTransaction(
-                        amount = amount,
-                        type = transactionType,
-                        categoryId = selectedCategoryId,
-                        note = note.trim()
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = tween(400)) +
+                    slideInVertically(
+                        animationSpec = tween(400),
+                        initialOffsetY = { it / 4 }
                     )
-                    onDismiss()
-                }
-            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = dimens.paddingExtra)
+            ) {
+                AmountDisplay(rawInput = rawInput)
+                TransactionTypeSelector(
+                    selected = transactionType,
+                    onSelect = { transactionType = it }
+                )
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+                NoteField(note = note, onNoteChange = { note = it })
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+                CategoryGrid(
+                    categories = categories,
+                    selectedId = selectedCategoryId,
+                    onSelect = { selectedCategoryId = it }
+                )
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+                NumpadRow(
+                    onDigit = { d ->
+                        if (rawInput.contains(".") && rawInput.substringAfter(".").length >= 2) return@NumpadRow
+                        rawInput += d
+                    },
+                    onDecimal = {
+                        if (!rawInput.contains(".")) rawInput += "."
+                    },
+                    onBackspace = {
+                        if (rawInput.isNotEmpty()) rawInput = rawInput.dropLast(1)
+                    }
+                )
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                SaveButton(
+                    enabled = isFormValid,
+                    onClick = {
+                        viewModel.onAddTransaction(
+                            amount = amount,
+                            type = transactionType,
+                            categoryId = selectedCategoryId,
+                            note = note.trim()
+                        )
+                        onDismiss()
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun AmountDisplay(rawInput: String) {
+    val dimens = LocalAppDimens.current
     val display = formatNumpadDisplay(rawInput)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingSmall + 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -158,11 +174,13 @@ private fun AmountDisplay(rawInput: String) {
 
 @Composable
 private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .padding(horizontal = dimens.paddingLarge)
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
         listOf("Expense", "Income").forEach { label ->
@@ -170,13 +188,13 @@ private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
                     .background(
                         if (isSelected) MaterialTheme.colorScheme.primary
                         else Color.Transparent
                     )
                     .clickable { onSelect(label.uppercase()) }
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = dimens.paddingSmall + 4.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -193,19 +211,21 @@ private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit
 
 @Composable
 private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .padding(horizontal = dimens.paddingLarge)
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 2.dp),
+            .padding(horizontal = dimens.paddingMedium, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Filled.Edit,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(dimens.iconSizeMedium - 2.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -230,7 +250,9 @@ private fun CategoryGrid(
     selectedId: String?,
     onSelect: (String?) -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+    val dimens = LocalAppDimens.current
+
+    Column(modifier = Modifier.padding(horizontal = dimens.paddingLarge)) {
         Text(
             text = "Category",
             style = MaterialTheme.typography.labelLarge,
@@ -241,7 +263,7 @@ private fun CategoryGrid(
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall + 6.dp)
         ) {
             items(categories) { category ->
                 val isSelected = category.id == selectedId
@@ -254,7 +276,7 @@ private fun CategoryGrid(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(dimens.iconSizeLarge + 12.dp)
                             .clip(CircleShape)
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary
@@ -265,7 +287,7 @@ private fun CategoryGrid(
                         Icon(
                             imageVector = iconForCategoryName(category.iconName, category.name),
                             contentDescription = category.name,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(dimens.iconSizeMedium),
                             tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                             else MaterialTheme.colorScheme.onSurface
                         )
@@ -290,46 +312,47 @@ private fun NumpadRow(
     onDecimal: () -> Unit,
     onBackspace: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val keys = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf(".", "0", "⌫")
+        listOf(".", "0", "\u232B")
     )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = dimens.paddingMedium, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
     ) {
         keys.forEach { row ->
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
             ) {
                 row.forEach { key ->
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1.5f)
-                            .clip(RoundedCornerShape(16.dp))
+                            .aspectRatio(dimens.numpadKeyAspectRatio)
+                            .clip(RoundedCornerShape(dimens.numpadRadius))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable {
                                 when (key) {
-                                    "⌫" -> onBackspace()
+                                    "\u232B" -> onBackspace()
                                     "." -> onDecimal()
                                     else -> onDigit(key)
                                 }
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (key == "⌫") {
+                        if (key == "\u232B") {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Backspace",
                                 tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(dimens.iconSizeMedium)
                             )
                         } else {
                             Text(
@@ -348,14 +371,15 @@ private fun NumpadRow(
 
 @Composable
 private fun SaveButton(enabled: Boolean, onClick: () -> Unit) {
+    val dimens = LocalAppDimens.current
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = dimens.paddingLarge)
             .height(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(dimens.cornerRadiusMedium),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,

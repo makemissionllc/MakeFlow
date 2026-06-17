@@ -1,6 +1,11 @@
 package com.makemission.makeflow.ui.screens
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +32,6 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -57,6 +61,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,6 +72,7 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.components.AddTransactionBottomSheet
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import com.makemission.makeflow.ui.viewmodel.DashboardViewModel
 import kotlinx.coroutines.Dispatchers
@@ -153,7 +159,9 @@ private fun TaskSection(
     onDelete: (TaskEntity) -> Unit,
     onAddClick: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    val dimens = LocalAppDimens.current
+
+    Column(modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -182,7 +190,7 @@ private fun TaskSection(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
         if (state.isLoading) {
             Text(
@@ -209,7 +217,7 @@ private fun TaskSection(
                     onToggle = { onToggle(task) },
                     onDelete = { onDelete(task) }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
             }
         }
     }
@@ -221,40 +229,55 @@ private fun TaskRow(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+    val dimens = LocalAppDimens.current
+    var isRemoved by remember { mutableStateOf(false) }
+
+    AnimatedVisibility(
+        visible = !isRemoved,
+        exit = fadeOut(animationSpec = spring(dampingRatio = 0.7f)) +
+                shrinkVertically(animationSpec = spring(dampingRatio = 0.7f))
     ) {
-        Checkbox(
-            checked = task.isCompleted,
-            onCheckedChange = { onToggle() }
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = task.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.SemiBold,
-                color = if (task.isCompleted)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else
-                    MaterialTheme.colorScheme.onBackground
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(spring(dampingRatio = 0.7f, stiffness = 300f)),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = task.isCompleted,
+                onCheckedChange = { onToggle() }
             )
-            if (task.description.isNotBlank()) {
+            Spacer(modifier = Modifier.width(dimens.paddingSmall))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = task.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.SemiBold,
+                    color = if (task.isCompleted)
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    else
+                        MaterialTheme.colorScheme.onBackground,
+                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                )
+                if (task.description.isNotBlank()) {
+                    Text(
+                        text = task.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+            }
+            IconButton(onClick = {
+                isRemoved = true
+                onDelete()
+            }) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Delete Task",
+                    tint = MaterialTheme.colorScheme.error
                 )
             }
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Filled.Delete,
-                contentDescription = "Delete Task",
-                tint = MaterialTheme.colorScheme.error
-            )
         }
     }
 }
@@ -307,10 +330,12 @@ private fun AddTaskDialog(
 
 @Composable
 private fun DashboardTopBar(onAddTransaction: () -> Unit) {
+    val dimens = LocalAppDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall + 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { /* profile */ }) {
@@ -339,20 +364,21 @@ private fun DashboardTopBar(onAddTransaction: () -> Unit) {
 
 @Composable
 private fun BalanceCard(accounts: List<AccountEntity>) {
+    val dimens = LocalAppDimens.current
     val totalBalance = accounts.sumOf { it.balance }
     val formatted = formatCurrencyParts(totalBalance)
 
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(20.dp),
+            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall),
+        shape = RoundedCornerShape(dimens.cornerRadiusLarge),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = dimens.cardElevation)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(dimens.paddingLarge)) {
             Text(
                 text = "TOTAL BALANCE",
                 style = MaterialTheme.typography.labelMedium,
@@ -377,7 +403,7 @@ private fun BalanceCard(accounts: List<AccountEntity>) {
                     fontWeight = FontWeight.Normal
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(dimens.paddingMedium))
             ActionChipsRow()
         }
     }
@@ -397,20 +423,21 @@ private fun ActionChipsRow() {
 
 @Composable
 private fun ActionChipItem(icon: ImageVector, label: String) {
+    val dimens = LocalAppDimens.current
     Surface(
         onClick = { /* action */ },
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(dimens.cornerRadiusLarge),
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurface
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                modifier = Modifier.size(16.dp),
+                modifier = Modifier.size(dimens.iconSizeSmall),
                 tint = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.width(6.dp))
@@ -425,7 +452,9 @@ private fun ActionChipItem(icon: ImageVector, label: String) {
 
 @Composable
 private fun MyCardsSection(accounts: List<AccountEntity>) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    val dimens = LocalAppDimens.current
+
+    Column(modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -446,19 +475,17 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
             }
         }
 
-        val virtualCard = accounts.firstOrNull()
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .height(dimens.cardMinHeight * 2.5f)
+                .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                 .background(MaterialTheme.colorScheme.surface)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp),
+                    .padding(dimens.paddingLarge),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -468,7 +495,7 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
                     letterSpacing = 2.sp
                 )
                 Text(
-                    text = "••••   4209",
+                    text = "\u2022\u2022\u2022\u2022   4209",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -508,7 +535,7 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
 
         val used = 4500.0
         val limit = 10000.0
@@ -530,7 +557,7 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
             progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(6.dp)
+                .height(dimens.barHeight - 2.dp)
                 .clip(RoundedCornerShape(3.dp)),
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -540,7 +567,9 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
 
 @Composable
 private fun RecentTransactionsSection(transactions: List<TransactionEntity>) {
-    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+    val dimens = LocalAppDimens.current
+
+    Column(modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -559,11 +588,11 @@ private fun RecentTransactionsSection(transactions: List<TransactionEntity>) {
                 color = MaterialTheme.colorScheme.primary
             )
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
         transactions.take(5).forEach { tx ->
             TransactionRow(tx)
             if (tx != transactions.take(5).last()) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
             }
         }
     }
@@ -571,13 +600,15 @@ private fun RecentTransactionsSection(transactions: List<TransactionEntity>) {
 
 @Composable
 private fun TransactionRow(tx: TransactionEntity) {
+    val dimens = LocalAppDimens.current
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(dimens.iconSizeLarge)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -585,11 +616,11 @@ private fun TransactionRow(tx: TransactionEntity) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(dimens.iconSizeMedium - 2.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(dimens.paddingSmall + 4.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = tx.note.ifEmpty { "Transaction" },
@@ -646,5 +677,5 @@ private fun formatTimestamp(timestamp: Long): String {
     val todayFormat = SimpleDateFormat("yyyyMMdd", Locale.US)
     val isToday = todayFormat.format(date) == todayFormat.format(now)
     val prefix = if (isToday) "Today" else "Yesterday"
-    return "$prefix, ${timeFormat.format(date)} • ${dateFormat.format(date)}"
+    return "$prefix, ${timeFormat.format(date)} \u2022 ${dateFormat.format(date)}"
 }

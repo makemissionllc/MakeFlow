@@ -4,6 +4,7 @@ import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
@@ -13,8 +14,13 @@ import kotlinx.coroutines.flow.Flow
 class FinanceRepositoryImpl(
     private val categoryDao: CategoryDao,
     private val transactionDao: TransactionDao,
-    private val taskDao: TaskDao
+    private val taskDao: TaskDao,
+    private val accountDao: com.makemission.makeflow.data.local.dao.AccountDao? = null
 ) : FinanceRepository {
+
+    override suspend fun insertAccount(account: AccountEntity) {
+        accountDao?.insertAccount(account)
+    }
 
     override fun getAllCategories(): Flow<List<CategoryEntity>> = categoryDao.getAllCategories()
 

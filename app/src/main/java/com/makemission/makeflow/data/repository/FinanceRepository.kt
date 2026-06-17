@@ -1,6 +1,7 @@
 package com.makemission.makeflow.data.repository
 
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
@@ -8,6 +9,7 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
+    suspend fun insertAccount(account: AccountEntity)
     fun getAllCategories(): Flow<List<CategoryEntity>>
     fun getMonthlySpendingByCategory(monthStartMillis: Long, monthEndMillis: Long): Flow<List<CategorySpending>>
     fun getAllTransactions(): Flow<List<TransactionEntity>>

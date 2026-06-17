@@ -18,6 +18,7 @@ sealed class Screen(
     data object AddTransaction : Screen("add_transaction", "Add", Icons.Filled.Add)
     data object Categories : Screen("categories", "Categories", Icons.Filled.Category)
     data object Settings : Screen("settings", "Settings", Icons.Filled.Settings)
+    data object Onboarding : Screen("onboarding", "Onboarding", Icons.Filled.Home)
 
     companion object {
         val bottomNavItems by lazy { listOf(Dashboard, Analytics, Categories, Settings) }

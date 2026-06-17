@@ -40,6 +40,7 @@ import com.makemission.makeflow.ui.navigation.Screen
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
 import com.makemission.makeflow.ui.screens.CategoriesScreen
 import com.makemission.makeflow.ui.screens.DashboardScreen
+import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 
@@ -49,25 +50,34 @@ fun MainScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val isAddRoute = currentDestination?.route == Screen.AddTransaction.route
+    val isOnboardingRoute = currentDestination?.route == Screen.Onboarding.route
+    val showNavbar = !isAddRoute && !isOnboardingRoute
     val dimens = LocalAppDimens.current
 
     Scaffold { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             NavHost(
                 navController = navController,
-                startDestination = Screen.Dashboard.route,
+                startDestination = Screen.Onboarding.route,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(top = innerPadding.calculateTopPadding())
-                    .padding(bottom = innerPadding.calculateBottomPadding() + 80.dp)
+                    .padding(bottom = innerPadding.calculateBottomPadding() + if (showNavbar) 80.dp else 0.dp)
             ) {
+                composable(Screen.Onboarding.route) {
+                    OnboardingScreen(onCompleted = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    })
+                }
                 composable(Screen.Dashboard.route) { DashboardScreen() }
                 composable(Screen.Analytics.route) { AnalyticsScreen() }
                 composable(Screen.Categories.route) { CategoriesScreen() }
                 composable(Screen.Settings.route) { SettingsScreen() }
             }
 
-            if (!isAddRoute) {
+            if (showNavbar) {
                 val isCompact = dimens.navbarMaxWidth == Dp.Infinity
 
                 Surface(

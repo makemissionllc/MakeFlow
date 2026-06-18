@@ -1,223 +1,185 @@
 package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.makemission.makeflow.ui.theme.ExpressiveMotion
-import com.makemission.makeflow.ui.theme.MorphingFabShape
-import com.makemission.makeflow.ui.theme.NavbarPillShape
 
-enum class NavTab(val label: String, val icon: ImageVector) {
-    Dashboard("Focus", Icons.Filled.Home),
-    Analytics("Insights", Icons.Filled.BarChart)
+enum class MakeFlowTab {
+    FOCUS, INSIGHTS
 }
 
 @Composable
 fun ExpressiveNavDock(
-    currentTab: NavTab,
-    onTabSelected: (NavTab) -> Unit,
+    currentTab: MakeFlowTab,
+    onTabSelected: (MakeFlowTab) -> Unit,
     onFabClick: () -> Unit,
-    isVisible: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val haptic = LocalHapticFeedback.current
 
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = slideInVertically(
-            animationSpec = tween<IntOffset>(
-                durationMillis = 500,
-                easing = ExpressiveMotion.EmphasizedEasing
-            )
-        ) { it / 2 },
-        exit = slideOutVertically(
-            animationSpec = tween<IntOffset>(
-                durationMillis = 500,
-                easing = ExpressiveMotion.EmphasizedEasing
-            )
-        ) { it / 2 },
+    Row(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    color = Color(0xFF1E2124),
+                    shape = CircleShape
+                )
+                .padding(6.dp)
+                .animateContentSize(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            MorphingDockItem(
+                selected = currentTab == MakeFlowTab.FOCUS,
+                activeIcon = Icons.Rounded.Home,
+                inactiveIcon = Icons.Outlined.Home,
+                label = "Focus",
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTabSelected(MakeFlowTab.FOCUS)
+                }
+            )
+
+            MorphingDockItem(
+                selected = currentTab == MakeFlowTab.INSIGHTS,
+                activeIcon = Icons.Rounded.BarChart,
+                inactiveIcon = Icons.Outlined.BarChart,
+                label = "Insights",
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTabSelected(MakeFlowTab.INSIGHTS)
+                }
+            )
+        }
+
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 16.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(72.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceContainer,
-                        shape = NavbarPillShape
-                    )
-                    .padding(horizontal = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                NavDockItem(
-                    tab = NavTab.Dashboard,
-                    isSelected = currentTab == NavTab.Dashboard,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onTabSelected(NavTab.Dashboard)
-                    },
-                    modifier = Modifier.weight(1f)
+                .size(56.dp)
+                .background(
+                    color = Color.White,
+                    shape = CircleShape
                 )
-
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .padding(bottom = 4.dp),
-                    contentAlignment = Alignment.Center
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
                 ) {
-                    ExpressiveFloatingActionButton(onClick = onFabClick)
-                }
-
-                NavDockItem(
-                    tab = NavTab.Analytics,
-                    isSelected = currentTab == NavTab.Analytics,
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onTabSelected(NavTab.Analytics)
-                    },
-                    modifier = Modifier.weight(1f)
-                )
-            }
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onFabClick()
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Add,
+                contentDescription = "Add Transaction",
+                tint = Color.Black,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
 
 @Composable
-private fun RowScope.NavDockItem(
-    tab: NavTab,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+private fun RowScope.MorphingDockItem(
+    selected: Boolean,
+    activeIcon: ImageVector,
+    inactiveIcon: ImageVector,
+    label: String,
+    onClick: () -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    val scaleAnimated by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1.0f,
-        animationSpec = ExpressiveMotion.bouncySpring()
+    val containerColor by animateColorAsState(
+        targetValue = if (selected) Color.White else Color.Transparent,
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
+    )
+    val contentColor by animateColorAsState(
+        targetValue = if (selected) Color.Black else Color.White.copy(alpha = 0.6f),
+        animationSpec = spring(stiffness = Spring.StiffnessMedium)
     )
 
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
+    Row(
+        modifier = Modifier
+            .height(44.dp)
+            .background(color = containerColor, shape = CircleShape)
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
-            )
-            .scale(scaleAnimated),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { onClick() }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = tab.icon,
-            contentDescription = tab.label,
-            tint = if (isSelected) {
-                MaterialTheme.colorScheme.primary
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            },
-            modifier = Modifier.size(24.dp)
+            imageVector = if (selected) activeIcon else inactiveIcon,
+            contentDescription = label,
+            tint = contentColor,
+            modifier = Modifier.size(20.dp)
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = tab.label,
-            fontSize = 11.sp,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-            color = if (isSelected) {
-                MaterialTheme.colorScheme.onSurface
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+        AnimatedVisibility(
+            visible = selected,
+            enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+            exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start)
+        ) {
+            Row {
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = label,
+                    color = contentColor,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
             }
-        )
-    }
-}
-
-@Composable
-fun ExpressiveFloatingActionButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val haptic = LocalHapticFeedback.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scaleFab by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1.0f,
-        animationSpec = ExpressiveMotion.bouncySpring()
-    )
-
-    Box(
-        modifier = modifier
-            .scale(scaleFab)
-            .size(56.dp)
-            .background(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = MorphingFabShape
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onClick()
-                }
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Add,
-            contentDescription = "Create Task",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.size(28.dp)
-        )
+        }
     }
 }

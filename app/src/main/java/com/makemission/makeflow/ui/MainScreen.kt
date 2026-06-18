@@ -14,7 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.makemission.makeflow.ui.components.ExpressiveNavDock
-import com.makemission.makeflow.ui.components.NavTab
+import com.makemission.makeflow.ui.components.MakeFlowTab
 import com.makemission.makeflow.ui.navigation.Screen
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
 import com.makemission.makeflow.ui.screens.CategoriesScreen
@@ -32,8 +32,8 @@ fun MainScreen() {
     val showNavbar = !isAddRoute && !isOnboardingRoute
 
     val currentTab = when (currentDestination?.route) {
-        Screen.Dashboard.route -> NavTab.Dashboard
-        Screen.Analytics.route -> NavTab.Analytics
+        Screen.Dashboard.route -> MakeFlowTab.FOCUS
+        Screen.Analytics.route -> MakeFlowTab.INSIGHTS
         else -> null
     }
 
@@ -64,8 +64,8 @@ fun MainScreen() {
                     currentTab = currentTab,
                     onTabSelected = { tab ->
                         val route = when (tab) {
-                            NavTab.Dashboard -> Screen.Dashboard.route
-                            NavTab.Analytics -> Screen.Analytics.route
+                            MakeFlowTab.FOCUS -> Screen.Dashboard.route
+                            MakeFlowTab.INSIGHTS -> Screen.Analytics.route
                         }
                         navController.navigate(route) {
                             popUpTo(navController.graph.findStartDestination().id) {

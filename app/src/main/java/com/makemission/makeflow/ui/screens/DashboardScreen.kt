@@ -146,7 +146,7 @@ fun DashboardScreen(
             val scrollOffset = listState.firstVisibleItemScrollOffset.toFloat()
             val viewportHeight = listState.layoutInfo.viewportEndOffset.toFloat()
             val threshold = viewportHeight * 0.4f
-            (scrollOffset / threshold).coerceIn(0f, 1f)
+            if (threshold > 0f) (scrollOffset / threshold).coerceIn(0f, 1f) else 0f
         }
     }
 

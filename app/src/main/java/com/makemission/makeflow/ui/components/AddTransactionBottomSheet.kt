@@ -2,11 +2,21 @@
 package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,17 +55,25 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.CategoryEntity
@@ -63,8 +82,12 @@ import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import com.makemission.makeflow.ui.haptic.lightTick
 import com.makemission.makeflow.ui.haptic.mediumConfirm
 import com.makemission.makeflow.ui.haptic.strongPress
+import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
+
+private val INCOME_GLOW = Color(0xFF1B5E20)
+private val EXPENSE_GLOW = Color(0xFF4A1A1A)
 
 @Composable
 fun AddTransactionBottomSheet(
@@ -88,6 +111,16 @@ fun AddTransactionBottomSheet(
         }
     }
 
+    val isIncome = transactionType == "INCOME"
+    val glowColor by animateColorAsState(
+        targetValue = if (isIncome) INCOME_GLOW else EXPENSE_GLOW,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "sheetGlow"
+    )
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -106,6 +139,12 @@ fun AddTransactionBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
+                    .graphicsLayer {
+                        shadowElevation = 8f
+                        this.clip = true
+                        shape = RoundedCornerShape(topStart = 40f, topEnd = 40f)
+                    }
+                    .background(glowColor.copy(alpha = 0.06f))
                     .padding(bottom = dimens.paddingExtra)
             ) {
                 AmountDisplay(rawInput = rawInput)
@@ -159,6 +198,30 @@ private fun AmountDisplay(rawInput: String) {
     val dimens = LocalAppDimens.current
     val display = formatNumpadDisplay(rawInput)
 
+    val scope = rememberCoroutineScope()
+    val scaleAnimatable = remember { Animatable(1f) }
+
+    LaunchedEffect(rawInput.length) {
+        if (rawInput.isNotEmpty()) {
+            scope.launch {
+                scaleAnimatable.animateTo(
+                    targetValue = 1.08f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    )
+                )
+                scaleAnimatable.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    )
+                )
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -170,7 +233,11 @@ private fun AmountDisplay(rawInput: String) {
             style = MaterialTheme.typography.displayLarge.copy(fontSize = 44.sp),
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.graphicsLayer {
+                scaleX = scaleAnimatable.value
+                scaleY = scaleAnimatable.value
+            }
         )
     }
 }
@@ -180,35 +247,98 @@ private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit
     val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
 
-    Row(
+    val options = listOf("EXPENSE", "INCOME")
+    val selectedIndex = if (selected == "INCOME") 1 else 0
+    val fraction by animateFloatAsState(
+        targetValue = selectedIndex.toFloat(),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "toggleSlide"
+    )
+
+    val accentColor by animateColorAsState(
+        targetValue = if (selected == "INCOME")
+            Color(0xFF1B5E20)
+        else
+            MaterialTheme.colorScheme.error,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "toggleAccent"
+    )
+
+    val isIncome = selected == "INCOME"
+    val bgColor by animateColorAsState(
+        targetValue = if (isIncome) Color(0xFF0D2818) else Color(0xFF1A1012),
+        animationSpec = tween(durationMillis = 350, easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)),
+        label = "toggleBg"
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = dimens.paddingLarge)
             .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(bgColor)
     ) {
-        listOf("Expense", "Income").forEach { label ->
-            val isSelected = selected == label.uppercase()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(4.dp)
+        ) {
             Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
-                    .background(
-                        if (isSelected) MaterialTheme.colorScheme.primary
-                        else Color.Transparent
-                    )
-                    .clickable { haptic.mediumConfirm(); onSelect(label.uppercase()) }
-                    .padding(vertical = dimens.paddingSmall + 4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    style = MaterialTheme.typography.labelLarge
-                )
+                    .fillMaxWidth(0.5f)
+                    .height(44.dp)
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        layout(placeable.width, placeable.height) {
+                            placeable.placeRelative(
+                                x = (fraction * constraints.maxWidth * 0.5f).toInt(),
+                                y = 0
+                            )
+                        }
+                    }
+                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
+                    .background(accentColor)
+                    .graphicsLayer {
+                        scaleX = 1f + 0.03f * (1f - kotlin.math.abs(fraction - 0.5f) * 2f)
+                        scaleY = 1f - 0.02f * (1f - kotlin.math.abs(fraction - 0.5f) * 2f)
+                    }
+            )
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                options.forEachIndexed { index, label ->
+                    val isSelected = index == selectedIndex
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clickable {
+                                haptic.mediumConfirm()
+                                onSelect(label)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label.lowercase()
+                                .replaceFirstChar { it.uppercase() },
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.graphicsLayer {
+                                alpha = if (isSelected) 1f else 0.6f
+                                scaleX = if (isSelected) 1.05f else 1f
+                                scaleY = if (isSelected) 1.05f else 1f
+                            }
+                        )
+                    }
+                }
             }
         }
     }
@@ -319,12 +449,109 @@ private fun CategoryGrid(
 }
 
 @Composable
+private fun NumpadKey(
+    key: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.88f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "numpadKeyScale"
+    )
+
+    val elevation by animateDpAsState(
+        targetValue = if (isPressed) 2.dp else 6.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "numpadKeyElevation"
+    )
+
+    val rippleColor = MaterialTheme.colorScheme.primary
+    val rippleAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.12f else 0f,
+        animationSpec = tween(
+            durationMillis = if (isPressed) 80 else 250,
+            easing = LinearEasing
+        ),
+        label = "rippleAlpha"
+    )
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> {
+                    isPressed = true
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                }
+                is PressInteraction.Release -> {
+                    isPressed = false
+                    haptic.performHapticFeedback(HapticFeedbackType.Confirm)
+                }
+                is PressInteraction.Cancel -> {
+                    isPressed = false
+                }
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .graphicsLayer {
+                shadowElevation = elevation.toPx()
+                shape = RoundedCornerShape(16.dp)
+                clip = true
+            }
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .drawBehind {
+                if (rippleAlpha > 0f) {
+                    drawCircle(
+                        color = rippleColor.copy(alpha = rippleAlpha),
+                        radius = size.minDimension / 2f
+                    )
+                }
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        if (key == "\u232B") {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = "Backspace",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            Text(
+                text = key,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
 private fun NumpadRow(
     onDigit: (String) -> Unit,
     onDecimal: () -> Unit,
     onBackspace: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
     val keys = listOf(
         listOf("1", "2", "3"),
@@ -345,38 +572,19 @@ private fun NumpadRow(
                 horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
             ) {
                 row.forEach { key ->
-                    Box(
+                    NumpadKey(
+                        key = key,
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(dimens.numpadKeyAspectRatio)
-                            .clip(RoundedCornerShape(dimens.numpadRadius))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .clickable {
-                                haptic.lightTick()
-                                when (key) {
-                                    "\u232B" -> onBackspace()
-                                    "." -> onDecimal()
-                                    else -> onDigit(key)
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (key == "\u232B") {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Backspace",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(dimens.iconSizeMedium)
-                            )
-                        } else {
-                            Text(
-                                text = key,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            .aspectRatio(dimens.numpadKeyAspectRatio),
+                        onClick = {
+                            when (key) {
+                                "\u232B" -> onBackspace()
+                                "." -> onDecimal()
+                                else -> onDigit(key)
+                            }
                         }
-                    }
+                    )
                 }
             }
         }

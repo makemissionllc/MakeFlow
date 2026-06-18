@@ -244,7 +244,7 @@ private fun CashFlowChartSection(
 
             val allAmounts = uiState.incomeChartPoints.map { it.second } +
                     uiState.expenseChartPoints.map { it.second }
-            val maxVal = (allAmounts.maxOrNull() ?: 1.0) * 1.15
+            val maxVal = (allAmounts.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0) * 1.15
 
             for (i in 0..4) {
                 val y = chartH * (1f - i / 4f)

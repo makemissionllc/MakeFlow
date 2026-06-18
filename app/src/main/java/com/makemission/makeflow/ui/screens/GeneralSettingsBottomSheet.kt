@@ -22,7 +22,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material3.Checkbox
+import com.makemission.makeflow.ui.components.PinSetupDialog
+import com.makemission.makeflow.ui.components.BiometricHelper
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -67,6 +70,17 @@ fun GeneralSettingsBottomSheet(
     var privacyChecked by remember {
         mutableStateOf(sharedPrefs.getBoolean("privacy_enabled", true))
     }
+    var lockEnabled by remember {
+        mutableStateOf(sharedPrefs.getBoolean("screen_lock_enabled", false))
+    }
+    var biometricUnlockEnabled by remember {
+        mutableStateOf(sharedPrefs.getBoolean("screen_lock_biometrics_enabled", false))
+    }
+    val isBiometricAvailable = remember {
+        BiometricHelper.isBiometricAvailable(context)
+    }
+    var showPinSetup by remember { mutableStateOf(false) }
+    var showPinChange by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -272,6 +286,121 @@ fun GeneralSettingsBottomSheet(
                     )
                 )
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // ── Security Section ──
+            Text(
+                text = "Security",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            // Screen Lock Switch
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1E2124), RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Lock, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                    Text(text = "Screen Lock", color = Color.White, fontSize = 16.sp)
+                }
+                Switch(
+                    checked = lockEnabled,
+                    onCheckedChange = { checked ->
+                        if (checked) {
+                            showPinSetup = true
+                        } else {
+                            lockEnabled = false
+                            biometricUnlockEnabled = false
+                            sharedPrefs.edit()
+                                .putBoolean("screen_lock_enabled", false)
+                                .putBoolean("screen_lock_biometrics_enabled", false)
+                                .putString("screen_lock_pin", "")
+                                .apply()
+                        }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = Color.White,
+                        uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                        uncheckedTrackColor = Color(0xFF2C2F33)
+                    )
+                )
+            }
+
+            // Biometric Switch
+            if (lockEnabled && isBiometricAvailable) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E2124), RoundedCornerShape(16.dp))
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Fingerprint, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                        Text(text = "Biometric Unlock", color = Color.White, fontSize = 16.sp)
+                    }
+                    Switch(
+                        checked = biometricUnlockEnabled,
+                        onCheckedChange = { checked ->
+                            biometricUnlockEnabled = checked
+                            sharedPrefs.edit().putBoolean("screen_lock_biometrics_enabled", checked).apply()
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.Black,
+                            checkedTrackColor = Color.White,
+                            uncheckedThumbColor = Color.White.copy(alpha = 0.4f),
+                            uncheckedTrackColor = Color(0xFF2C2F33)
+                        )
+                    )
+                }
+            }
+
+            // Change PIN Row
+            if (lockEnabled) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E2124), RoundedCornerShape(16.dp))
+                        .clickable { showPinChange = true }
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Lock, contentDescription = null, tint = Color.White.copy(alpha = 0.6f))
+                        Text(text = "Change Security PIN", color = Color.White, fontSize = 16.sp)
+                    }
+                    Text(text = "Edit", color = MaterialTheme.colorScheme.primary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        if (showPinSetup) {
+            PinSetupDialog(
+                onDismiss = { showPinSetup = false },
+                onSuccess = {
+                    lockEnabled = true
+                    showPinSetup = false
+                }
+            )
+        }
+
+        if (showPinChange) {
+            PinSetupDialog(
+                onDismiss = { showPinChange = false },
+                onSuccess = {
+                    showPinChange = false
+                }
+            )
         }
     }
 }

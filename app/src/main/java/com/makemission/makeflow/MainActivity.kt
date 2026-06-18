@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,10 +16,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.fragment.app.FragmentActivity
 import com.makemission.makeflow.ui.AppNavigationEngine
+import com.makemission.makeflow.ui.screens.LockScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         try {
@@ -38,6 +42,24 @@ class MainActivity : ComponentActivity() {
                 }
                 var themePalette by remember {
                     mutableStateOf(sharedPrefs.getString("theme_palette", "forest") ?: "forest")
+                }
+                var isUnlocked by remember {
+                    mutableStateOf(!sharedPrefs.getBoolean("screen_lock_enabled", false))
+                }
+
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner, sharedPrefs) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_STOP) {
+                            if (sharedPrefs.getBoolean("screen_lock_enabled", false)) {
+                                isUnlocked = false
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
                 }
                 
                 DisposableEffect(sharedPrefs) {
@@ -62,7 +84,11 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        AppNavigationEngine()
+                        if (!isUnlocked) {
+                            LockScreen(onUnlock = { isUnlocked = true })
+                        } else {
+                            AppNavigationEngine()
+                        }
                     }
                 }
             }

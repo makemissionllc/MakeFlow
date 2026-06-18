@@ -15,6 +15,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,11 +23,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -58,7 +61,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,15 +68,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
@@ -90,6 +99,7 @@ import com.makemission.makeflow.ui.haptic.expressiveLongPressTilt
 import com.makemission.makeflow.ui.haptic.lightTick
 import com.makemission.makeflow.ui.haptic.mediumConfirm
 import com.makemission.makeflow.ui.haptic.strongPress
+import com.makemission.makeflow.ui.theme.ExpressiveMotion
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
@@ -106,6 +116,7 @@ import kotlin.math.min
 
 @Composable
 fun DashboardScreen(
+    onScrollDirectionChanged: (isNavVisible: Boolean) -> Unit = {},
     taskViewModel: DashboardViewModel = viewModel(),
     categoriesViewModel: CategoriesViewModel = viewModel()
 ) {
@@ -139,41 +150,60 @@ fun DashboardScreen(
     var showAddTransaction by remember { mutableStateOf(false) }
 
     val listState = rememberLazyListState()
-    val dimens = LocalAppDimens.current
+    val density = LocalDensity.current
 
-    val collapseProgress by remember {
-        derivedStateOf {
-            val scrollOffset = listState.firstVisibleItemScrollOffset.toFloat()
-            val viewportHeight = listState.layoutInfo.viewportEndOffset.toFloat()
-            val threshold = viewportHeight * 0.4f
-            if (threshold > 0f) (scrollOffset / threshold).coerceIn(0f, 1f) else 0f
+    val maxHeaderHeight = 180.dp
+    val minHeaderHeight = 64.dp
+    val headerHeightRangePx = with(density) { (maxHeaderHeight - minHeaderHeight).toPx() }
+
+    var scrollOffset by remember { mutableStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+
+                if (delta < -15f) {
+                    onScrollDirectionChanged(false)
+                } else if (delta > 15f) {
+                    onScrollDirectionChanged(true)
+                }
+
+                val newOffset = (scrollOffset - delta).coerceIn(0f, headerHeightRangePx)
+                if (newOffset != scrollOffset) {
+                    scrollOffset = newOffset
+                    return Offset(0f, delta)
+                }
+                return Offset.Zero
+            }
         }
     }
 
-    val isCollapsed by remember {
-        derivedStateOf {
-            collapseProgress >= 0.95f
-        }
+    val collapseProgress = if (headerHeightRangePx > 0f) {
+        (scrollOffset / headerHeightRangePx).coerceIn(0f, 1f)
+    } else {
+        0f
     }
 
     val totalBalance = accounts.sumOf { it.balance }
     val formatted = formatCurrencyParts(totalBalance)
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .nestedScroll(nestedScrollConnection)
+    ) {
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            contentPadding = PaddingValues(
+                top = maxHeaderHeight + 16.dp,
+                bottom = 100.dp,
+                start = 16.dp,
+                end = 16.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item(key = "balance_card") {
-                CollapsingBalanceCard(
-                    collapseProgress = collapseProgress,
-                    formatted = formatted,
-                    accounts = accounts,
-                    onActionClick = { }
-                )
-            }
-
             item(key = "action_chips") {
                 ActionChipsRow()
             }
@@ -183,7 +213,12 @@ fun DashboardScreen(
             }
 
             item(key = "recent_transactions_header") {
-                RecentTransactionsHeader()
+                Text(
+                    text = "Recent Transactions",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
             }
 
             items(
@@ -218,17 +253,17 @@ fun DashboardScreen(
                         text = "No tasks yet. Tap + to add one.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
             }
         }
 
-        CollapsingBalanceTopBar(
-            isVisible = isCollapsed,
+        CollapsingExpressiveHeader(
             collapseProgress = collapseProgress,
-            formatted = formatted,
-            onAddTransaction = { showAddTransaction = true }
+            maxHeight = maxHeaderHeight,
+            minHeight = minHeaderHeight,
+            formatted = formatted
         )
     }
 
@@ -251,187 +286,121 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun CollapsingBalanceCard(
+private fun CollapsingExpressiveHeader(
     collapseProgress: Float,
-    formatted: Pair<String, String>,
-    accounts: List<AccountEntity>,
-    onActionClick: () -> Unit
+    maxHeight: Dp,
+    minHeight: Dp,
+    formatted: Pair<String, String>
 ) {
-    val dimens = LocalAppDimens.current
-    val motion = LocalExpressiveMotion.current
+    val currentHeight = maxHeight - ((maxHeight - minHeight) * collapseProgress)
 
-    val cardHeight by animateDpAsState(
-        targetValue = lerp(
-            dimens.cardMinHeight * 3.2f,
-            dimens.cardMinHeight * 1.2f,
-            collapseProgress
-        ),
+    val headerBgColor by animateColorAsState(
+        targetValue = if (collapseProgress > 0.8f) {
+            MaterialTheme.colorScheme.surfaceContainer
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
+            dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "cardHeight"
+        )
     )
 
-    val cornerRadius by animateDpAsState(
-        targetValue = lerp(
-            dimens.shapeCornerExtraLarge,
-            dimens.cornerRadiusSmall,
-            collapseProgress
-        ),
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "cardCornerRadius"
-    )
+    val contentAlpha = (1f - collapseProgress).coerceIn(0f, 1f)
 
-    val contentPadding = lerp(dimens.paddingLarge, dimens.paddingMedium, collapseProgress)
+    val titleSize = (28 - (8 * collapseProgress)).sp
 
-    val titleAlpha = 1f - collapseProgress
-    val compressedAlpha = collapseProgress
-
-    ElevatedCard(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)
-            .height(cardHeight),
-        shape = RoundedCornerShape(cornerRadius),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.elevatedCardElevation(
-            defaultElevation = lerp(2.dp, 8.dp, collapseProgress)
-        )
+            .height(currentHeight)
+            .background(headerBgColor)
+            .statusBarsPadding()
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(contentPadding),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxHeight()
         ) {
-            AnimatedVisibility(visible = titleAlpha > 0.1f) {
-                Text(
-                    text = "TOTAL BALANCE",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = titleAlpha),
-                    letterSpacing = 1.sp
+            Text(
+                text = "Total Balance",
+                fontSize = if (collapseProgress > 0.5f) 14.sp else 16.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    alpha = if (collapseProgress > 0.5f) 0.8f else contentAlpha
                 )
-            }
+            )
 
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                modifier = Modifier.graphicsLayer { alpha = titleAlpha }
-            ) {
-                Text(
-                    text = "$${formatted.first}",
-                    style = MaterialTheme.typography.displayMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    text = ".${formatted.second}",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Normal
-                )
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Row(
-                modifier = Modifier.graphicsLayer { alpha = compressedAlpha },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "${accounts.size} accounts linked",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = "${formatted.first}.${formatted.second}",
+                fontSize = titleSize,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
 
 @Composable
-private fun CollapsingBalanceTopBar(
-    isVisible: Boolean,
-    collapseProgress: Float,
-    formatted: Pair<String, String>,
-    onAddTransaction: () -> Unit
-) {
-    val haptic = LocalHapticFeedback.current
-    val dimens = LocalAppDimens.current
-    val motion = LocalExpressiveMotion.current
-
-    val topBarAlpha by animateFloatAsState(
-        targetValue = if (isVisible) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "topBarAlpha"
+private fun ExpressiveTransactionCard(index: Int) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scaleCard by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = ExpressiveMotion.bouncySpring()
     )
 
-    val topBarHeight by animateDpAsState(
-        targetValue = if (isVisible) 56.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "topBarHeight"
-    )
-
-    if (topBarAlpha > 0.01f) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(topBarHeight),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = topBarAlpha * 0.95f),
-            shadowElevation = if (isVisible) 4.dp else 0.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = dimens.paddingMedium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { /* profile */ }) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "Profile",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Dashboard",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "$${formatted.first}.${formatted.second}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                IconButton(onClick = { haptic.mediumConfirm(); onAddTransaction() }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add Transaction",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .graphicsLayer {
+                scaleX = scaleCard
+                scaleY = scaleCard
             }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { }
+                )
+            }
+            .background(
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = MaterialTheme.shapes.large
+            )
+            .padding(16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "Transaction #$index",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Groceries & Utilities",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = "-$42.00",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }
@@ -443,7 +412,6 @@ private fun ActionChipsRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -501,7 +469,7 @@ private fun ActionChipItem(icon: ImageVector, label: String) {
 private fun MyCardsSection(accounts: List<AccountEntity>) {
     val dimens = LocalAppDimens.current
 
-    Column(modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall)) {
+    Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -514,7 +482,7 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            IconButton(onClick = { /* add card */ }) {
+            IconButton(onClick = { }) {
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = "Add Card",
@@ -592,47 +560,36 @@ private fun MyCardsSection(accounts: List<AccountEntity>) {
 private fun totalBalance(accounts: List<AccountEntity>): Double = accounts.sumOf { it.balance }
 
 @Composable
-private fun RecentTransactionsHeader() {
-    val dimens = LocalAppDimens.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Recent Transactions",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Text(
-            text = "View All",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
 private fun ExpressiveTransactionRow(tx: TransactionEntity) {
-    val dimens = LocalAppDimens.current
-    val motion = LocalExpressiveMotion.current
+    var isPressed by remember { mutableStateOf(false) }
+    val scaleCard by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1.0f,
+        animationSpec = ExpressiveMotion.bouncySpring()
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = dimens.paddingMedium, vertical = 4.dp)
-            .expressiveLongPressTilt(),
+            .graphicsLayer {
+                scaleX = scaleCard
+                scaleY = scaleCard
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    },
+                    onTap = { }
+                )
+            }
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(dimens.iconSizeLarge)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -640,12 +597,12 @@ private fun ExpressiveTransactionRow(tx: TransactionEntity) {
             Icon(
                 imageVector = iconForTransactionCategory(tx.categoryId),
                 contentDescription = null,
-                modifier = Modifier.size(dimens.iconSizeMedium - 2.dp),
+                modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }
 
-        Spacer(modifier = Modifier.width(dimens.paddingSmall + 4.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -666,7 +623,7 @@ private fun ExpressiveTransactionRow(tx: TransactionEntity) {
             text = "$sign$${formatAmount(tx.amount)}",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = if (tx.type == "INCOME") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
             textAlign = TextAlign.End
         )
     }
@@ -682,8 +639,7 @@ private fun TaskSectionHeader(
 
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -779,7 +735,7 @@ private fun ExpressiveTaskItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(rowHeight)
-                .padding(horizontal = dimens.paddingMedium, vertical = 4.dp)
+                .padding(vertical = 4.dp)
                 .graphicsLayer { alpha = rowAlpha }
                 .expressiveLongPressTilt(),
             verticalAlignment = Alignment.CenterVertically

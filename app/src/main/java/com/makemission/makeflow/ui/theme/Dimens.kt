@@ -1,9 +1,5 @@
 package com.makemission.makeflow.ui.theme
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.SpringSpec
-import androidx.compose.animation.core.spring
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -97,36 +93,3 @@ val expandedDimens = AppDimens(
 )
 
 val LocalAppDimens = staticCompositionLocalOf { compactDimens }
-
-@Immutable
-data class ExpressiveMotionSpec(
-    val pressScale: Float,
-    val releaseScale: Float,
-    val longPressScale: Float,
-    val scaleAnimationSpec: SpringSpec<Float>,
-    val colorAnimationSpec: SpringSpec<Float>,
-    val scalePressDown: Float,
-    val elevationPressIncrease: Dp,
-    val elevationDefault: Dp,
-) {
-    companion object {
-        val Default = ExpressiveMotionSpec(
-            pressScale = 0.96f,
-            releaseScale = 1f,
-            longPressScale = 0.94f,
-            scaleAnimationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMedium
-            ),
-            colorAnimationSpec = spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow
-            ),
-            scalePressDown = 0.96f,
-            elevationPressIncrease = 4.dp,
-            elevationDefault = 0.dp,
-        )
-    }
-}
-
-val LocalExpressiveMotion = staticCompositionLocalOf { ExpressiveMotionSpec.Default }

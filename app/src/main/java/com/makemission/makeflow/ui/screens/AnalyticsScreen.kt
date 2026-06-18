@@ -1,6 +1,5 @@
 package com.makemission.makeflow.ui.screens
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilterChip
@@ -29,25 +27,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.makemission.makeflow.ui.components.ExpressiveLineChart
+import com.makemission.makeflow.ui.haptic.lightTick
 import com.makemission.makeflow.ui.state.AnalyticsUiState
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.AnalyticsViewModel
-import com.makemission.makeflow.ui.haptic.lightTick
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -205,8 +200,6 @@ private fun CashFlowChartSection(
     onFilterChange: (Int) -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    val primaryColor = MaterialTheme.colorScheme.onSurface
-    val gridColor = MaterialTheme.colorScheme.surfaceVariant
 
     if (uiState.isLoading) {
         Text(
@@ -218,6 +211,8 @@ private fun CashFlowChartSection(
         return
     }
 
+    var selectedValue by remember { mutableStateOf<String?>(null) }
+
     Column(modifier = Modifier.padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall + 4.dp)) {
         Text(
             text = "Cash Flow",
@@ -226,94 +221,59 @@ private fun CashFlowChartSection(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(dimens.paddingMedium))
-
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-        ) {
-            val w = size.width
-            val h = size.height
-            val leftPad = 40f
-            val bottomPad = 25f
-            val chartW = (w - leftPad * 2).coerceAtLeast(0f)
-            val chartH = (h - bottomPad).coerceAtLeast(0f)
-
-            if (chartW <= 0f || chartH <= 0f) return@Canvas
-
-            val allAmounts = uiState.incomeChartPoints.map { it.second } +
-                    uiState.expenseChartPoints.map { it.second }
-            val maxVal = (allAmounts.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0) * 1.15
-
-            for (i in 0..4) {
-                val y = chartH * (1f - i / 4f)
-                drawLine(
-                    color = gridColor,
-                    start = Offset(leftPad, y),
-                    end = Offset(leftPad + chartW, y),
-                    strokeWidth = 1f
-                )
-            }
-
-            val pointCount = uiState.incomeChartPoints.size.coerceAtLeast(uiState.expenseChartPoints.size)
-            if (pointCount < 2) return@Canvas
-
-            val incomePath = Path().apply {
-                uiState.incomeChartPoints.forEachIndexed { idx, (_, amount) ->
-                    val x = leftPad + chartW * idx / (pointCount - 1)
-                    val y = chartH * (1f - (amount / maxVal).toFloat())
-                    if (idx == 0) moveTo(x, y) else lineTo(x, y)
-                }
-            }
-            drawPath(incomePath, color = primaryColor, style = Stroke(width = 3f))
-
-            val expensePath = Path().apply {
-                uiState.expenseChartPoints.forEachIndexed { idx, (_, amount) ->
-                    val x = leftPad + chartW * idx / (pointCount - 1)
-                    val y = chartH * (1f - (amount / maxVal).toFloat())
-                    if (idx == 0) moveTo(x, y) else lineTo(x, y)
-                }
-            }
-            drawPath(
-                expensePath, color = primaryColor,
-                style = Stroke(width = 3f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f)))
-            )
-
-            val fillPath = Path().apply {
-                uiState.incomeChartPoints.forEachIndexed { idx, (_, amount) ->
-                    val x = leftPad + chartW * idx / (pointCount - 1)
-                    val y = chartH * (1f - (amount / maxVal).toFloat())
-                    if (idx == 0) moveTo(x, y) else lineTo(x, y)
-                }
-                lineTo(leftPad + chartW, chartH)
-                lineTo(leftPad, chartH)
-                close()
-            }
-            drawPath(
-                fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(primaryColor.copy(alpha = 0.12f), Color.Transparent),
-                    startY = 0f,
-                    endY = chartH
-                )
+        if (selectedValue != null) {
+            Text(
+                text = selectedValue!!,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
 
-        val labels = uiState.incomeChartPoints.map { it.first }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 40.dp)
-        ) {
-            labels.forEach { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+        val incomeAmounts = uiState.incomeChartPoints.map { it.second }
+        val expenseAmounts = uiState.expenseChartPoints.map { it.second }
+
+        if (incomeAmounts.isNotEmpty()) {
+            ExpressiveLineChart(
+                dataPoints = incomeAmounts,
+                onPointSelected = { _, value ->
+                    selectedValue = "Income: $${String.format(Locale.US, "%.2f", value)}"
+                },
+                onScrubCleared = { selectedValue = null }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (expenseAmounts.isNotEmpty()) {
+            ExpressiveLineChart(
+                dataPoints = expenseAmounts,
+                onPointSelected = { _, value ->
+                    selectedValue = "Expense: $${String.format(Locale.US, "%.2f", value)}"
+                },
+                onScrubCleared = { selectedValue = null }
+            )
+        }
+
+        if (incomeAmounts.isNotEmpty()) {
+            val labels = uiState.incomeChartPoints.map { it.first }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 40.dp)
+            ) {
+                labels.forEach { label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
 

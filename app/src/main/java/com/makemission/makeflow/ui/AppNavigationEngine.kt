@@ -9,9 +9,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 @Composable
 fun AppNavigationEngine() {
@@ -28,18 +31,17 @@ fun AppNavigationEngine() {
 
     if (!isOnboardingComplete) {
         OnboardingScreen(
-            onOnboardingComplete = { name, accounts ->
-                val totalDeposit = accounts.sumOf { it.balance }
+            onOnboardingComplete = { name, currency, initialBalance ->
                 sharedPrefs.edit().apply {
                     putBoolean("onboarding_complete", true)
                     putString("user_name", name)
-                    putString("currency", "KES")
-                    putFloat("initial_deposit", totalDeposit.toFloat())
+                    putString("currency", currency)
+                    putFloat("initial_deposit", initialBalance.toFloat())
                     apply()
                 }
                 savedName = name
-                savedCurrency = "KES"
-                savedDeposit = totalDeposit
+                savedCurrency = currency
+                savedDeposit = initialBalance
 
                 coroutineScope.launch {
                     try {
@@ -68,8 +70,27 @@ fun AppNavigationEngine() {
                         db.categoryDao().insertCategory(transport)
                         db.categoryDao().insertCategory(rent)
 
-                        accounts.forEach { acc ->
-                            db.accountDao().insertAccount(acc)
+                        // Create a default Cash account
+                        val defaultAccount = AccountEntity(
+                            id = UUID.randomUUID().toString(),
+                            name = "Cash",
+                            balance = initialBalance,
+                            initialBalance = initialBalance,
+                            colorHex = "#43A047"
+                        )
+                        db.accountDao().insertAccount(defaultAccount)
+
+                        // If there is an initial balance, record an initial deposit transaction
+                        if (initialBalance > 0.0) {
+                            val seedCategory = salary
+                            val tx = TransactionEntity(
+                                amount = initialBalance,
+                                type = "INCOME",
+                                categoryId = seedCategory.id,
+                                note = "Initial Account Seed",
+                                timestamp = System.currentTimeMillis()
+                            )
+                            db.transactionDao().insertTransaction(tx)
                         }
                     } catch (e: Exception) {
                         android.util.Log.e("MakeFlowDebug", "Failed to seed onboarding database", e)

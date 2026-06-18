@@ -1,5 +1,9 @@
 package com.makemission.makeflow.ui
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +19,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +75,7 @@ fun MainScreen(
     val accountsState by db.accountDao().getAllAccountsFlow().collectAsState(initial = emptyList())
     val categoriesState by db.categoryDao().getAllCategoriesFlow().collectAsState(initial = emptyList())
     val budgetsState by db.budgetDao().getAllBudgetsFlow().collectAsState(initial = emptyList())
+    val transactionsState by db.transactionDao().getAllTransactions().collectAsState(initial = emptyList())
 
     var internalDashboardSubScreen by remember { mutableStateOf("MAIN") }
 
@@ -78,7 +84,7 @@ fun MainScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Box(
             modifier = Modifier
@@ -86,42 +92,120 @@ fun MainScreen(
                 .statusBarsPadding()
                 .padding(bottom = 80.dp)
         ) {
-            when (activeTab) {
-                MakeFlowTab.FOCUS -> {
-                    when (internalDashboardSubScreen) {
-                        "MAIN" -> FocusDashboardView(
-                            onboardingName = onboardingName,
-                            currency = currency,
-                            initialDeposit = totalBalance,
-                            onSettingsClick = { isSettingsSheetOpen = true },
-                            onNavigateToSubScreen = { internalDashboardSubScreen = it }
-                        )
-                        "ACCOUNTS" -> AccountsManagementScreen(
-                            accountsList = accountsState,
-                            onAddAccount = { acc -> coroutineScope.launch { db.accountDao().insertAccount(acc) } },
-                            onBack = { internalDashboardSubScreen = "MAIN" }
-                        )
-                        "CATEGORIES" -> CategoriesManagementScreen(
-                            categoriesList = categoriesState,
-                            onAddCategory = { cat -> coroutineScope.launch { db.categoryDao().insertCategory(cat) } },
-                            onBack = { internalDashboardSubScreen = "MAIN" }
-                        )
-                        "BUDGETS" -> BudgetsManagementScreen(
-                            budgetsList = budgetsState,
-                            categoriesList = categoriesState,
-                            onAddBudget = { bgt -> coroutineScope.launch { db.budgetDao().insertBudget(bgt) } },
-                            onBack = { internalDashboardSubScreen = "MAIN" }
-                        )
+            AnimatedContent(
+                targetState = activeTab,
+                transitionSpec = {
+                    val direction = if (targetState.ordinal > initialState.ordinal) {
+                        AnimatedContentTransitionScope.SlideDirection.Left
+                    } else {
+                        AnimatedContentTransitionScope.SlideDirection.Right
                     }
+                    slideIntoContainer(
+                        towards = direction,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ).togetherWith(
+                        slideOutOfContainer(
+                            towards = direction,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    )
+                },
+                label = "TabTransition",
+                modifier = Modifier.fillMaxSize()
+            ) { tab ->
+                when (tab) {
+                    MakeFlowTab.FOCUS -> {
+                        AnimatedContent(
+                            targetState = internalDashboardSubScreen,
+                            transitionSpec = {
+                                if (targetState != "MAIN") {
+                                    // Slide in from right, fade in
+                                    (slideInHorizontally(
+                                        initialOffsetX = { it },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ) + fadeIn()).togetherWith(
+                                        slideOutHorizontally(
+                                            targetOffsetX = { -it / 3 },
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            )
+                                        ) + fadeOut()
+                                    )
+                                } else {
+                                    // Slide out to right, fade out
+                                    (slideInHorizontally(
+                                        initialOffsetX = { -it / 3 },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
+                                        )
+                                    ) + fadeIn()).togetherWith(
+                                        slideOutHorizontally(
+                                            targetOffsetX = { it },
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                                stiffness = Spring.StiffnessMediumLow
+                                            )
+                                        ) + fadeOut()
+                                    )
+                                }
+                            },
+                            label = "SubScreenTransition",
+                            modifier = Modifier.fillMaxSize()
+                        ) { subScreen ->
+                            when (subScreen) {
+                                "MAIN" -> FocusDashboardView(
+                                    onboardingName = onboardingName,
+                                    currency = currency,
+                                    initialDeposit = totalBalance,
+                                    transactions = transactionsState,
+                                    categories = categoriesState,
+                                    onSettingsClick = { isSettingsSheetOpen = true },
+                                    onNavigateToSubScreen = { internalDashboardSubScreen = it }
+                                )
+                                "ACCOUNTS" -> AccountsManagementScreen(
+                                    accountsList = accountsState,
+                                    onAddAccount = { acc -> coroutineScope.launch { db.accountDao().insertAccount(acc) } },
+                                    onBack = { internalDashboardSubScreen = "MAIN" }
+                                )
+                                "CATEGORIES" -> CategoriesManagementScreen(
+                                    categoriesList = categoriesState,
+                                    onAddCategory = { cat -> coroutineScope.launch { db.categoryDao().insertCategory(cat) } },
+                                    onBack = { internalDashboardSubScreen = "MAIN" }
+                                )
+                                "BUDGETS" -> BudgetsManagementScreen(
+                                    budgetsList = budgetsState,
+                                    categoriesList = categoriesState,
+                                    onAddBudget = { bgt -> coroutineScope.launch { db.budgetDao().insertBudget(bgt) } },
+                                    onBack = { internalDashboardSubScreen = "MAIN" }
+                                )
+                            }
+                        }
+                    }
+                    MakeFlowTab.HISTORY -> HistoryScreen(
+                        currency = currency,
+                        initialDeposit = totalBalance,
+                        transactions = transactionsState,
+                        categories = categoriesState
+                    )
+                    MakeFlowTab.INSIGHTS -> AnalyticsScreen(
+                        currency = currency,
+                        initialDeposit = totalBalance,
+                        transactions = transactionsState,
+                        categories = categoriesState,
+                        accounts = accountsState
+                    )
                 }
-                MakeFlowTab.HISTORY -> HistoryScreen(
-                    currency = currency,
-                    initialDeposit = totalBalance
-                )
-                MakeFlowTab.INSIGHTS -> AnalyticsScreen(
-                    currency = currency,
-                    initialDeposit = totalBalance
-                )
             }
         }
 
@@ -204,3 +288,4 @@ fun MainScreen(
         }
     }
 }
+

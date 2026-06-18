@@ -13,19 +13,54 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.ui.components.ExpressiveLineChart
 
 @Composable
 fun AnalyticsScreen(
     currency: String = "KSh",
-    initialDeposit: Double = 12500.00,
+    initialDeposit: Double = 0.0,
+    transactions: List<TransactionEntity> = emptyList(),
+    categories: List<CategoryEntity> = emptyList(),
+    accounts: List<AccountEntity> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val totalInflow = transactions.filter { it.type == "INCOME" }.sumOf { it.amount }
+    val totalOutflow = transactions.filter { it.type == "EXPENSE" }.sumOf { it.amount }
+
+    // Reconstruct the balance timeline
+    val startBalance = accounts.sumOf { it.initialBalance }
+    val balancePoints = remember(transactions, startBalance) {
+        val points = mutableListOf<Double>()
+        var rolling = startBalance
+        points.add(rolling)
+        
+        val sortedTxs = transactions.sortedBy { it.timestamp }
+        sortedTxs.forEach { tx ->
+            if (tx.type == "INCOME") {
+                rolling += tx.amount
+            } else if (tx.type == "EXPENSE") {
+                rolling -= tx.amount
+            }
+            points.add(rolling)
+        }
+        
+        if (points.size == 1) {
+            points.add(rolling)
+        }
+        points
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -46,12 +81,12 @@ fun AnalyticsScreen(
         ) {
             MetricsPill(
                 title = "Total Inflow",
-                value = String.format("$currency %,.2f", initialDeposit),
+                value = String.format("$currency %,.2f", totalInflow),
                 modifier = Modifier.weight(1f)
             )
             MetricsPill(
                 title = "Total Outflow",
-                value = String.format("$currency 0.00"),
+                value = String.format("$currency %,.2f", totalOutflow),
                 modifier = Modifier.weight(1f)
             )
         }
@@ -66,31 +101,12 @@ fun AnalyticsScreen(
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        Box(
+        ExpressiveLineChart(
+            dataPoints = balancePoints,
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .heightIn(max = 320.dp)
-                .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
-                .padding(24.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Account Baseline Stable", color = Color.White.copy(alpha = 0.3f), fontSize = 12.sp)
-
-                Spacer(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .background(Color(0xFF4ADE80))
-                )
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").forEach { day ->
-                        Text(text = day, color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp)
-                    }
-                }
-            }
-        }
+                .height(220.dp)
+        )
     }
 }
 
@@ -106,3 +122,4 @@ fun MetricsPill(title: String, value: String, modifier: Modifier = Modifier) {
         Text(text = value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
+

@@ -172,16 +172,26 @@ fun FocusDashboardView(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Bottom
                         ) {
-                            Column {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "CARD HOLDER",
                                     color = Color.White.copy(alpha = 0.3f),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(text = onboardingName, color = Color.White, fontSize = 14.sp)
+                                Text(
+                                    text = onboardingName,
+                                    color = Color.White,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                )
                             }
-                            Column(horizontalAlignment = Alignment.End) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier.weight(1f)
+                            ) {
                                 Text(
                                     text = "TOTAL BALANCE",
                                     color = Color.White.copy(alpha = 0.3f),
@@ -192,7 +202,9 @@ fun FocusDashboardView(
                                     text = String.format("$currency %,.2f", account?.balance ?: initialDeposit),
                                     color = Color.White,
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                             }
                         }
@@ -290,7 +302,11 @@ fun FocusDashboardView(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -308,6 +324,7 @@ fun FocusDashboardView(
                                 Text(text = "Onboarding Deposit", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
                             }
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = String.format("+$currency %,.2f", initialDeposit),
                             color = Color(0xFF4ADE80),
@@ -339,7 +356,11 @@ fun FocusDashboardView(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
@@ -358,7 +379,9 @@ fun FocusDashboardView(
                                         text = tx.note.ifEmpty { category?.name ?: "Transaction" },
                                         color = Color.White,
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium
+                                        fontWeight = FontWeight.Medium,
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                     Text(
                                         text = formatTimestamp(tx.timestamp),
@@ -367,6 +390,7 @@ fun FocusDashboardView(
                                     )
                                 }
                             }
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = String.format("$prefix$currency %,.2f", tx.amount),
                                 color = valueColor,

@@ -1,6 +1,11 @@
 package com.makemission.makeflow.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -92,6 +97,12 @@ fun MainScreen(
 
     val totalBalance = if (accountsState.isNotEmpty()) accountsState.sumOf { it.balance } else initialDeposit
 
+    val density = LocalDensity.current
+    val navigationBarsPadding = WindowInsets.navigationBars.asPaddingValues()
+    val bottomNavHeight = navigationBarsPadding.calculateBottomPadding()
+    val isButtonNav = bottomNavHeight > 20.dp
+    val contentBottomPadding = 88.dp + bottomNavHeight
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -101,7 +112,7 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(bottom = 80.dp)
+                .padding(bottom = contentBottomPadding)
         ) {
             AnimatedContent(
                 targetState = activeTab,
@@ -221,17 +232,28 @@ fun MainScreen(
             }
         }
 
-        ExpressiveNavDock(
-            currentTab = activeTab,
-            onTabSelected = { 
-                activeTab = it 
-                internalDashboardSubScreen = "MAIN" // reset internal state on tab change
-            },
-            onFabClick = { isTransactionSheetOpen = true },
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    if (isButtonNav) Color(0xFF0F1011) else Color.Transparent
+                )
                 .navigationBarsPadding()
-        )
+        ) {
+            if (isButtonNav) {
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+            }
+            ExpressiveNavDock(
+                currentTab = activeTab,
+                onTabSelected = { 
+                    activeTab = it 
+                    internalDashboardSubScreen = "MAIN" // reset internal state on tab change
+                },
+                onFabClick = { isTransactionSheetOpen = true },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         if (isSettingsSheetOpen) {
             GeneralSettingsBottomSheet(

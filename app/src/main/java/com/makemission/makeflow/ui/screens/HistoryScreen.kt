@@ -92,6 +92,7 @@ fun HistoryScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -113,7 +114,9 @@ fun HistoryScreen(
                                     text = tx.note.ifEmpty { category?.name ?: "Transaction" },
                                     color = Color.White,
                                     fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = formatTimestamp(tx.timestamp),
@@ -122,7 +125,7 @@ fun HistoryScreen(
                                 )
                             }
                         }
-                        
+                        Spacer(modifier = Modifier.width(8.dp))
                         val isIncome = tx.type == "INCOME"
                         val valueColor = if (isIncome) Color(0xFF4ADE80) else Color(0xFFF87171)
                         val prefix = if (isIncome) "+" else "-"

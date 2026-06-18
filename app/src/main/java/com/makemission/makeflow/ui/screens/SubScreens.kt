@@ -3,6 +3,8 @@ package com.makemission.makeflow.ui.screens
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,6 +12,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -78,6 +84,13 @@ fun AccountsManagementScreen(
                 value = name, 
                 onValueChange = { name = it }, 
                 label = { Text("Account Name") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Wallet,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -92,6 +105,13 @@ fun AccountsManagementScreen(
                 value = balance, 
                 onValueChange = { balance = it }, 
                 label = { Text("Initial Balance") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.AttachMoney,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -160,9 +180,17 @@ fun AccountsManagementScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(12.dp)
-                                .background(accountColor, CircleShape)
-                        )
+                                .size(40.dp)
+                                .background(accountColor.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.AccountBalance,
+                                contentDescription = null,
+                                tint = accountColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Text(
                             text = account.name,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -261,6 +289,13 @@ fun CategoriesManagementScreen(
             value = catName, 
             onValueChange = { catName = it }, 
             label = { Text("Category/Subcategory Name") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.Category,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -281,7 +316,9 @@ fun CategoriesManagementScreen(
         Spacer(modifier = Modifier.height(4.dp))
         
         Row(
-            modifier = Modifier.fillMaxWidth(), 
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()), 
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             val noneSelected = selectedParentId == null
@@ -374,13 +411,23 @@ fun CategoriesManagementScreen(
                         .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .background(categoryColor, CircleShape)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                                .size(40.dp)
+                                .background(categoryColor.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = getIconByName(parent.iconName),
+                                contentDescription = null,
+                                tint = categoryColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Text(
                             text = parent.name,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -392,12 +439,23 @@ fun CategoriesManagementScreen(
                     // Filter and render structural subcategories right inside parent layout frame
                     val subs = categoriesList.filter { it.parentCategoryId == parent.id }
                     subs.forEach { sub ->
-                        Text(
-                            text = "  └─ ${sub.name}", 
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, 
-                            fontSize = 14.sp, 
-                            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 52.dp, top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = getIconByName(sub.iconName),
+                                contentDescription = null,
+                                tint = categoryColor.copy(alpha = 0.6f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = sub.name, 
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, 
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
@@ -458,6 +516,13 @@ fun BudgetsManagementScreen(
             value = amount, 
             onValueChange = { amount = it }, 
             label = { Text("Budget Limit Amount") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Filled.AttachMoney,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                 unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
@@ -572,43 +637,62 @@ fun BudgetsManagementScreen(
                     }
                 } ?: MaterialTheme.colorScheme.primary
 
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .animateItem()
                         .expressiveLongPressTilt()
                         .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween, 
-                        modifier = Modifier.fillMaxWidth()
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(categoryColor.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = budget.categoryName,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${budget.period} Target",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp
+                        Icon(
+                            imageVector = getIconByName(category?.iconName),
+                            contentDescription = null,
+                            tint = categoryColor,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    val progress = if (budget.amount > 0.0) (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f) else 0f
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        color = categoryColor,
-                        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-                    )
-                    Text(
-                        text = "Spent: KES ${budget.spentAmount} of KES ${budget.amount}",
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 13.sp
-                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween, 
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = budget.categoryName,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "${budget.period} Target",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+                        val progress = if (budget.amount > 0.0) (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f) else 0f
+                        LinearProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            color = categoryColor,
+                            trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        )
+                        Text(
+                            text = "Spent: KES ${formatAmount(budget.spentAmount)} of KES ${formatAmount(budget.amount)}",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

@@ -60,7 +60,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun OnboardingScreen(
     onCompleted: () -> Unit = {},
-    onOnboardingComplete: (name: String, currency: String, initialBalance: Double) -> Unit = { _, _, _ -> }
+    onOnboardingComplete: (name: String, currency: String, accountName: String, initialBalance: Double) -> Unit = { _, _, _, _ -> }
 ) {
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
@@ -68,6 +68,7 @@ fun OnboardingScreen(
 
     var userName by remember { mutableStateOf("") }
     var selectedCurrency by remember { mutableStateOf("KES") }
+    var firstAccountName by remember { mutableStateOf("Cash") }
     var initialBalanceText by remember { mutableStateOf("2500") }
 
     Column(
@@ -86,7 +87,13 @@ fun OnboardingScreen(
             when (page) {
                 0 -> WelcomePage(name = userName, onNameChange = { userName = it })
                 1 -> CurrencyPage(selectedCurrency = selectedCurrency, onCurrencySelected = { selectedCurrency = it })
-                2 -> DepositPage(currency = selectedCurrency, balance = initialBalanceText, onBalanceChange = { initialBalanceText = it })
+                2 -> DepositPage(
+                    currency = selectedCurrency,
+                    accountName = firstAccountName,
+                    onAccountNameChange = { firstAccountName = it },
+                    balance = initialBalanceText,
+                    onBalanceChange = { initialBalanceText = it }
+                )
             }
         }
 
@@ -125,6 +132,7 @@ fun OnboardingScreen(
 
             val isButtonEnabled = when (pagerState.currentPage) {
                 0 -> userName.isNotBlank()
+                2 -> firstAccountName.isNotBlank()
                 else -> true
             }
 
@@ -140,7 +148,7 @@ fun OnboardingScreen(
                         }
                     } else {
                         val finalBalance = initialBalanceText.toDoubleOrNull() ?: 0.0
-                        onOnboardingComplete(userName, selectedCurrency, finalBalance)
+                        onOnboardingComplete(userName, selectedCurrency, firstAccountName, finalBalance)
                         onCompleted()
                     }
                 },
@@ -183,7 +191,7 @@ fun OnboardingScreen(
                         indication = null
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onOnboardingComplete("User", "KES", 0.0)
+                        onOnboardingComplete("User", "KES", "Cash", 0.0)
                         onCompleted()
                     }
                     .padding(vertical = 4.dp)
@@ -319,7 +327,13 @@ private fun CurrencyPage(selectedCurrency: String, onCurrencySelected: (String) 
 }
 
 @Composable
-private fun DepositPage(currency: String, balance: String, onBalanceChange: (String) -> Unit) {
+private fun DepositPage(
+    currency: String,
+    accountName: String,
+    onAccountNameChange: (String) -> Unit,
+    balance: String,
+    onBalanceChange: (String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -327,9 +341,9 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
             .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = "First Deposit", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(text = "First Account", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(
-            text = "Seed your account with an initial balance to get started",
+            text = "Set up your first account and initial balance to get started",
             fontSize = 16.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -349,7 +363,7 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("VIRTUAL", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text((if (accountName.isBlank()) "VIRTUAL" else accountName).uppercase() + " WALLET", color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -368,13 +382,29 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text("CARD HOLDER", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
-                    Text("You", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "You",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                 }
-                Column(horizontalAlignment = Alignment.End) {
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text("BALANCE", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp)
-                    Text("$currency ${if (balance.isEmpty()) "0" else balance}", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "$currency ${if (balance.isEmpty()) "0" else balance}",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                 }
             }
         }
@@ -383,20 +413,36 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
 
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "This will be your starting balance",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            ExpressiveInputField(
-                value = balance,
-                onValueChange = onBalanceChange,
-                hint = "0.00",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Account Name",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                ExpressiveInputField(
+                    value = accountName,
+                    onValueChange = onAccountNameChange,
+                    hint = "Cash, Bank, Wallet..."
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Starting Balance",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                ExpressiveInputField(
+                    value = balance,
+                    onValueChange = onBalanceChange,
+                    hint = "0.00",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
         }
     }
 }

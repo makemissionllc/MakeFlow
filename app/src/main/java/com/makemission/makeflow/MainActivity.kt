@@ -9,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
-import com.makemission.makeflow.ui.MainScreen
+import com.makemission.makeflow.ui.AppNavigationEngine
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        MainScreen()
+                        AppNavigationEngine()
                     }
                 }
             }

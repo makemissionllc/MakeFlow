@@ -17,7 +17,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,6 +34,7 @@ fun FocusDashboardView(
     onboardingName: String = "Developer",
     currency: String = "KSh",
     initialDeposit: Double = 12500.00,
+    onSettingsClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -60,17 +63,17 @@ fun FocusDashboardView(
                         fontSize = 14.sp
                     )
                 }
-                Box(
+                IconButton(
+                    onClick = onSettingsClick,
                     modifier = Modifier
                         .size(40.dp)
-                        .background(Color(0xFF1E2124), CircleShape),
-                    contentAlignment = Alignment.Center
+                        .background(Color(0xFF1E2124), CircleShape)
                 ) {
-                    Text(
-                        text = onboardingName.take(2).uppercase(),
-                        color = Color(0xFF4ADE80),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Open Settings Panel",
+                        tint = Color.White.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

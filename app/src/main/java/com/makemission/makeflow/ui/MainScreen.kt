@@ -1,9 +1,19 @@
 package com.makemission.makeflow.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,100 +21,89 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.ExpressiveNavDock
 import com.makemission.makeflow.ui.components.MakeFlowTab
-import com.makemission.makeflow.ui.navigation.Screen
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
-import com.makemission.makeflow.ui.screens.CategoriesScreen
 import com.makemission.makeflow.ui.screens.FocusDashboardView
-import com.makemission.makeflow.ui.screens.OnboardingScreen
-import com.makemission.makeflow.ui.screens.SettingsScreen
+import com.makemission.makeflow.ui.screens.GeneralSettingsBottomSheet
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val isAddRoute = currentDestination?.route == Screen.AddTransaction.route
-    val isOnboardingRoute = currentDestination?.route == Screen.Onboarding.route
-    val showNavbar = !isAddRoute && !isOnboardingRoute
+fun MainScreen(
+    onboardingName: String = "Developer",
+    currency: String = "KSh",
+    initialDeposit: Double = 12500.00,
+    onLogout: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    var activeTab by remember { mutableStateOf(MakeFlowTab.FOCUS) }
+    var isSettingsSheetOpen by remember { mutableStateOf(false) }
+    var isTransactionSheetOpen by remember { mutableStateOf(false) }
 
-    var onboardingName by remember { mutableStateOf("Developer") }
-    var onboardingCurrency by remember { mutableStateOf("KSh") }
-    var initialDeposit by remember { mutableStateOf(12500.00) }
+    val settingsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val transactionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val currentTab = when (currentDestination?.route) {
-        Screen.Dashboard.route -> MakeFlowTab.FOCUS
-        Screen.Analytics.route -> MakeFlowTab.INSIGHTS
-        else -> null
-    }
-
-    Scaffold { innerPadding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController = navController,
-                startDestination = Screen.Onboarding.route,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(top = innerPadding.calculateTopPadding())
-            ) {
-                composable(Screen.Onboarding.route) {
-                    OnboardingScreen(
-                        onOnboardingComplete = { name, currency, balance ->
-                            onboardingName = name
-                            onboardingCurrency = currency
-                            initialDeposit = balance
-                        },
-                        onCompleted = {
-                            navController.navigate(Screen.Dashboard.route) {
-                                popUpTo(Screen.Onboarding.route) { inclusive = true }
-                            }
-                        }
-                    )
-                }
-                composable(Screen.Dashboard.route) {
-                    FocusDashboardView(
-                        onboardingName = onboardingName,
-                        currency = onboardingCurrency,
-                        initialDeposit = initialDeposit
-                    )
-                }
-                composable(Screen.Analytics.route) {
-                    AnalyticsScreen(
-                        currency = onboardingCurrency,
-                        initialDeposit = initialDeposit
-                    )
-                }
-                composable(Screen.Categories.route) { CategoriesScreen() }
-                composable(Screen.Settings.route) { SettingsScreen() }
-            }
-
-            if (showNavbar && currentTab != null) {
-                ExpressiveNavDock(
-                    currentTab = currentTab,
-                    onTabSelected = { tab ->
-                        val route = when (tab) {
-                            MakeFlowTab.FOCUS -> Screen.Dashboard.route
-                            MakeFlowTab.INSIGHTS -> Screen.Analytics.route
-                        }
-                        navController.navigate(route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
-                    onFabClick = {
-                        navController.navigate(Screen.AddTransaction.route)
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF121315))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 80.dp)
+        ) {
+            when (activeTab) {
+                MakeFlowTab.FOCUS -> FocusDashboardView(
+                    onboardingName = onboardingName,
+                    currency = currency,
+                    initialDeposit = initialDeposit,
+                    onSettingsClick = { isSettingsSheetOpen = true }
                 )
+                MakeFlowTab.INSIGHTS -> AnalyticsScreen(
+                    currency = currency,
+                    initialDeposit = initialDeposit
+                )
+            }
+        }
+
+        ExpressiveNavDock(
+            currentTab = activeTab,
+            onTabSelected = { activeTab = it },
+            onFabClick = { isTransactionSheetOpen = true },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
+
+        if (isSettingsSheetOpen) {
+            GeneralSettingsBottomSheet(
+                sheetState = settingsSheetState,
+                onDismissRequest = { isSettingsSheetOpen = false }
+            )
+        }
+
+        if (isTransactionSheetOpen) {
+            ModalBottomSheet(
+                onDismissRequest = { isTransactionSheetOpen = false },
+                sheetState = transactionSheetState,
+                containerColor = Color(0xFF1E2124)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("Create New Flow Item", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Form fields for adding transactions or task tracks go here.", color = Color.White.copy(alpha = 0.6f), fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(40.dp))
+                }
             }
         }
     }

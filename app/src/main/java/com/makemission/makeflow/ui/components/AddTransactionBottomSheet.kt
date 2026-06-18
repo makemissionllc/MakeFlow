@@ -36,15 +36,18 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -148,12 +151,38 @@ fun AddTransactionBottomSheet(
                     .padding(bottom = dimens.paddingExtra)
             ) {
                 AmountDisplay(rawInput = rawInput)
-                TransactionTypeSelector(
-                    selected = transactionType,
-                    onSelect = { transactionType = it }
-                )
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = dimens.paddingLarge),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ExpressiveChoiceChip(
+                        label = "Expense",
+                        icon = Icons.Filled.ArrowDownward,
+                        isSelected = transactionType == "EXPENSE",
+                        onClick = { transactionType = "EXPENSE" },
+                        activeColor = MaterialTheme.colorScheme.errorContainer,
+                        onActiveColor = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    ExpressiveChoiceChip(
+                        label = "Income",
+                        icon = Icons.Filled.ArrowUpward,
+                        isSelected = transactionType == "INCOME",
+                        onClick = { transactionType = "INCOME" },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
-                NoteField(note = note, onNoteChange = { note = it })
+                ExpressiveInputField(
+                    value = note,
+                    onValueChange = { note = it },
+                    hint = "Add a note...",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.padding(horizontal = dimens.paddingLarge)
+                )
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
                 CategoryGrid(
                     categories = categories,
@@ -242,145 +271,7 @@ private fun AmountDisplay(rawInput: String) {
     }
 }
 
-@Composable
-private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit) {
-    val haptic = LocalHapticFeedback.current
-    val dimens = LocalAppDimens.current
 
-    val options = listOf("EXPENSE", "INCOME")
-    val selectedIndex = if (selected == "INCOME") 1 else 0
-    val fraction by animateFloatAsState(
-        targetValue = selectedIndex.toFloat(),
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "toggleSlide"
-    )
-
-    val accentColor by animateColorAsState(
-        targetValue = if (selected == "INCOME")
-            Color(0xFF1B5E20)
-        else
-            MaterialTheme.colorScheme.error,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "toggleAccent"
-    )
-
-    val isIncome = selected == "INCOME"
-    val bgColor by animateColorAsState(
-        targetValue = if (isIncome) Color(0xFF0D2818) else Color(0xFF1A1012),
-        animationSpec = tween(durationMillis = 350, easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)),
-        label = "toggleBg"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimens.paddingLarge)
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
-            .background(bgColor)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .height(44.dp)
-                    .layout { measurable, constraints ->
-                        val placeable = measurable.measure(constraints)
-                        layout(placeable.width, placeable.height) {
-                            placeable.placeRelative(
-                                x = (fraction * constraints.maxWidth * 0.5f).toInt(),
-                                y = 0
-                            )
-                        }
-                    }
-                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
-                    .background(accentColor)
-                    .graphicsLayer {
-                        scaleX = 1f + 0.03f * (1f - kotlin.math.abs(fraction - 0.5f) * 2f)
-                        scaleY = 1f - 0.02f * (1f - kotlin.math.abs(fraction - 0.5f) * 2f)
-                    }
-            )
-
-            Row(modifier = Modifier.fillMaxWidth()) {
-                options.forEachIndexed { index, label ->
-                    val isSelected = index == selectedIndex
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clickable {
-                                haptic.mediumConfirm()
-                                onSelect(label)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = label.lowercase()
-                                .replaceFirstChar { it.uppercase() },
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            style = MaterialTheme.typography.labelLarge,
-                            modifier = Modifier.graphicsLayer {
-                                alpha = if (isSelected) 1f else 0.6f
-                                scaleX = if (isSelected) 1.05f else 1f
-                                scaleY = if (isSelected) 1.05f else 1f
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
-    val dimens = LocalAppDimens.current
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = dimens.paddingLarge)
-            .padding(vertical = 4.dp)
-            .clip(RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = dimens.paddingMedium, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Filled.Edit,
-            contentDescription = null,
-            modifier = Modifier.size(dimens.iconSizeMedium - 2.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.width(10.dp))
-
-        val text = if (note.isEmpty()) "Add a note..." else note
-        val color = if (note.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
-        else MaterialTheme.colorScheme.onBackground
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = color,
-            modifier = Modifier
-                .weight(1f)
-                .clickable { /* focus field */ }
-                .padding(vertical = 10.dp)
-        )
-    }
-}
 
 @Composable
 private fun CategoryGrid(

@@ -56,13 +56,26 @@ import com.makemission.makeflow.ui.components.ExpressiveInputField
 import com.makemission.makeflow.ui.theme.ExpressiveMotion
 import com.makemission.makeflow.ui.theme.MorphingFabShape
 import kotlinx.coroutines.launch
+import android.content.Context
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 
 @Composable
 fun OnboardingScreen(
     onCompleted: () -> Unit = {},
     onOnboardingComplete: (name: String, currency: String, accountName: String, initialBalance: Double) -> Unit = { _, _, _, _ -> }
 ) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
+    val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("make_flow_prefs", Context.MODE_PRIVATE) }
+    val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
 
@@ -70,6 +83,26 @@ fun OnboardingScreen(
     var selectedCurrency by remember { mutableStateOf("KES") }
     var firstAccountName by remember { mutableStateOf("Cash") }
     var initialBalanceText by remember { mutableStateOf("2500") }
+    var biometricEnabled by remember { mutableStateOf(false) }
+
+    var notificationsGranted by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        notificationsGranted = isGranted
+    }
 
     Column(
         modifier = Modifier
@@ -94,6 +127,16 @@ fun OnboardingScreen(
                     balance = initialBalanceText,
                     onBalanceChange = { initialBalanceText = it }
                 )
+                3 -> PermissionsPage(
+                    notificationsGranted = notificationsGranted,
+                    onRequestNotifications = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    biometricEnabled = biometricEnabled,
+                    onBiometricToggle = { biometricEnabled = it }
+                )
             }
         }
 
@@ -108,7 +151,7 @@ fun OnboardingScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                repeat(3) { index ->
+                repeat(4) { index ->
                     val isSelected = pagerState.currentPage == index
                     val indicatorWidth by animateDpAsState(
                         targetValue = if (isSelected) 32.dp else 8.dp,
@@ -139,7 +182,7 @@ fun OnboardingScreen(
             Button(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    if (pagerState.currentPage < 2) {
+                    if (pagerState.currentPage < 3) {
                         coroutineScope.launch {
                             pagerState.animateScrollToPage(
                                 page = pagerState.currentPage + 1,
@@ -148,6 +191,7 @@ fun OnboardingScreen(
                         }
                     } else {
                         val finalBalance = initialBalanceText.toDoubleOrNull() ?: 0.0
+                        sharedPrefs.edit().putBoolean("biometric_security_enabled", biometricEnabled).apply()
                         onOnboardingComplete(userName, selectedCurrency, firstAccountName, finalBalance)
                         onCompleted()
                     }
@@ -167,13 +211,13 @@ fun OnboardingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (pagerState.currentPage == 2) "Get Started" else "Continue",
+                        text = if (pagerState.currentPage == 3) "Get Started" else "Continue",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(
-                        imageVector = if (pagerState.currentPage == 2) Icons.Filled.Check else Icons.AutoMirrored.Filled.ArrowForward,
+                        imageVector = if (pagerState.currentPage == 3) Icons.Filled.Check else Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
@@ -191,6 +235,7 @@ fun OnboardingScreen(
                         indication = null
                     ) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        sharedPrefs.edit().putBoolean("biometric_security_enabled", false).apply()
                         onOnboardingComplete("User", "KES", "Cash", 0.0)
                         onCompleted()
                     }
@@ -441,6 +486,174 @@ private fun DepositPage(
                     onValueChange = onBalanceChange,
                     hint = "0.00",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionsPage(
+    notificationsGranted: Boolean,
+    onRequestNotifications: () -> Unit,
+    biometricEnabled: Boolean,
+    onBiometricToggle: (Boolean) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Permissions & Security",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Grant permissions to enable smart features and secure your personal finance records",
+            fontSize = 16.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Card 1: Notifications
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = MaterialTheme.shapes.large
+                    )
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Notifications,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Push Notifications",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Get alerts for overspending, budget progress, and daily review.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                if (notificationsGranted) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = "Granted",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = "Active",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    Button(
+                        onClick = onRequestNotifications,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
+                        shape = MaterialTheme.shapes.medium,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Text("Grant", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Card 2: Biometrics
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceContainerLow,
+                        shape = MaterialTheme.shapes.large
+                    )
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Screen Lock Security",
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "Protect your wallet data using device fingerprint or screen lock.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                androidx.compose.material3.Switch(
+                    checked = biometricEnabled,
+                    onCheckedChange = onBiometricToggle,
+                    colors = androidx.compose.material3.SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                    )
                 )
             }
         }

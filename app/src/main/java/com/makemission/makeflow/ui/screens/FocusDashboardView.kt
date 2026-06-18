@@ -78,13 +78,13 @@ fun FocusDashboardView(
                 Column {
                     Text(
                         text = "Hello, $onboardingName",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Here is your flow overview today.",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         fontSize = 14.sp
                     )
                 }
@@ -92,13 +92,13 @@ fun FocusDashboardView(
                     onClick = onSettingsClick,
                     modifier = Modifier
                         .size(40.dp)
-                        .background(Color(0xFF1E2124), CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape)
                         .expressiveClickable { onSettingsClick() }
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Settings,
                         contentDescription = "Open Settings Panel",
-                        tint = Color.White.copy(alpha = 0.8f),
+                        tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -120,15 +120,15 @@ fun FocusDashboardView(
                         try {
                             Color(android.graphics.Color.parseColor(it))
                         } catch (e: Exception) {
-                            Color(0xFF4ADE80)
+                            MaterialTheme.colorScheme.primary
                         }
-                    } ?: Color(0xFF4ADE80)
+                    } ?: MaterialTheme.colorScheme.primary
 
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .expressiveLongPressTilt()
-                            .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
                             .padding(24.dp)
                     ) {
                         Row(
@@ -137,7 +137,7 @@ fun FocusDashboardView(
                         ) {
                             Text(
                                 text = (account?.name ?: "VIRTUAL").uppercase() + " WALLET",
-                                color = Color.White.copy(alpha = 0.4f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp
@@ -159,7 +159,7 @@ fun FocusDashboardView(
                         }
                         Text(
                             text = "••••  ••••  ••••  $digits",
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 22.sp,
                             letterSpacing = 2.sp,
                             fontWeight = FontWeight.Medium
@@ -175,13 +175,13 @@ fun FocusDashboardView(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "CARD HOLDER",
-                                    color = Color.White.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = onboardingName,
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 14.sp,
                                     maxLines = 1,
                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -194,13 +194,13 @@ fun FocusDashboardView(
                             ) {
                                 Text(
                                     text = "TOTAL BALANCE",
-                                    color = Color.White.copy(alpha = 0.3f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = String.format("$currency %,.2f", account?.balance ?: initialDeposit),
-                                    color = Color.White,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
@@ -250,36 +250,36 @@ fun FocusDashboardView(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
                         .expressiveClickable { onNavigateToSubScreen("ACCOUNTS") }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Accounts", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Accounts", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
 
                 // Action 2: Budgets Navigation Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
                         .expressiveClickable { onNavigateToSubScreen("BUDGETS") }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Budgets", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Budgets", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
 
                 // Action 3: Categories Navigation Button
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(24.dp))
                         .expressiveClickable { onNavigateToSubScreen("CATEGORIES") }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Categories", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Categories", color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -288,7 +288,7 @@ fun FocusDashboardView(
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Recent History",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -310,24 +310,24 @@ fun FocusDashboardView(
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(Color(0xFF1E2124), CircleShape),
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.ArrowDownward,
                                     contentDescription = null,
-                                    tint = Color(0xFF4ADE80)
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                             Column {
-                                Text(text = "Initial Account Seed", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text(text = "Onboarding Deposit", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+                                Text(text = "Initial Account Seed", color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(text = "Onboarding Deposit", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f), fontSize = 12.sp)
                             }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = String.format("+$currency %,.2f", initialDeposit),
-                            color = Color(0xFF4ADE80),
+                            color = MaterialTheme.colorScheme.primary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -341,12 +341,12 @@ fun FocusDashboardView(
                             try {
                                 Color(android.graphics.Color.parseColor(it))
                             } catch (e: Exception) {
-                                Color(0xFF4ADE80)
+                                MaterialTheme.colorScheme.primary
                             }
-                        } ?: Color(0xFF4ADE80)
+                        } ?: MaterialTheme.colorScheme.primary
 
                         val isIncome = tx.type == "INCOME"
-                        val valueColor = if (isIncome) Color(0xFF4ADE80) else Color(0xFFF87171)
+                        val valueColor = if (isIncome) MaterialTheme.colorScheme.primary else Color(0xFFF87171)
                         val prefix = if (isIncome) "+" else "-"
 
                         Row(
@@ -377,7 +377,7 @@ fun FocusDashboardView(
                                 Column {
                                     Text(
                                         text = tx.note.ifEmpty { category?.name ?: "Transaction" },
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                         maxLines = 1,
@@ -385,7 +385,7 @@ fun FocusDashboardView(
                                     )
                                     Text(
                                         text = formatTimestamp(tx.timestamp),
-                                        color = Color.White.copy(alpha = 0.4f),
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                         fontSize = 12.sp
                                     )
                                 }
@@ -407,7 +407,7 @@ fun FocusDashboardView(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1E2124).copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
                     .padding(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -415,13 +415,13 @@ fun FocusDashboardView(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "Active Tasks", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text(text = "0 completed", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+                    Text(text = "Active Tasks", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(text = "0 completed", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontSize = 12.sp)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No active focus blocks. Tap + to establish a task track.",
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     fontSize = 13.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -429,4 +429,3 @@ fun FocusDashboardView(
         }
     }
 }
-

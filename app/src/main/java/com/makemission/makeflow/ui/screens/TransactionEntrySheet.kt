@@ -1,6 +1,7 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -38,8 +40,11 @@ fun TransactionEntrySheetContent(
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountInput by remember { mutableStateOf("0") }
     
-    // Auto-maps active source accounts using actual persistent user items
+    // Source Account selection
     var selectedSourceAccount by remember { mutableStateOf(dbAccounts.firstOrNull()) }
+    
+    // Destination Account (only for transfers)
+    var selectedDestinationAccount by remember { mutableStateOf<AccountEntity?>(null) }
     
     // Filter down matching category elements to show parent items or direct assignments
     val contextCategories = dbCategories.filter { it.type == selectedType.name }
@@ -49,6 +54,14 @@ fun TransactionEntrySheetContent(
     LaunchedEffect(dbAccounts) {
         if (selectedSourceAccount == null && dbAccounts.isNotEmpty()) {
             selectedSourceAccount = dbAccounts.firstOrNull()
+        }
+    }
+
+    // Synchronize destination account selection for transfers
+    LaunchedEffect(selectedSourceAccount, dbAccounts) {
+        val destList = dbAccounts.filter { it.id != selectedSourceAccount?.id }
+        if (selectedDestinationAccount == null || !destList.contains(selectedDestinationAccount)) {
+            selectedDestinationAccount = destList.firstOrNull()
         }
     }
 
@@ -81,12 +94,12 @@ fun TransactionEntrySheetContent(
                     .clickable { onDismiss() }
             )
             Text(
-                text = "New transaction",
+                text = "New Transaction",
                 color = Color.White,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.size(24.dp)) // Spacer baseline balance control
+            Spacer(modifier = Modifier.size(24.dp))
         }
 
         // Segmented Primary Switcher Module Bar
@@ -122,7 +135,15 @@ fun TransactionEntrySheetContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Multi-Account Selection Carousel Slider Row
+        // ── SOURCE ACCOUNT SELECTOR ──
+        val labelFrom = if (selectedType == TransactionType.TRANSFER) "From Account:" else "Account:"
+        Text(
+            text = labelFrom,
+            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp)
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -135,7 +156,12 @@ fun TransactionEntrySheetContent(
                 Row(
                     modifier = Modifier
                         .background(
-                            color = if (isAccountSelected) Color.White.copy(alpha = 0.1f) else Color(0xFF1E2124),
+                            color = if (isAccountSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color(0xFF1E2124),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = if (isAccountSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable { selectedSourceAccount = account }
@@ -146,23 +172,86 @@ fun TransactionEntrySheetContent(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .background(Color(0xFF1E88E5), CircleShape), // default blue tint color tint
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AccountBalance,
                             contentDescription = null,
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Column {
                         Text(text = account.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         Text(
-                            text = String.format("KES %,.2f", account.balance),
+                            text = String.format("KES %,.0f", account.balance),
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 11.sp
                         )
+                    }
+                }
+            }
+        }
+
+        // ── DESTINATION ACCOUNT SELECTOR (ONLY FOR TRANSFERS) ──
+        if (selectedType == TransactionType.TRANSFER) {
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                text = "To Account:",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val destinationAccounts = dbAccounts.filter { it.id != selectedSourceAccount?.id }
+                destinationAccounts.forEach { account ->
+                    val isAccountSelected = selectedDestinationAccount?.id == account.id
+                    val colorTarget = MaterialTheme.colorScheme.primary
+                    Row(
+                        modifier = Modifier
+                            .background(
+                                color = if (isAccountSelected) colorTarget.copy(alpha = 0.2f) else Color(0xFF1E2124),
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isAccountSelected) colorTarget else Color.Transparent,
+                                shape = RoundedCornerShape(14.dp)
+                            )
+                            .clickable { selectedDestinationAccount = account }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(colorTarget.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = colorTarget,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                        Column {
+                            Text(text = account.name, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            Text(
+                                text = String.format("KES %,.0f", account.balance),
+                                color = Color.White.copy(alpha = 0.5f),
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
@@ -172,7 +261,7 @@ fun TransactionEntrySheetContent(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 24.dp),
+                .padding(vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -182,32 +271,41 @@ fun TransactionEntrySheetContent(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Add note",
+                text = "Tap confirm check to save",
                 color = Color.White.copy(alpha = 0.3f),
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Normal
             )
         }
 
-        // Sub-Category Selection Strip Wrapper
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            contextCategories.forEach { category ->
-                val isSub = category.parentCategoryId != null
-                val displayLabel = if (isSub) "↳ ${category.name}" else category.name
-                
-                CategoryChip(
-                    label = displayLabel,
-                    isSelected = selectedCategory?.id == category.id,
-                    onClick = { selectedCategory = category }
-                )
+        // ── CATEGORY SELECTOR STRIP (ONLY FOR INCOME / EXPENSE) ──
+        if (selectedType != TransactionType.TRANSFER) {
+            Text(
+                text = "Category:",
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 6.dp)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                contextCategories.forEach { category ->
+                    val isSub = category.parentCategoryId != null
+                    val displayLabel = if (isSub) "↳ ${category.name}" else category.name
+                    
+                    CategoryChip(
+                        label = displayLabel,
+                        isSelected = selectedCategory?.id == category.id,
+                        onClick = { selectedCategory = category }
+                    )
+                }
             }
         }
 
@@ -246,13 +344,29 @@ fun TransactionEntrySheetContent(
                                 "C" -> amountInput = "0"
                                 "✓" -> {
                                     val finalValue = amountInput.toDoubleOrNull() ?: 0.0
-                                    if (selectedSourceAccount != null && selectedCategory != null) {
-                                        onSaveTransaction(
-                                            selectedType,
-                                            selectedSourceAccount!!,
-                                            selectedCategory!!,
-                                            finalValue
-                                        )
+                                    if (selectedType == TransactionType.TRANSFER) {
+                                        if (selectedSourceAccount != null && selectedDestinationAccount != null && finalValue > 0.0) {
+                                            val dummyTransferCategory = CategoryEntity(
+                                                id = "transfer_${selectedDestinationAccount!!.id}",
+                                                name = "To ${selectedDestinationAccount!!.name}",
+                                                type = "TRANSFER"
+                                            )
+                                            onSaveTransaction(
+                                                selectedType,
+                                                selectedSourceAccount!!,
+                                                dummyTransferCategory,
+                                                finalValue
+                                            )
+                                        }
+                                    } else {
+                                        if (selectedSourceAccount != null && selectedCategory != null && finalValue > 0.0) {
+                                            onSaveTransaction(
+                                                selectedType,
+                                                selectedSourceAccount!!,
+                                                selectedCategory!!,
+                                                finalValue
+                                            )
+                                        }
                                     }
                                 }
                                 "." -> {
@@ -279,10 +393,10 @@ fun TransactionEntrySheetContent(
                         "✓" -> Box(
                             modifier = Modifier
                                 .fillMaxSize(0.8f)
-                                .background(Color.White, CircleShape),
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = "Confirm", tint = Color.Black)
+                            Icon(Icons.Default.Check, contentDescription = "Confirm", tint = MaterialTheme.colorScheme.onPrimary)
                         }
                         else -> Text(
                             text = key,
@@ -306,7 +420,12 @@ fun CategoryChip(
     Box(
         modifier = Modifier
             .background(
-                color = if (isSelected) Color.White.copy(alpha = 0.15f) else Color(0xFF1E2124),
+                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else Color(0xFF1E2124),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                 shape = RoundedCornerShape(20.dp)
             )
             .clickable { onClick() }

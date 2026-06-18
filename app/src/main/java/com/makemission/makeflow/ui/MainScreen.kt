@@ -1,5 +1,6 @@
 package com.makemission.makeflow.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -78,6 +79,16 @@ fun MainScreen(
     val transactionsState by db.transactionDao().getAllTransactions().collectAsState(initial = emptyList())
 
     var internalDashboardSubScreen by remember { mutableStateOf("MAIN") }
+
+    val backPressedEnabled = activeTab != MakeFlowTab.FOCUS || internalDashboardSubScreen != "MAIN"
+    BackHandler(enabled = backPressedEnabled) {
+        if (internalDashboardSubScreen != "MAIN") {
+            internalDashboardSubScreen = "MAIN"
+        }
+        if (activeTab != MakeFlowTab.FOCUS) {
+            activeTab = MakeFlowTab.FOCUS
+        }
+    }
 
     val totalBalance = if (accountsState.isNotEmpty()) accountsState.sumOf { it.balance } else initialDeposit
 
@@ -170,6 +181,7 @@ fun MainScreen(
                                     initialDeposit = totalBalance,
                                     transactions = transactionsState,
                                     categories = categoriesState,
+                                    accounts = accountsState,
                                     onSettingsClick = { isSettingsSheetOpen = true },
                                     onNavigateToSubScreen = { internalDashboardSubScreen = it }
                                 )

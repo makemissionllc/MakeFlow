@@ -1,5 +1,8 @@
 package com.makemission.makeflow.ui.screens
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,23 +19,27 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.haptic.expressiveClickable
@@ -47,11 +54,13 @@ fun FocusDashboardView(
     initialDeposit: Double = 12500.00,
     transactions: List<TransactionEntity> = emptyList(),
     categories: List<CategoryEntity> = emptyList(),
+    accounts: List<AccountEntity> = emptyList(),
     onSettingsClick: () -> Unit = {},
     onNavigateToSubScreen: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val dimens = LocalAppDimens.current
+    val pagerState = rememberPagerState(pageCount = { accounts.size.coerceAtLeast(1) })
 
     LazyColumn(
         modifier = modifier
@@ -98,70 +107,123 @@ fun FocusDashboardView(
 
         item {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .expressiveLongPressTilt()
-                    .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
-                    .padding(24.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "VIRTUAL WALLET",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = currency,
-                        color = Color(0xFF4ADE80),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxWidth()
+                ) { page ->
+                    val account = if (accounts.isNotEmpty()) accounts[page] else null
+                    val accountColor = account?.colorHex?.let {
+                        try {
+                            Color(android.graphics.Color.parseColor(it))
+                        } catch (e: Exception) {
+                            Color(0xFF4ADE80)
+                        }
+                    } ?: Color(0xFF4ADE80)
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .expressiveLongPressTilt()
+                            .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                            .padding(24.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = (account?.name ?: "VIRTUAL").uppercase() + " WALLET",
+                                color = Color.White.copy(alpha = 0.4f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = currency,
+                                color = accountColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        val digits = if (account != null) {
+                            String.format("%04d", kotlin.math.abs(account.id.hashCode() % 10000))
+                        } else {
+                            "4209"
+                        }
+                        Text(
+                            text = "••••  ••••  ••••  $digits",
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            letterSpacing = 2.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column {
+                                Text(
+                                    text = "CARD HOLDER",
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(text = onboardingName, color = Color.White, fontSize = 14.sp)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text(
+                                    text = "TOTAL BALANCE",
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = String.format("$currency %,.2f", account?.balance ?: initialDeposit),
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    text = "••••  ••••  ••••  4209",
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    letterSpacing = 2.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    Column {
-                        Text(
-                            text = "CARD HOLDER",
-                            color = Color.White.copy(alpha = 0.3f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(text = onboardingName, color = Color.White, fontSize = 14.sp)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "TOTAL BALANCE",
-                            color = Color.White.copy(alpha = 0.3f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = String.format("$currency %,.2f", initialDeposit),
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                if (accounts.size > 1) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(accounts.size) { index ->
+                            val isSelected = pagerState.currentPage == index
+                            val indicatorWidth by animateDpAsState(
+                                targetValue = if (isSelected) 24.dp else 8.dp,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                )
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .height(6.dp)
+                                    .width(indicatorWidth)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                                    )
+                            )
+                        }
                     }
                 }
             }

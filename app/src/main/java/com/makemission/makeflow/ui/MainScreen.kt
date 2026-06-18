@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -18,7 +21,7 @@ import com.makemission.makeflow.ui.components.MakeFlowTab
 import com.makemission.makeflow.ui.navigation.Screen
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
 import com.makemission.makeflow.ui.screens.CategoriesScreen
-import com.makemission.makeflow.ui.screens.DashboardScreen
+import com.makemission.makeflow.ui.screens.FocusDashboardView
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 
@@ -30,6 +33,10 @@ fun MainScreen() {
     val isAddRoute = currentDestination?.route == Screen.AddTransaction.route
     val isOnboardingRoute = currentDestination?.route == Screen.Onboarding.route
     val showNavbar = !isAddRoute && !isOnboardingRoute
+
+    var onboardingName by remember { mutableStateOf("Developer") }
+    var onboardingCurrency by remember { mutableStateOf("KSh") }
+    var initialDeposit by remember { mutableStateOf(12500.00) }
 
     val currentTab = when (currentDestination?.route) {
         Screen.Dashboard.route -> MakeFlowTab.FOCUS
@@ -47,14 +54,32 @@ fun MainScreen() {
                     .padding(top = innerPadding.calculateTopPadding())
             ) {
                 composable(Screen.Onboarding.route) {
-                    OnboardingScreen(onCompleted = {
-                        navController.navigate(Screen.Dashboard.route) {
-                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    OnboardingScreen(
+                        onOnboardingComplete = { name, currency, balance ->
+                            onboardingName = name
+                            onboardingCurrency = currency
+                            initialDeposit = balance
+                        },
+                        onCompleted = {
+                            navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(Screen.Onboarding.route) { inclusive = true }
+                            }
                         }
-                    })
+                    )
                 }
-                composable(Screen.Dashboard.route) { DashboardScreen() }
-                composable(Screen.Analytics.route) { AnalyticsScreen() }
+                composable(Screen.Dashboard.route) {
+                    FocusDashboardView(
+                        onboardingName = onboardingName,
+                        currency = onboardingCurrency,
+                        initialDeposit = initialDeposit
+                    )
+                }
+                composable(Screen.Analytics.route) {
+                    AnalyticsScreen(
+                        currency = onboardingCurrency,
+                        initialDeposit = initialDeposit
+                    )
+                }
                 composable(Screen.Categories.route) { CategoriesScreen() }
                 composable(Screen.Settings.route) { SettingsScreen() }
             }

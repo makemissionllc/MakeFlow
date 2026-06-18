@@ -1,15 +1,18 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
+
 package com.makemission.makeflow.ui.screens
 
 import android.util.Log
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,8 +58,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -67,6 +70,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.ui.components.AddCategoryBottomSheet
+import com.makemission.makeflow.ui.haptic.lightTick
+import com.makemission.makeflow.ui.haptic.mediumConfirm
+import com.makemission.makeflow.ui.haptic.strongPress
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
 import com.makemission.makeflow.ui.viewmodel.CategoryDetailState
@@ -74,43 +80,53 @@ import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale
 
+private val fastEnter = fadeIn(
+    animationSpec = tween(
+        durationMillis = 350,
+        easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    )
+)
+
+private val slowExit = fadeOut(
+    animationSpec = tween(
+        durationMillis = 400,
+        delayMillis = 100,
+        easing = CubicBezierEasing(0.0f, 0.0f, 0.2f, 1.0f)
+    )
+)
+
+private val fastFadeIn = fadeIn(
+    animationSpec = tween(
+        durationMillis = 350,
+        easing = CubicBezierEasing(0.4f, 0.0f, 0.2f, 1.0f)
+    )
+)
+
+private val slowFadeOut = fadeOut(
+    animationSpec = tween(
+        durationMillis = 200,
+        easing = CubicBezierEasing(0.4f, 0.0f, 0.6f, 1.0f)
+    )
+)
+
 @Composable
 fun CategoriesScreen(
     viewModel: CategoriesViewModel = viewModel()
 ) {
     Log.d("MakeFlowDebug", "CategoriesScreen composing")
+
     val dimens = LocalAppDimens.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val detailState by viewModel.detailState.collectAsStateWithLifecycle()
-
     var showSheet by remember { mutableStateOf(false) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
 
-    AnimatedContent(
-        targetState = detailState != null,
-        transitionSpec = {
-            if (targetState) {
-                (slideInHorizontally { it } + fadeIn(animationSpec = tween(350)))
-                    .togetherWith(
-                        slideOutHorizontally { -it / 3 } + fadeOut(animationSpec = tween(250))
-                    )
-            } else {
-                (slideInHorizontally { -it } + fadeIn(animationSpec = tween(350)))
-                    .togetherWith(
-                        slideOutHorizontally { it / 3 } + fadeOut(animationSpec = tween(250))
-                    )
-            }
-        },
-        label = "category_morph"
-    ) { showDetail ->
-        if (showDetail) {
-            detailState?.let { detail ->
-                CategoryDetailView(
-                    detailState = detail,
-                    onBack = { viewModel.onDismissDetail() },
-                    onToggleTask = { viewModel.onToggleTaskInDetailScreen(it) }
-                )
-            }
-        } else {
+    SharedTransitionLayout {
+        AnimatedVisibility(
+            visible = detailState == null,
+            enter = fastEnter,
+            exit = slowExit
+        ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -118,6 +134,7 @@ fun CategoriesScreen(
                         .verticalScroll(rememberScrollState())
                 ) {
                     CategoriesTopBar()
+
                     Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
                     if (uiState.isLoading) {
@@ -139,39 +156,68 @@ fun CategoriesScreen(
                             totalSpent = uiState.totalSpent,
                             totalBudget = uiState.totalBudget
                         )
-                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
-                        uiState.categories.forEach { category ->
+
+                        Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+                        uiState.categories.forEach { cat ->
                             CategorySpendingItem(
-                                category = category,
+                                category = cat,
                                 spendingMap = uiState.spendingMap,
-                                onClick = { viewModel.onCategoryClick(category.id) },
-                                onDelete = { viewModel.onDeleteCategory(category.id) }
+                                isExpanding = selectedCategoryId == cat.id,
+                                onClick = {
+                                    selectedCategoryId = cat.id
+                                    viewModel.onCategoryClick(cat.id)
+                                },
+                                onDelete = {
+                                    viewModel.onDeleteCategory(cat.id)
+                                }
                             )
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(dimens.paddingSmall))
                         }
-                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
                     }
                 }
 
                 AddCategoryButton(onClick = { showSheet = true })
             }
+        }
 
-            if (showSheet) {
-                AddCategoryBottomSheet(
-                    viewModel = viewModel,
-                    onDismiss = { showSheet = false }
-                )
+        AnimatedVisibility(
+            visible = detailState != null,
+            enter = fastFadeIn,
+            exit = slowFadeOut
+        ) {
+            detailState?.let { detail ->
+                with(this@SharedTransitionLayout) {
+                    CategoryDetailView(
+                        animatedVisibilityScope = this@AnimatedVisibility,
+                        detailState = detail,
+                        onBack = {
+                            selectedCategoryId = null
+                            viewModel.onDismissDetail()
+                        },
+                        onToggleTask = { viewModel.onToggleTaskInDetailScreen(it) }
+                    )
+                }
             }
         }
+    }
+
+    if (showSheet) {
+        AddCategoryBottomSheet(
+            viewModel = viewModel,
+            onDismiss = { showSheet = false }
+        )
     }
 }
 
 @Composable
-private fun CategoryDetailView(
+private fun SharedTransitionScope.CategoryDetailView(
+    animatedVisibilityScope: AnimatedVisibilityScope,
     detailState: CategoryDetailState,
     onBack: () -> Unit,
     onToggleTask: (TaskEntity) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
     val category = detailState.categoryWithTasks.category
     val tasks = detailState.categoryWithTasks.tasks
@@ -186,9 +232,19 @@ private fun CategoryDetailView(
         }
     }
 
+    val containerState = rememberSharedContentState(key = "container_${category.id}")
+    val iconState = rememberSharedContentState(key = "icon_${category.id}")
+    val nameState = rememberSharedContentState(key = "name_${category.id}")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .sharedBounds(
+                sharedContentState = containerState,
+                animatedVisibilityScope = animatedVisibilityScope,
+                boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
+            )
             .verticalScroll(rememberScrollState())
     ) {
         Row(
@@ -197,19 +253,26 @@ private fun CategoryDetailView(
                 .padding(horizontal = 4.dp, vertical = dimens.paddingSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { haptic.lightTick(); onBack() }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }
+
             Spacer(modifier = Modifier.width(4.dp))
+
             Box(
                 modifier = Modifier
                     .size(dimens.iconSizeLarge)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .sharedElement(
+                        state = iconState,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -219,13 +282,21 @@ private fun CategoryDetailView(
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
+
             Spacer(modifier = Modifier.width(dimens.paddingSmall + 4.dp))
+
             Text(
                 text = category.name,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .sharedElement(
+                        state = nameState,
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        boundsTransform = { _, _ -> spring(dampingRatio = 0.8f, stiffness = 300f) }
+                    )
             )
         }
 
@@ -233,64 +304,57 @@ private fun CategoryDetailView(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = dimens.paddingMedium),
-            shape = RoundedCornerShape(dimens.cornerRadiusLarge),
+            shape = RoundedCornerShape(dimens.cornerRadiusMedium),
             colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.elevatedCardElevation(defaultElevation = dimens.cardElevation)
         ) {
-            Column(modifier = Modifier.padding(dimens.paddingLarge)) {
-                Text(
-                    text = "BUDGET",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(dimens.paddingSmall))
-                Row(verticalAlignment = Alignment.Bottom) {
+            Column(modifier = Modifier.padding(dimens.paddingMedium)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "$${fmt.format(spent)}",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.width(dimens.paddingSmall))
-                    Text(
-                        text = "/ $${fmt.format(budget)}",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "Budget",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (isOverBudget) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = "Over Budget",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(dimens.iconSizeSmall)
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "$${fmt.format(spent)} / $${fmt.format(budget)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isOverBudget) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface
+                )
+
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
                 LinearProgressIndicator(
                     progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(dimens.barHeight)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = if (isOverBudget) Color(0xFFE53935) else MaterialTheme.colorScheme.primary,
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
+                    color = if (isOverBudget) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                if (isOverBudget) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Filled.Warning,
-                            contentDescription = "Over budget",
-                            modifier = Modifier.size(dimens.iconSizeSmall),
-                            tint = Color(0xFFE53935)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Over by $${fmt.format(spent - budget)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFFE53935),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
             }
         }
 
-        Spacer(modifier = Modifier.height(dimens.paddingLarge))
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
         Text(
             text = "Tasks",
@@ -299,26 +363,24 @@ private fun CategoryDetailView(
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = dimens.paddingMedium)
         )
+
         Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+        tasks.forEach { task ->
+            TaskRowInDetail(
+                task = task,
+                onToggle = { onToggleTask(task) }
+            )
+        }
 
         if (tasks.isEmpty()) {
             Text(
-                text = "No tasks assigned to this category.",
+                text = "No tasks for this category",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = dimens.paddingMedium)
             )
-        } else {
-            tasks.forEach { task ->
-                TaskRowInDetail(
-                    task = task,
-                    onToggle = { onToggleTask(task) }
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-            }
         }
-
-        Spacer(modifier = Modifier.height(dimens.paddingLarge))
     }
 }
 
@@ -327,20 +389,29 @@ private fun TaskRowInDetail(
     task: TaskEntity,
     onToggle: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggle() }
+            .clickable {
+                if (!task.isCompleted) haptic.mediumConfirm() else haptic.lightTick()
+                onToggle()
+            }
             .padding(horizontal = dimens.paddingMedium, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
             checked = task.isCompleted,
-            onCheckedChange = { onToggle() }
+            onCheckedChange = {
+                if (!task.isCompleted) haptic.mediumConfirm() else haptic.lightTick()
+                onToggle()
+            }
         )
+
         Spacer(modifier = Modifier.width(dimens.paddingSmall))
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = task.title,
@@ -367,6 +438,7 @@ private fun TaskRowInDetail(
 @Composable
 private fun CategoriesTopBar() {
     val dimens = LocalAppDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -414,7 +486,9 @@ private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 1.sp
             )
+
             Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = "$${fmt.format(totalSpent)}",
@@ -422,33 +496,41 @@ private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double) {
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+
                 Spacer(modifier = Modifier.width(dimens.paddingSmall))
+
                 Text(
                     text = "/ $${fmt.format(totalBudget)}",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
             Spacer(modifier = Modifier.height(6.dp))
+
             Text(
                 text = "$percentage% of budget",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
             Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
+
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(dimens.barHeight)
-                    .clip(RoundedCornerShape(4.dp)),
-                color = if (progress >= 1f) Color(0xFFE53935) else MaterialTheme.colorScheme.primary,
+                    .clip(RoundedCornerShape(dimens.barHeight / 2)),
+                color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
+
             Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
             Text(
-                text = "$daysLeft days left",
+                text = "$daysLeft days left in month",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -460,9 +542,11 @@ private fun TotalBudgetCard(totalSpent: Double, totalBudget: Double) {
 private fun CategorySpendingItem(
     category: CategoryEntity,
     spendingMap: Map<String, Double>,
+    isExpanding: Boolean,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
     val fmt = remember {
         NumberFormat.getNumberInstance(Locale.US).apply {
@@ -479,7 +563,7 @@ private fun CategorySpendingItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = dimens.paddingMedium)
-            .clickable { onClick() },
+            .clickable { haptic.lightTick(); onClick() },
         shape = RoundedCornerShape(dimens.cornerRadiusMedium),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = dimens.cardElevation)
@@ -500,7 +584,9 @@ private fun CategorySpendingItem(
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
+
                 Spacer(modifier = Modifier.width(dimens.paddingSmall + 4.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = category.name,
@@ -511,55 +597,43 @@ private fun CategorySpendingItem(
                     Text(
                         text = "$${fmt.format(spent)} / $${fmt.format(category.monthlyBudget)}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (isOverBudget) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = onDelete) {
+
+                IconButton(onClick = { haptic.strongPress(); onDelete() }) {
                     Icon(
                         imageVector = Icons.Filled.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.size(dimens.iconSizeMedium - 2.dp)
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
+
+            Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(dimens.barHeight - 2.dp)
-                    .clip(RoundedCornerShape(3.dp)),
-                color = if (isOverBudget) Color(0xFFE53935) else MaterialTheme.colorScheme.primary,
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp)),
+                color = if (isOverBudget) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
-            if (isOverBudget) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.Warning,
-                        contentDescription = "Over budget",
-                        modifier = Modifier.size(dimens.iconSizeSmall),
-                        tint = Color(0xFFE53935)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Over by $${fmt.format(spent - category.monthlyBudget)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFFE53935),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
         }
     }
 }
 
 @Composable
 private fun AddCategoryButton(onClick: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
+
     Button(
-        onClick = onClick,
+        onClick = { haptic.strongPress(); onClick() },
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = dimens.paddingMedium, vertical = dimens.paddingSmall + 4.dp),

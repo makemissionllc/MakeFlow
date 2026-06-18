@@ -74,16 +74,12 @@ fun AddTransactionSheet(navController: NavController) {
             return@remember null
         }
     } ?: return
-
     val categories by db.categoryDao().getAllCategories().collectAsState(initial = emptyList())
-
     var rawInput by remember { mutableStateOf("") }
     var transactionType by remember { mutableStateOf("EXPENSE") }
     var note by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
-
     val scope = rememberCoroutineScope()
-
     val amount = parseAmount(rawInput)
     val isFormValid = amount > 0.0
 
@@ -173,7 +169,6 @@ private fun AddTopBar(onClose: () -> Unit) {
 @Composable
 private fun AmountDisplay(rawInput: String) {
     val display = formatNumpadDisplay(rawInput)
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -322,9 +317,8 @@ private fun NumpadGrid(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf(".", "0", "⌫")
+        listOf(".", "0", "\u232B")
     )
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -345,14 +339,14 @@ private fun NumpadGrid(
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable {
                                 when (key) {
-                                    "⌫" -> onBackspace()
+                                    "\u232B" -> onBackspace()
                                     "." -> onDecimal()
                                     else -> onDigit(key)
                                 }
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (key == "⌫") {
+                        if (key == "\u232B") {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Backspace",

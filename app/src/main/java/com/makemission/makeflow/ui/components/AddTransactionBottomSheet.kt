@@ -1,5 +1,4 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -53,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -60,6 +60,9 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
+import com.makemission.makeflow.ui.haptic.lightTick
+import com.makemission.makeflow.ui.haptic.mediumConfirm
+import com.makemission.makeflow.ui.haptic.strongPress
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -71,12 +74,10 @@ fun AddTransactionBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val categories = viewModel.uiState.value.categories
     val dimens = LocalAppDimens.current
-
     var rawInput by remember { mutableStateOf("") }
     var transactionType by remember { mutableStateOf("EXPENSE") }
     var note by remember { mutableStateOf("") }
     var selectedCategoryId by remember { mutableStateOf<String?>(null) }
-
     val amount = parseAmount(rawInput)
     val isFormValid = amount > 0.0 && selectedCategoryId != null
 
@@ -133,17 +134,19 @@ fun AddTransactionBottomSheet(
                         if (rawInput.isNotEmpty()) rawInput = rawInput.dropLast(1)
                     }
                 )
-                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
                 SaveButton(
                     enabled = isFormValid,
                     onClick = {
-                        viewModel.onAddTransaction(
-                            amount = amount,
-                            type = transactionType,
-                            categoryId = selectedCategoryId,
-                            note = note.trim()
-                        )
-                        onDismiss()
+                        if (isFormValid) {
+                            viewModel.onAddTransaction(
+                                categoryId = selectedCategoryId!!,
+                                amount = amount,
+                                type = transactionType,
+                                note = note
+                            )
+                            onDismiss()
+                        }
                     }
                 )
             }
@@ -174,7 +177,9 @@ private fun AmountDisplay(rawInput: String) {
 
 @Composable
 private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -193,7 +198,7 @@ private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit
                         if (isSelected) MaterialTheme.colorScheme.primary
                         else Color.Transparent
                     )
-                    .clickable { onSelect(label.uppercase()) }
+                    .clickable { haptic.mediumConfirm(); onSelect(label.uppercase()) }
                     .padding(vertical = dimens.paddingSmall + 4.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -212,6 +217,7 @@ private fun TransactionTypeSelector(selected: String, onSelect: (String) -> Unit
 @Composable
 private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
     val dimens = LocalAppDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -228,7 +234,9 @@ private fun NoteField(note: String, onNoteChange: (String) -> Unit) {
             modifier = Modifier.size(dimens.iconSizeMedium - 2.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
+
         Spacer(modifier = Modifier.width(10.dp))
+
         val text = if (note.isEmpty()) "Add a note..." else note
         val color = if (note.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
         else MaterialTheme.colorScheme.onBackground
@@ -250,6 +258,7 @@ private fun CategoryGrid(
     selectedId: String?,
     onSelect: (String?) -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
 
     Column(modifier = Modifier.padding(horizontal = dimens.paddingLarge)) {
@@ -260,6 +269,7 @@ private fun CategoryGrid(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 4.dp)
         )
+
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(vertical = 4.dp),
@@ -271,7 +281,7 @@ private fun CategoryGrid(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .clip(CircleShape)
-                        .clickable { onSelect(category.id) }
+                        .clickable { haptic.mediumConfirm(); onSelect(category.id) }
                         .padding(4.dp)
                 ) {
                     Box(
@@ -292,7 +302,9 @@ private fun CategoryGrid(
                             else MaterialTheme.colorScheme.onSurface
                         )
                     }
+
                     Spacer(modifier = Modifier.height(4.dp))
+
                     Text(
                         text = category.name,
                         style = MaterialTheme.typography.labelSmall,
@@ -312,6 +324,7 @@ private fun NumpadRow(
     onDecimal: () -> Unit,
     onBackspace: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
     val keys = listOf(
         listOf("1", "2", "3"),
@@ -339,6 +352,7 @@ private fun NumpadRow(
                             .clip(RoundedCornerShape(dimens.numpadRadius))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                             .clickable {
+                                haptic.lightTick()
                                 when (key) {
                                     "\u232B" -> onBackspace()
                                     "." -> onDecimal()
@@ -371,9 +385,11 @@ private fun NumpadRow(
 
 @Composable
 private fun SaveButton(enabled: Boolean, onClick: () -> Unit) {
+    val haptic = LocalHapticFeedback.current
     val dimens = LocalAppDimens.current
+
     Button(
-        onClick = onClick,
+        onClick = { haptic.strongPress(); onClick() },
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()

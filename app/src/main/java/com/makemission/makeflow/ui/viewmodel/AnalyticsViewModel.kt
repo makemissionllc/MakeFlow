@@ -22,12 +22,9 @@ import java.util.Date
 import java.util.Locale
 
 class AnalyticsViewModel(application: Application) : AndroidViewModel(application) {
-
     private val repository: FinanceRepository
-
     private val _uiState = MutableStateFlow(AnalyticsUiState())
     val uiState: StateFlow<AnalyticsUiState> = _uiState.asStateFlow()
-
     private val _selectedFilter = MutableStateFlow(0)
     val selectedFilter: StateFlow<Int> = _selectedFilter.asStateFlow()
 

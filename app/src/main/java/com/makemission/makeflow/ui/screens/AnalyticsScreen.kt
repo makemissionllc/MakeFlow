@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -46,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.ui.state.AnalyticsUiState
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.AnalyticsViewModel
+import com.makemission.makeflow.ui.haptic.lightTick
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -93,6 +95,7 @@ private fun AnalyticsTopBar() {
                 tint = MaterialTheme.colorScheme.onBackground
             )
         }
+
         Text(
             text = "Analytics",
             style = MaterialTheme.typography.titleLarge,
@@ -100,6 +103,7 @@ private fun AnalyticsTopBar() {
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center
         )
+
         IconButton(onClick = { }) {
             Icon(
                 imageVector = Icons.Filled.Search,
@@ -147,7 +151,9 @@ private fun MetricCardsRow(totalIncome: Double, totalExpense: Double) {
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
                 Text(
                     text = "$${fmt.format(totalIncome)}",
                     style = MaterialTheme.typography.titleLarge,
@@ -166,19 +172,21 @@ private fun MetricCardsRow(totalIncome: Double, totalExpense: Double) {
             Column(modifier = Modifier.padding(dimens.paddingMedium)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Expenses",
+                        text = "Expense",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
-                        imageVector = Icons.Filled.ShoppingCart,
+                        imageVector = Icons.Filled.ArrowDropDown,
                         contentDescription = null,
                         modifier = Modifier.size(dimens.iconSizeSmall),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
                 Text(
                     text = "$${fmt.format(totalExpense)}",
                     style = MaterialTheme.typography.titleLarge,
@@ -217,6 +225,7 @@ private fun CashFlowChartSection(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onBackground
         )
+
         Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
         Canvas(
@@ -234,7 +243,7 @@ private fun CashFlowChartSection(
             if (chartW <= 0f || chartH <= 0f) return@Canvas
 
             val allAmounts = uiState.incomeChartPoints.map { it.second } +
-                uiState.expenseChartPoints.map { it.second }
+                    uiState.expenseChartPoints.map { it.second }
             val maxVal = (allAmounts.maxOrNull() ?: 1.0) * 1.15
 
             for (i in 0..4) {
@@ -314,11 +323,13 @@ private fun CashFlowChartSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall, Alignment.CenterHorizontally)
         ) {
+            val haptic = LocalHapticFeedback.current
             val filters = listOf("1W", "1M", "1Y")
+
             filters.forEachIndexed { index, label ->
                 FilterChip(
                     selected = selectedFilter == index,
-                    onClick = { onFilterChange(index) },
+                    onClick = { haptic.lightTick(); onFilterChange(index) },
                     label = { Text(label, fontWeight = FontWeight.Medium) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant,

@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-17T08:46:37.865213300Z">
+        <DropdownSelection timestamp="2026-06-18T06:02:38.577432600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\jerim\.android\avd\Medium_Phone.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\jerim\.android\avd\OnePlus_15.avd" />
             </handle>
           </Target>
         </DropdownSelection>

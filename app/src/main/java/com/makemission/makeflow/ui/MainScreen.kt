@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -43,6 +44,7 @@ import com.makemission.makeflow.ui.screens.DashboardScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.haptic.lightTick
 
 @Composable
 fun MainScreen() {
@@ -161,6 +163,7 @@ private fun FloatingNavItem(
         label = "navIconScale"
     )
 
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
 
     Box(
@@ -169,7 +172,10 @@ private fun FloatingNavItem(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = {
+                    haptic.lightTick()
+                    onClick()
+                }
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center

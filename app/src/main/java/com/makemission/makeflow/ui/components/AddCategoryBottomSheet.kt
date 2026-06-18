@@ -1,5 +1,4 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
@@ -41,11 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.CategoriesViewModel
+import com.makemission.makeflow.ui.haptic.lightTick
+import com.makemission.makeflow.ui.haptic.strongPress
 
 private val colorOptions = listOf(
     "#E53935", "#D81B60", "#8E24AA", "#5E35B1",
@@ -91,6 +93,7 @@ fun AddCategoryBottomSheet(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
+
                 Spacer(modifier = Modifier.height(dimens.paddingMedium + 4.dp))
 
                 OutlinedTextField(
@@ -105,6 +108,7 @@ fun AddCategoryBottomSheet(
                         unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
                     )
                 )
+
                 Spacer(modifier = Modifier.height(dimens.paddingSmall + 4.dp))
 
                 OutlinedTextField(
@@ -112,15 +116,15 @@ fun AddCategoryBottomSheet(
                     onValueChange = { budget = it },
                     label = { Text("Monthly Budget") },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(dimens.cornerRadiusSmall + 4.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = MaterialTheme.colorScheme.primary,
                         unfocusedBorderColor = MaterialTheme.colorScheme.surfaceVariant
-                    ),
-                    prefix = { Text("$") }
+                    )
                 )
+
                 Spacer(modifier = Modifier.height(dimens.paddingMedium + 4.dp))
 
                 Text(
@@ -129,7 +133,10 @@ fun AddCategoryBottomSheet(
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(10.dp))
+
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+                val haptic = LocalHapticFeedback.current
 
                 Row(
                     modifier = Modifier
@@ -151,14 +158,18 @@ fun AddCategoryBottomSheet(
                                         CircleShape
                                     ) else Modifier
                                 )
-                                .clickable { selectedColor = hex }
+                                .clickable { haptic.lightTick(); selectedColor = hex }
                         )
                     }
                 }
+
                 Spacer(modifier = Modifier.height(dimens.paddingLarge))
+
+                val hapticBtn = LocalHapticFeedback.current
 
                 Button(
                     onClick = {
+                        hapticBtn.strongPress()
                         if (name.isNotBlank()) {
                             viewModel.onAddCategory(
                                 name = name.trim(),

@@ -18,9 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class OnboardingViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = AppDatabase.getDatabase(application)
-
     private val repository: FinanceRepository by lazy {
         FinanceRepositoryImpl(
             categoryDao = db.categoryDao(),
@@ -90,9 +88,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isCompleting = true)
-
             val initialBalance = balance.toDoubleOrNull() ?: 0.0
-
             repository.insertAccount(
                 AccountEntity(
                     name = "${username}'s Account",
@@ -100,7 +96,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     type = currency
                 )
             )
-
             selectedCategories.forEach { name ->
                 val template = OnboardingUiState.categoryTemplates.find { it.name == name }
                 repository.insertCategory(
@@ -112,7 +107,6 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     )
                 )
             }
-
             if (initialBalance > 0.0) {
                 repository.insertTransaction(
                     TransactionEntity(
@@ -122,9 +116,7 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
                     )
                 )
             }
-
             delay(800)
-
             _uiState.value = _uiState.value.copy(isCompleting = false, isCompleted = true)
         }
     }

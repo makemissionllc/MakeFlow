@@ -30,9 +30,7 @@ data class OnboardingUiState(
             CategoryTemplate("Electronics", "ShoppingCart", "#00ACC1"),
             CategoryTemplate("Income", "Check", "#43A047"),
         )
-
         val defaultActiveCategories = categoryTemplates.map { it.name }.toSet()
-
         val availableCurrencies = listOf(
             CurrencyInfo("USD", "$", "United States Dollar"),
             CurrencyInfo("EUR", "\u20AC", "Euro"),

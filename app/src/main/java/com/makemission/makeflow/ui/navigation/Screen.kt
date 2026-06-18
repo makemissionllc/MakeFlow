@@ -22,9 +22,7 @@ sealed class Screen(
 
     companion object {
         val bottomNavItems by lazy { listOf(Dashboard, Analytics, Categories, Settings) }
-
         private val routeIndex by lazy { (bottomNavItems + AddTransaction).associateBy { it.route } }
-
         fun findByRoute(route: String?): Screen? =
             if (route != null) routeIndex[route] else null
     }

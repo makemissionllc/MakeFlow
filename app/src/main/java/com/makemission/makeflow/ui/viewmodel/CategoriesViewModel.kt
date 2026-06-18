@@ -31,15 +31,11 @@ data class CategoryDetailState(
 )
 
 class CategoriesViewModel(application: Application) : AndroidViewModel(application) {
-
     private val repository: FinanceRepository
-
     private val _uiState = MutableStateFlow(CategoryUiState())
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
-
     private val _selectedCategoryId = MutableStateFlow<String?>(null)
     val selectedCategoryId: StateFlow<String?> = _selectedCategoryId.asStateFlow()
-
     private val _detailState = MutableStateFlow<CategoryDetailState?>(null)
     val detailState: StateFlow<CategoryDetailState?> = _detailState.asStateFlow()
 
@@ -53,7 +49,6 @@ class CategoriesViewModel(application: Application) : AndroidViewModel(applicati
     private fun loadCategories() {
         viewModelScope.launch {
             val (monthStart, monthEnd) = currentMonthRange()
-
             combine(
                 repository.getAllCategories(),
                 repository.getMonthlySpendingByCategory(monthStart, monthEnd)

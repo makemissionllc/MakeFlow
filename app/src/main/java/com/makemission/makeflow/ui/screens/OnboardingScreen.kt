@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -88,6 +89,9 @@ import com.makemission.makeflow.ui.state.OnboardingUiState
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import com.makemission.makeflow.ui.viewmodel.OnboardingViewModel
+import com.makemission.makeflow.ui.haptic.lightTick
+import com.makemission.makeflow.ui.haptic.mediumConfirm
+import com.makemission.makeflow.ui.haptic.strongPress
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.Locale
@@ -359,7 +363,7 @@ private fun CurrencyPage(
             enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) +
                     slideInVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) { it / 3 }
         ) {
-            CurrencySelectorCard(
+            CurrencySelector(
                 animatedSymbol = animatedSymbol,
                 selectedInfo = selectedInfo,
                 primaryCurrencies = primaryCurrencies,
@@ -373,7 +377,7 @@ private fun CurrencyPage(
 }
 
 @Composable
-private fun CurrencySelectorCard(
+private fun CurrencySelector(
     animatedSymbol: String,
     selectedInfo: CurrencyInfo?,
     primaryCurrencies: List<CurrencyInfo>,
@@ -461,11 +465,14 @@ private fun CurrencySelectorCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
+        val haptic = LocalHapticFeedback.current
+
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall + 4.dp)
         ) {
             items(primaryCurrencies) { currency ->
                 val isSelected = currency.code == selected
+
                 val chipScale by animateFloatAsState(
                     targetValue = if (isSelected) 1.05f else 1f,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -486,7 +493,10 @@ private fun CurrencySelectorCard(
                             else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
                             shape = RoundedCornerShape(20.dp)
                         )
-                        .clickable { onSelect(currency.code) }
+                        .clickable {
+                            haptic.lightTick()
+                            onSelect(currency.code)
+                        }
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -498,7 +508,9 @@ private fun CurrencySelectorCard(
                             color = if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onBackground
                         )
+
                         Spacer(modifier = Modifier.width(6.dp))
+
                         Text(
                             text = currency.code,
                             style = MaterialTheme.typography.bodyMedium,
@@ -539,6 +551,7 @@ private fun BalancePage(
     isActive: Boolean
 ) {
     var hasAppeared by remember { mutableStateOf(false) }
+
     val currentSymbol = remember(currency) {
         OnboardingUiState.availableCurrencies.find { it.code == currency }?.symbol ?: "$"
     }
@@ -647,6 +660,7 @@ private fun VirtualCardInitialDepositBuilder(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 2.sp
                     )
+
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -696,6 +710,7 @@ private fun VirtualCardInitialDepositBuilder(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
+
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "BALANCE",
@@ -733,6 +748,7 @@ private fun VirtualCardInitialDepositBuilder(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 letterSpacing = 1.5.sp
             )
+
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
@@ -787,7 +803,9 @@ private fun CategoriesPage(
     onToggle: (String) -> Unit,
     isActive: Boolean
 ) {
+    val haptic = LocalHapticFeedback.current
     var hasAppeared by remember { mutableStateOf(false) }
+
     val categories = OnboardingUiState.categoryTemplates
     val dimens = LocalAppDimens.current
 
@@ -839,16 +857,19 @@ private fun CategoriesPage(
                     } catch (e: Exception) {
                         MaterialTheme.colorScheme.primary
                     }
+
                     val cardScale by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0.92f,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "cardScale"
                     )
+
                     val cardAlpha by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0.5f,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "cardAlpha"
                     )
+
                     val iconScale by animateFloatAsState(
                         targetValue = if (isSelected) 1.15f else 1f,
                         animationSpec = spring(
@@ -866,7 +887,11 @@ private fun CategoriesPage(
                                 scaleY = cardScale,
                                 alpha = cardAlpha
                             )
-                            .clickable { onToggle(category.name) },
+                            .clickable {
+                                if (category.name in active) haptic.lightTick()
+                                else haptic.mediumConfirm()
+                                onToggle(category.name)
+                            },
                         shape = RoundedCornerShape(dimens.cornerRadiusMedium),
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected)
@@ -895,7 +920,9 @@ private fun CategoriesPage(
                                 tint = if (isSelected) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
                             Spacer(modifier = Modifier.height(8.dp))
+
                             Text(
                                 text = category.name,
                                 style = MaterialTheme.typography.bodyMedium,
@@ -905,8 +932,10 @@ private fun CategoriesPage(
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
                             )
+
                             if (isSelected) {
                                 Spacer(modifier = Modifier.height(4.dp))
+
                                 Icon(
                                     imageVector = Icons.Filled.Check,
                                     contentDescription = "Active",
@@ -1014,16 +1043,16 @@ private fun CompletionPage(
             ) {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     SummaryRow("Name", username)
-                    SummaryDivider()
+                    Divider()
                     SummaryRow("Currency", currency)
-                    SummaryDivider()
+                    Divider()
                     SummaryRow("Balance", "$currency ${fmt.format(balanceValue)}")
-                    SummaryDivider()
+                    Divider()
                     SummaryRow("Categories", "${categories.size} active")
                 }
             }
         } else {
-            SavingAnimation()
+            LoadingAnimation()
         }
     }
 }
@@ -1052,7 +1081,7 @@ private fun SummaryRow(label: String, value: String) {
 }
 
 @Composable
-private fun SummaryDivider() {
+private fun Divider() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -1062,7 +1091,7 @@ private fun SummaryDivider() {
 }
 
 @Composable
-private fun SavingAnimation() {
+private fun LoadingAnimation() {
     val dotCount = 3
     val delays = listOf(0, 200, 400)
 
@@ -1087,6 +1116,7 @@ private fun SavingAnimation() {
         ) {
             delays.forEach { delayMs ->
                 var visible by remember { mutableStateOf(false) }
+
                 LaunchedEffect(Unit) {
                     delay(delayMs.toLong())
                     while (true) {
@@ -1096,6 +1126,7 @@ private fun SavingAnimation() {
                         delay(600)
                     }
                 }
+
                 Box(
                     modifier = Modifier
                         .size(12.dp)
@@ -1143,11 +1174,13 @@ private fun BottomBar(
         ) {
             repeat(totalPages) { i ->
                 val isActive = i == currentPage
+
                 val animatedWidth by animateDpAsState(
                     targetValue = if (isActive) 24.dp else 8.dp,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                     label = "dotWidth"
                 )
+
                 Box(
                     modifier = Modifier
                         .width(animatedWidth)
@@ -1161,8 +1194,13 @@ private fun BottomBar(
             }
         }
 
+        val haptic = LocalHapticFeedback.current
+
         Button(
-            onClick = onContinue,
+            onClick = {
+                haptic.strongPress()
+                onContinue()
+            },
             enabled = canContinue && !isCompleting,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1176,8 +1214,7 @@ private fun BottomBar(
             )
         ) {
             Text(
-                text = if (currentPage == totalPages - 1) "Get Started"
-                else "Continue",
+                text = if (currentPage == totalPages - 1) "Get Started" else "Continue",
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -1191,7 +1228,13 @@ private fun BottomBar(
 
         if (currentPage < totalPages - 1) {
             Spacer(modifier = Modifier.height(10.dp))
-            TextButton(onClick = onSkip) {
+
+            TextButton(
+                onClick = {
+                    haptic.mediumConfirm()
+                    onSkip()
+                }
+            ) {
                 Text(
                     text = "Skip",
                     style = MaterialTheme.typography.bodyMedium,

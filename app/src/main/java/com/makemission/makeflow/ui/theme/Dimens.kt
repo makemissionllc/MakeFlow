@@ -1,5 +1,9 @@
 package com.makemission.makeflow.ui.theme
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.spring
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,6 +32,12 @@ data class AppDimens(
     val navbarItemSize: Dp = 24.dp,
     val navbarMarginHorizontal: Dp = 24.dp,
     val navbarMarginBottom: Dp = 12.dp,
+    val shapeCornerXSmall: Dp = 8.dp,
+    val shapeCornerSmall: Dp = 12.dp,
+    val shapeCornerMedium: Dp = 16.dp,
+    val shapeCornerLarge: Dp = 24.dp,
+    val shapeCornerExtraLarge: Dp = 32.dp,
+    val shapeCornerPill: Dp = 100.dp,
 )
 
 val compactDimens = AppDimens()
@@ -48,6 +58,12 @@ val mediumDimens = AppDimens(
     navbarItemSize = 26.dp,
     navbarMarginHorizontal = 32.dp,
     navbarMarginBottom = 16.dp,
+    shapeCornerXSmall = 10.dp,
+    shapeCornerSmall = 14.dp,
+    shapeCornerMedium = 20.dp,
+    shapeCornerLarge = 28.dp,
+    shapeCornerExtraLarge = 36.dp,
+    shapeCornerPill = 100.dp,
 )
 
 val expandedDimens = AppDimens(
@@ -72,6 +88,45 @@ val expandedDimens = AppDimens(
     navbarItemSize = 28.dp,
     navbarMarginHorizontal = 48.dp,
     navbarMarginBottom = 20.dp,
+    shapeCornerXSmall = 12.dp,
+    shapeCornerSmall = 16.dp,
+    shapeCornerMedium = 24.dp,
+    shapeCornerLarge = 32.dp,
+    shapeCornerExtraLarge = 40.dp,
+    shapeCornerPill = 100.dp,
 )
 
 val LocalAppDimens = staticCompositionLocalOf { compactDimens }
+
+@Immutable
+data class ExpressiveMotionSpec(
+    val pressScale: Float,
+    val releaseScale: Float,
+    val longPressScale: Float,
+    val scaleAnimationSpec: SpringSpec<Float>,
+    val colorAnimationSpec: SpringSpec<Float>,
+    val scalePressDown: Float,
+    val elevationPressIncrease: Dp,
+    val elevationDefault: Dp,
+) {
+    companion object {
+        val Default = ExpressiveMotionSpec(
+            pressScale = 0.96f,
+            releaseScale = 1f,
+            longPressScale = 0.94f,
+            scaleAnimationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            colorAnimationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            ),
+            scalePressDown = 0.96f,
+            elevationPressIncrease = 4.dp,
+            elevationDefault = 0.dp,
+        )
+    }
+}
+
+val LocalExpressiveMotion = staticCompositionLocalOf { ExpressiveMotionSpec.Default }

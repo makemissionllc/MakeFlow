@@ -1,10 +1,13 @@
 package com.makemission.makeflow.ui.screens
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +22,10 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
@@ -39,8 +44,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -61,10 +66,10 @@ fun OnboardingScreen(
     val haptic = LocalHapticFeedback.current
 
     var userName by remember { mutableStateOf("") }
-    var selectedCurrency by remember { mutableStateOf("USD") }
+    var selectedCurrency by remember { mutableStateOf("KSh") }
     var initialBalanceText by remember { mutableStateOf("12500") }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
@@ -73,7 +78,9 @@ fun OnboardingScreen(
         HorizontalPager(
             state = pagerState,
             userScrollEnabled = false,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         ) { page ->
             when (page) {
                 0 -> WelcomePage(name = userName, onNameChange = { userName = it })
@@ -84,12 +91,10 @@ fun OnboardingScreen(
 
         Column(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
+                .padding(start = 24.dp, end = 24.dp, bottom = 24.dp, top = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -97,14 +102,17 @@ fun OnboardingScreen(
             ) {
                 repeat(3) { index ->
                     val isSelected = pagerState.currentPage == index
-                    val indicatorWidth by animateFloatAsState(
-                        targetValue = if (isSelected) 32f else 8f,
-                        animationSpec = ExpressiveMotion.StandardMorph
+                    val indicatorWidth by animateDpAsState(
+                        targetValue = if (isSelected) 32.dp else 8.dp,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
                     )
                     Box(
                         modifier = Modifier
                             .height(8.dp)
-                            .width(indicatorWidth.dp)
+                            .width(indicatorWidth)
                             .clip(CircleShape)
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary
@@ -113,8 +121,6 @@ fun OnboardingScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
 
             val isButtonEnabled = when (pagerState.currentPage) {
                 0 -> userName.isNotBlank()
@@ -149,8 +155,7 @@ fun OnboardingScreen(
             ) {
                 Row(
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = if (pagerState.currentPage == 2) "Get Started" else "Continue",
@@ -170,14 +175,17 @@ fun OnboardingScreen(
                 text = "Skip",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                 modifier = Modifier
-                    .clickable {
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         onOnboardingComplete("User", "USD", 0.0)
                         onCompleted()
                     }
-                    .padding(vertical = 8.dp)
+                    .padding(vertical = 4.dp)
             )
         }
     }
@@ -188,38 +196,31 @@ private fun WelcomePage(name: String, onNameChange: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 64.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
         Box(
             modifier = Modifier
                 .size(96.dp)
-                .background(MaterialTheme.colorScheme.primaryContainer, shape = MorphingFabShape)
-                .padding(24.dp),
+                .background(MaterialTheme.colorScheme.primaryContainer, shape = MorphingFabShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(40.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Text(
-            text = "Welcome to",
-            fontSize = 24.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "MakeFlow",
-            fontSize = 40.sp,
-            fontWeight = FontWeight.Black,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Text(text = "Welcome to", fontSize = 24.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = "MakeFlow", fontSize = 40.sp, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onSurface)
+
         Text(
             text = "Your personal finance and task companion",
             fontSize = 16.sp,
@@ -228,7 +229,7 @@ private fun WelcomePage(name: String, onNameChange: (String) -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -240,12 +241,7 @@ private fun WelcomePage(name: String, onNameChange: (String) -> Unit) {
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-
-            ExpressiveInputField(
-                value = name,
-                onValueChange = onNameChange,
-                hint = "Your name"
-            )
+            ExpressiveInputField(value = name, onValueChange = onNameChange, hint = "Your name")
         }
     }
 }
@@ -262,16 +258,11 @@ private fun CurrencyPage(selectedCurrency: String, onCurrencySelected: (String) 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 64.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Your Currency",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Text(text = "Your Currency", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(
             text = "Choose your primary currency to personalize your balance display",
             fontSize = 16.sp,
@@ -280,7 +271,7 @@ private fun CurrencyPage(selectedCurrency: String, onCurrencySelected: (String) 
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -306,12 +297,12 @@ private fun CurrencyPage(selectedCurrency: String, onCurrencySelected: (String) 
                         Text(
                             text = name,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = code,
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Text(
@@ -331,16 +322,11 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .padding(top = 64.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "First Deposit",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Text(text = "First Deposit", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         Text(
             text = "Seed your account with an initial balance to get started",
             fontSize = 16.sp,
@@ -349,7 +335,7 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         Column(
             modifier = Modifier
@@ -373,9 +359,9 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             Text("\u2022\u2022\u2022\u2022   \u2022\u2022\u2022\u2022   \u2022\u2022\u2022\u2022   4209", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -392,7 +378,7 @@ private fun DepositPage(currency: String, balance: String, onBalanceChange: (Str
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Column(
             modifier = Modifier.fillMaxWidth(),

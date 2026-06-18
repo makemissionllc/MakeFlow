@@ -25,9 +25,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -45,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 enum class MakeFlowTab {
-    FOCUS, INSIGHTS
+    FOCUS, HISTORY, INSIGHTS
 }
 
 @Composable
@@ -60,7 +62,7 @@ fun ExpressiveNavDock(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -88,6 +90,17 @@ fun ExpressiveNavDock(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onTabSelected(MakeFlowTab.FOCUS)
+                }
+            )
+
+            MorphingDockItem(
+                selected = currentTab == MakeFlowTab.HISTORY,
+                activeIcon = Icons.Rounded.History,
+                inactiveIcon = Icons.Outlined.History,
+                label = "History",
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTabSelected(MakeFlowTab.HISTORY)
                 }
             )
 

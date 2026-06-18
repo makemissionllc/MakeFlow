@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import com.makemission.makeflow.ui.components.MakeFlowTab
 import com.makemission.makeflow.ui.screens.AnalyticsScreen
 import com.makemission.makeflow.ui.screens.FocusDashboardView
 import com.makemission.makeflow.ui.screens.GeneralSettingsBottomSheet
+import com.makemission.makeflow.ui.screens.HistoryScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +57,7 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(bottom = 80.dp)
         ) {
             when (activeTab) {
@@ -63,6 +66,10 @@ fun MainScreen(
                     currency = currency,
                     initialDeposit = initialDeposit,
                     onSettingsClick = { isSettingsSheetOpen = true }
+                )
+                MakeFlowTab.HISTORY -> HistoryScreen(
+                    currency = currency,
+                    initialDeposit = initialDeposit
                 )
                 MakeFlowTab.INSIGHTS -> AnalyticsScreen(
                     currency = currency,

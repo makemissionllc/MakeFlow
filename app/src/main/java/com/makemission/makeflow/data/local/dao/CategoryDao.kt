@@ -23,6 +23,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY name ASC")
     fun getAllCategories(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM categories ORDER BY name ASC")
+    fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
+
     @Query("""
         SELECT t.categoryId AS categoryId, SUM(t.amount) AS totalSpent
         FROM transactions t

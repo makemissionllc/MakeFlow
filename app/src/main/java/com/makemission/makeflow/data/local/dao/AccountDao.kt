@@ -12,11 +12,14 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AccountDao {
 
-    @Query("SELECT * FROM accounts ORDER BY id ASC")
+    @Query("SELECT * FROM accounts ORDER BY name ASC")
     fun getAllAccounts(): Flow<List<AccountEntity>>
 
+    @Query("SELECT * FROM accounts ORDER BY name ASC")
+    fun getAllAccountsFlow(): Flow<List<AccountEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAccount(account: AccountEntity): Long
+    suspend fun insertAccount(account: AccountEntity)
 
     @Update
     suspend fun updateAccount(account: AccountEntity)
@@ -25,5 +28,5 @@ interface AccountDao {
     suspend fun deleteAccount(account: AccountEntity)
 
     @Query("SELECT * FROM accounts WHERE id = :id")
-    suspend fun getAccountById(id: Long): AccountEntity?
+    suspend fun getAccountById(id: String): AccountEntity?
 }

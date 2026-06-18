@@ -5,9 +5,9 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "accounts")
 data class AccountEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey val id: String,
     val name: String,
     val balance: Double,
-    val type: String
+    val initialBalance: Double,
+    val colorHex: String = "#1E88E5"
 )

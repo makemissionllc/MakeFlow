@@ -122,6 +122,7 @@ class CategoriesViewModel(application: Application) : AndroidViewModel(applicati
             repository.insertCategory(
                 CategoryEntity(
                     name = name.trim(),
+                    type = "EXPENSE",
                     monthlyBudget = budget,
                     colorHex = colorHex
                 )

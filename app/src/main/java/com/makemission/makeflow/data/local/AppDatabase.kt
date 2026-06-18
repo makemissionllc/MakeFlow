@@ -11,19 +11,22 @@ import com.makemission.makeflow.data.local.dao.AccountDao
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
+import com.makemission.makeflow.data.local.dao.BudgetDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 
 @Database(
     entities = [
         AccountEntity::class,
         CategoryEntity::class,
         TransactionEntity::class,
-        TaskEntity::class
+        TaskEntity::class,
+        BudgetEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +35,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun categoryDao(): CategoryDao
     abstract fun transactionDao(): TransactionDao
     abstract fun taskDao(): TaskDao
+    abstract fun budgetDao(): BudgetDao
 
     companion object {
         @Volatile
@@ -87,7 +91,11 @@ abstract class AppDatabase : RoomDatabase() {
                         context.applicationContext,
                         AppDatabase::class.java,
                         "makeflow_database"
-                    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                    )
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .fallbackToDestructiveMigration()
+                    .build()
+                    .also { INSTANCE = it }
                 } catch (e: Exception) {
                     Log.e("MakeFlowDebug", "Failed to initialize AppDatabase", e)
                     throw e

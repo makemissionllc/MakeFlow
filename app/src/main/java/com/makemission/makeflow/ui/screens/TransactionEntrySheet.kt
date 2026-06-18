@@ -15,11 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.CardGiftcard
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -30,37 +25,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
 
 @Composable
 fun TransactionEntrySheetContent(
+    dbAccounts: List<AccountEntity>,
+    dbCategories: List<CategoryEntity>,
     onDismiss: () -> Unit,
-    onSaveTransaction: (TransactionType, FinancialAccount, String, Double) -> Unit
+    onSaveTransaction: (TransactionType, AccountEntity, CategoryEntity, Double) -> Unit
 ) {
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var amountInput by remember { mutableStateOf("0") }
     
-    // Core Seeded Accounts Configuration
-    val accounts = remember {
-        listOf(
-            FinancialAccount("1", "Mpesa", 0.02, Color(0xFF00B074)),
-            FinancialAccount("2", "Bank account", 17.40, Color(0xFF1E88E5)),
-            FinancialAccount("3", "Investment", 11.07, Color(0xFF43A047))
-        )
-    }
-    var selectedSourceAccount by remember { mutableStateOf(accounts[0]) }
-    var selectedCategoryOrTarget by remember { mutableStateOf("") }
-
-    // Dynamic Contextual Category Arrays
-    val incomeCategories = listOf("Salary", "Allowance", "Gifts", "Freelance")
-    val expenseCategories = listOf("Church", "Generosity", "Food & Drink", "Transport", "Rent")
+    // Auto-maps active source accounts using actual persistent user items
+    var selectedSourceAccount by remember { mutableStateOf(dbAccounts.firstOrNull()) }
     
-    // Auto-update standard categories on type change
-    LaunchedEffect(selectedType) {
-        selectedCategoryOrTarget = when (selectedType) {
-            TransactionType.INCOME -> incomeCategories.first()
-            TransactionType.EXPENSE -> expenseCategories.first()
-            TransactionType.TRANSFER -> accounts[1].name // Defaults to transferring to second account
+    // Filter down matching category elements to show parent items or direct assignments
+    val contextCategories = dbCategories.filter { it.type == selectedType.name }
+    var selectedCategory by remember { mutableStateOf(contextCategories.firstOrNull()) }
+
+    // Synchronize source account selection upon database loaded flow
+    LaunchedEffect(dbAccounts) {
+        if (selectedSourceAccount == null && dbAccounts.isNotEmpty()) {
+            selectedSourceAccount = dbAccounts.firstOrNull()
         }
+    }
+
+    // Synchronize category selection on type / category list update
+    LaunchedEffect(selectedType, dbCategories) {
+        val filtered = dbCategories.filter { it.type == selectedType.name }
+        selectedCategory = filtered.firstOrNull()
     }
 
     Column(
@@ -135,12 +130,12 @@ fun TransactionEntrySheetContent(
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            accounts.forEach { account ->
-                val isAccountSelected = selectedSourceAccount.id == account.id
+            dbAccounts.forEach { account ->
+                val isAccountSelected = selectedSourceAccount?.id == account.id
                 Row(
                     modifier = Modifier
                         .background(
-                            color = if (isAccountSelected) account.iconColor.copy(alpha = 0.15f) else Color(0xFF1E2124),
+                            color = if (isAccountSelected) Color.White.copy(alpha = 0.1f) else Color(0xFF1E2124),
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable { selectedSourceAccount = account }
@@ -151,7 +146,7 @@ fun TransactionEntrySheetContent(
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .background(account.iconColor, CircleShape),
+                            .background(Color(0xFF1E88E5), CircleShape), // default blue tint color tint
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -204,35 +199,15 @@ fun TransactionEntrySheetContent(
                 .padding(horizontal = 20.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            when (selectedType) {
-                TransactionType.INCOME -> {
-                    incomeCategories.forEach { category ->
-                        CategoryChip(
-                            label = category,
-                            isSelected = selectedCategoryOrTarget == category,
-                            onClick = { selectedCategoryOrTarget = category }
-                        )
-                    }
-                }
-                TransactionType.EXPENSE -> {
-                    expenseCategories.forEach { category ->
-                        CategoryChip(
-                            label = category,
-                            isSelected = selectedCategoryOrTarget == category,
-                            onClick = { selectedCategoryOrTarget = category }
-                        )
-                    }
-                }
-                TransactionType.TRANSFER -> {
-                    // Selection specifies destination targets mapping directly from remaining accounts
-                    accounts.filter { it.id != selectedSourceAccount.id }.forEach { destAccount ->
-                        CategoryChip(
-                            label = "To ${destAccount.name}",
-                            isSelected = selectedCategoryOrTarget == destAccount.name,
-                            onClick = { selectedCategoryOrTarget = destAccount.name }
-                        )
-                    }
-                }
+            contextCategories.forEach { category ->
+                val isSub = category.parentCategoryId != null
+                val displayLabel = if (isSub) "↳ ${category.name}" else category.name
+                
+                CategoryChip(
+                    label = displayLabel,
+                    isSelected = selectedCategory?.id == category.id,
+                    onClick = { selectedCategory = category }
+                )
             }
         }
 
@@ -271,12 +246,14 @@ fun TransactionEntrySheetContent(
                                 "C" -> amountInput = "0"
                                 "✓" -> {
                                     val finalValue = amountInput.toDoubleOrNull() ?: 0.0
-                                    onSaveTransaction(
-                                        selectedType,
-                                        selectedSourceAccount,
-                                        selectedCategoryOrTarget,
-                                        finalValue
-                                    )
+                                    if (selectedSourceAccount != null && selectedCategory != null) {
+                                        onSaveTransaction(
+                                            selectedType,
+                                            selectedSourceAccount!!,
+                                            selectedCategory!!,
+                                            finalValue
+                                        )
+                                    }
                                 }
                                 "." -> {
                                     if (!amountInput.contains(".")) {
@@ -321,21 +298,25 @@ fun TransactionEntrySheetContent(
 }
 
 @Composable
-fun CategoryChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
+fun CategoryChip(
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .background(
                 color = if (isSelected) Color.White.copy(alpha = 0.15f) else Color(0xFF1E2124),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(20.dp)
             )
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = label,
-            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f),
+            color = if (isSelected) Color.White else Color.White.copy(alpha = 0.6f),
             fontSize = 13.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
     }
 }

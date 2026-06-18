@@ -91,19 +91,23 @@ class OnboardingViewModel(application: Application) : AndroidViewModel(applicati
             val initialBalance = balance.toDoubleOrNull() ?: 0.0
             repository.insertAccount(
                 AccountEntity(
+                    id = java.util.UUID.randomUUID().toString(),
                     name = "${username}'s Account",
                     balance = initialBalance,
-                    type = currency
+                    initialBalance = initialBalance,
+                    colorHex = "#1E88E5"
                 )
             )
             selectedCategories.forEach { name ->
                 val template = OnboardingUiState.categoryTemplates.find { it.name == name }
+                val catType = if (name == "Income" || name == "Salary" || name == "Freelance") "INCOME" else "EXPENSE"
                 repository.insertCategory(
                     CategoryEntity(
                         name = name,
+                        type = catType,
                         iconName = template?.iconName ?: "Check",
                         colorHex = template?.colorHex ?: "#3949AB",
-                        monthlyBudget = if (name == "Income") 0.0 else 500.0
+                        monthlyBudget = if (catType == "INCOME") 0.0 else 500.0
                     )
                 )
             }

@@ -8,7 +8,9 @@ import java.util.UUID
 data class CategoryEntity(
     @PrimaryKey val id: String = UUID.randomUUID().toString(),
     val name: String,
-    val iconName: String = "",
-    val colorHex: String = "",
+    val type: String, // "INCOME" or "EXPENSE"
+    val parentCategoryId: String? = null, // Nullable self-reference link for nested subcategories
+    val iconName: String = "Check",
+    val colorHex: String = "#9E9E9E",
     val monthlyBudget: Double = 0.0
 )

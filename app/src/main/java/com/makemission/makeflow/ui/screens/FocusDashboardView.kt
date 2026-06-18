@@ -1,6 +1,7 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ fun FocusDashboardView(
     currency: String = "KSh",
     initialDeposit: Double = 12500.00,
     onSettingsClick: () -> Unit = {},
+    onNavigateToSubScreen: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -152,18 +154,42 @@ fun FocusDashboardView(
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("Transfer", "Top Up", "Analytics").forEach { action ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(Color(0xFF1E2124), CircleShape)
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = action, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                    }
+                // Action 1: Accounts Navigation Button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .clickable { onNavigateToSubScreen("ACCOUNTS") }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Accounts", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+
+                // Action 2: Budgets Navigation Button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .clickable { onNavigateToSubScreen("BUDGETS") }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Budgets", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                }
+
+                // Action 3: Categories Navigation Button
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(Color(0xFF1E2124), RoundedCornerShape(24.dp))
+                        .clickable { onNavigateToSubScreen("CATEGORIES") }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Categories", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

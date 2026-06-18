@@ -12,44 +12,62 @@ object DatabaseInitializer {
         val transactionDao = db.transactionDao()
 
         accountDao.insertAccount(
-            AccountEntity(name = "Virtual Card", balance = 24562.00, type = "Virtual")
+            AccountEntity(id = "virtual_card", name = "Virtual Card", balance = 24562.00, initialBalance = 24562.00, colorHex = "#1E88E5")
         )
         accountDao.insertAccount(
-            AccountEntity(name = "Savings Account", balance = 15000.00, type = "Savings")
+            AccountEntity(id = "savings_account", name = "Savings Account", balance = 15000.00, initialBalance = 15000.00, colorHex = "#43A047")
         )
 
         val housing = CategoryEntity(
+            id = "housing",
             name = "Housing",
+            type = "EXPENSE",
+            parentCategoryId = null,
             iconName = "Home",
             colorHex = "#E53935",
             monthlyBudget = 2000.00
         )
         val food = CategoryEntity(
+            id = "food",
             name = "Food & Dining",
+            type = "EXPENSE",
+            parentCategoryId = null,
             iconName = "ShoppingCart",
             colorHex = "#FB8C00",
             monthlyBudget = 800.00
         )
         val transport = CategoryEntity(
+            id = "transport",
             name = "Transportation",
+            type = "EXPENSE",
+            parentCategoryId = null,
             iconName = "LocationOn",
             colorHex = "#3949AB",
             monthlyBudget = 300.00
         )
         val entertainment = CategoryEntity(
+            id = "entertainment",
             name = "Entertainment",
+            type = "EXPENSE",
+            parentCategoryId = null,
             iconName = "Star",
             colorHex = "#8E24AA",
             monthlyBudget = 400.00
         )
         val electronics = CategoryEntity(
+            id = "electronics",
             name = "Electronics",
+            type = "EXPENSE",
+            parentCategoryId = null,
             iconName = "ShoppingCart",
             colorHex = "#00897B",
             monthlyBudget = 500.00
         )
         val income = CategoryEntity(
+            id = "income",
             name = "Income",
+            type = "INCOME",
+            parentCategoryId = null,
             iconName = "Check",
             colorHex = "#43A047",
             monthlyBudget = 0.0

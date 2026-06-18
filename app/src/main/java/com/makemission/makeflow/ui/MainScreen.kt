@@ -24,11 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.components.ExpressiveNavDock
@@ -38,6 +40,10 @@ import com.makemission.makeflow.ui.screens.FocusDashboardView
 import com.makemission.makeflow.ui.screens.GeneralSettingsBottomSheet
 import com.makemission.makeflow.ui.screens.HistoryScreen
 import com.makemission.makeflow.ui.screens.TransactionEntrySheetContent
+import com.makemission.makeflow.ui.screens.AccountsManagementScreen
+import com.makemission.makeflow.ui.screens.CategoriesManagementScreen
+import com.makemission.makeflow.ui.screens.BudgetsManagementScreen
+import com.makemission.makeflow.ui.screens.TransactionType
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +65,16 @@ fun MainScreen(
     val settingsSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val transactionSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Room Database State Monitoring
+    val db = remember { AppDatabase.getDatabase(context) }
+    val accountsState by db.accountDao().getAllAccountsFlow().collectAsState(initial = emptyList())
+    val categoriesState by db.categoryDao().getAllCategoriesFlow().collectAsState(initial = emptyList())
+    val budgetsState by db.budgetDao().getAllBudgetsFlow().collectAsState(initial = emptyList())
+
+    var internalDashboardSubScreen by remember { mutableStateOf("MAIN") }
+
+    val totalBalance = if (accountsState.isNotEmpty()) accountsState.sumOf { it.balance } else initialDeposit
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -71,26 +87,50 @@ fun MainScreen(
                 .padding(bottom = 80.dp)
         ) {
             when (activeTab) {
-                MakeFlowTab.FOCUS -> FocusDashboardView(
-                    onboardingName = onboardingName,
-                    currency = currency,
-                    initialDeposit = initialDeposit,
-                    onSettingsClick = { isSettingsSheetOpen = true }
-                )
+                MakeFlowTab.FOCUS -> {
+                    when (internalDashboardSubScreen) {
+                        "MAIN" -> FocusDashboardView(
+                            onboardingName = onboardingName,
+                            currency = currency,
+                            initialDeposit = totalBalance,
+                            onSettingsClick = { isSettingsSheetOpen = true },
+                            onNavigateToSubScreen = { internalDashboardSubScreen = it }
+                        )
+                        "ACCOUNTS" -> AccountsManagementScreen(
+                            accountsList = accountsState,
+                            onAddAccount = { acc -> coroutineScope.launch { db.accountDao().insertAccount(acc) } },
+                            onBack = { internalDashboardSubScreen = "MAIN" }
+                        )
+                        "CATEGORIES" -> CategoriesManagementScreen(
+                            categoriesList = categoriesState,
+                            onAddCategory = { cat -> coroutineScope.launch { db.categoryDao().insertCategory(cat) } },
+                            onBack = { internalDashboardSubScreen = "MAIN" }
+                        )
+                        "BUDGETS" -> BudgetsManagementScreen(
+                            budgetsList = budgetsState,
+                            categoriesList = categoriesState,
+                            onAddBudget = { bgt -> coroutineScope.launch { db.budgetDao().insertBudget(bgt) } },
+                            onBack = { internalDashboardSubScreen = "MAIN" }
+                        )
+                    }
+                }
                 MakeFlowTab.HISTORY -> HistoryScreen(
                     currency = currency,
-                    initialDeposit = initialDeposit
+                    initialDeposit = totalBalance
                 )
                 MakeFlowTab.INSIGHTS -> AnalyticsScreen(
                     currency = currency,
-                    initialDeposit = initialDeposit
+                    initialDeposit = totalBalance
                 )
             }
         }
 
         ExpressiveNavDock(
             currentTab = activeTab,
-            onTabSelected = { activeTab = it },
+            onTabSelected = { 
+                activeTab = it 
+                internalDashboardSubScreen = "MAIN" // reset internal state on tab change
+            },
             onFabClick = { isTransactionSheetOpen = true },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -112,36 +152,47 @@ fun MainScreen(
                 dragHandle = null // Content uses its custom close layout system natively
             ) {
                 TransactionEntrySheetContent(
+                    dbAccounts = accountsState,
+                    dbCategories = categoriesState,
                     onDismiss = { isTransactionSheetOpen = false },
-                    onSaveTransaction = { type, account, assetCategory, amount ->
+                    onSaveTransaction = { type, account, category, amount ->
                         coroutineScope.launch {
                             try {
-                                val db = AppDatabase.getDatabase(context)
-                                val mappedCategoryName = when (assetCategory) {
-                                    "Food & Drink" -> "Food & Dining"
-                                    "Transport" -> "Transportation"
-                                    else -> assetCategory
+                                val database = AppDatabase.getDatabase(context)
+
+                                // 1. Deduct or add from/to account balance
+                                val updatedBalance = when (type) {
+                                    TransactionType.INCOME -> account.balance + amount
+                                    TransactionType.EXPENSE -> account.balance - amount
+                                    TransactionType.TRANSFER -> account.balance - amount
+                                }
+                                val updatedAccount = account.copy(balance = updatedBalance)
+                                database.accountDao().insertAccount(updatedAccount)
+
+                                // 2. If transfer, add to target account balance
+                                if (type == TransactionType.TRANSFER) {
+                                    val destAccountName = category.name.removePrefix("To ").trim()
+                                    val destAccount = accountsState.find { it.name == destAccountName }
+                                    if (destAccount != null) {
+                                        val destUpdatedAccount = destAccount.copy(balance = destAccount.balance + amount)
+                                        database.accountDao().insertAccount(destUpdatedAccount)
+                                    }
                                 }
 
-                                var category = db.categoryDao().getCategoryByName(mappedCategoryName)
-                                if (category == null) {
-                                    category = CategoryEntity(
-                                        name = mappedCategoryName,
-                                        iconName = "Check",
-                                        colorHex = "#9E9E9E",
-                                        monthlyBudget = 0.0
-                                    )
-                                    db.categoryDao().insertCategory(category)
+                                // 3. Update budget spending if it's an EXPENSE
+                                if (type == TransactionType.EXPENSE) {
+                                    database.budgetDao().updateBudgetSpending(category.id, amount)
                                 }
 
+                                // 4. Insert transaction entity
                                 val tx = TransactionEntity(
                                     amount = amount,
-                                    type = type.name, // "INCOME", "EXPENSE", "TRANSFER"
+                                    type = type.name,
                                     categoryId = category.id,
-                                    note = "Transaction via ${account.name} -> $assetCategory",
+                                    note = if (type == TransactionType.TRANSFER) "Transfer to ${category.name}" else "Transaction via ${account.name} -> ${category.name}",
                                     timestamp = System.currentTimeMillis()
                                 )
-                                db.transactionDao().insertTransaction(tx)
+                                database.transactionDao().insertTransaction(tx)
                             } catch (e: Exception) {
                                 android.util.Log.e("MakeFlowDebug", "Failed to save transaction", e)
                             }

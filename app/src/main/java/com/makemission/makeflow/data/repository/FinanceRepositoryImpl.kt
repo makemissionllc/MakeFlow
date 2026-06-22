@@ -5,6 +5,7 @@ import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
@@ -16,7 +17,8 @@ class FinanceRepositoryImpl(
     private val categoryDao: CategoryDao,
     private val transactionDao: TransactionDao,
     private val taskDao: TaskDao,
-    private val accountDao: com.makemission.makeflow.data.local.dao.AccountDao? = null
+    private val accountDao: com.makemission.makeflow.data.local.dao.AccountDao? = null,
+    private val budgetDao: com.makemission.makeflow.data.local.dao.BudgetDao? = null
 ) : FinanceRepository {
 
     override suspend fun insertAccount(account: AccountEntity) {
@@ -73,4 +75,21 @@ class FinanceRepositoryImpl(
 
     override suspend fun updateTask(task: TaskEntity) =
         taskDao.update(task)
+
+    override fun getAllBudgets(): Flow<List<BudgetEntity>> =
+        budgetDao?.getAllBudgetsFlow() ?: flowOf(emptyList())
+
+    override suspend fun insertBudget(budget: BudgetEntity) {
+        budgetDao?.insertBudget(budget)
+    }
+
+    override suspend fun deleteBudget(budget: BudgetEntity) {
+        budgetDao?.deleteBudget(budget)
+    }
+
+    override suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String) {
+        if (categoryId != null && type == "EXPENSE") {
+            budgetDao?.updateBudgetSpending(categoryId, amount)
+        }
+    }
 }

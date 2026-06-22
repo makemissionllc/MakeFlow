@@ -57,6 +57,8 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

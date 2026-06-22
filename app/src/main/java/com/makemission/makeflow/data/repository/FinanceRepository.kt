@@ -2,6 +2,7 @@ package com.makemission.makeflow.data.repository
 
 import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
@@ -26,4 +27,8 @@ interface FinanceRepository {
     fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?>
     suspend fun updateTaskCategory(taskId: String, categoryId: String?)
     suspend fun updateTask(task: TaskEntity)
+    fun getAllBudgets(): Flow<List<BudgetEntity>>
+    suspend fun insertBudget(budget: BudgetEntity)
+    suspend fun deleteBudget(budget: BudgetEntity)
+    suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String)
 }

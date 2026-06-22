@@ -10,11 +10,12 @@ lifecycleViewmodelCompose = "2.10.0"
 activityCompose = "1.13.0"
 navigationCompose = "2.8.0"
 kotlin = "2.2.10"
-composeBom = "2024.09.00"
+composeBom = "2024.12.01"
 room = "2.7.1"
 ksp = "2.2.10-2.0.2"
 biometric = "1.1.0"
 datastore = "1.1.1"
+vico = "2.0.0-beta.2"
 
 
 [libraries]
@@ -41,6 +42,8 @@ androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = 
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+vico-compose = { group = "com.patrykandpatrick.vico", name = "compose", version.ref = "vico" }
+vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", version.ref = "vico" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

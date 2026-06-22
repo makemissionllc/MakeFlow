@@ -5,6 +5,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,9 +51,18 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
 import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
+import com.makemission.makeflow.ui.screens.BudgetScreen
+import com.makemission.makeflow.ui.screens.HistoryScreen
 import com.makemission.makeflow.ui.screens.HomeDashboard
+import com.makemission.makeflow.ui.screens.InsightsScreen
+import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
+import com.makemission.makeflow.ui.viewmodel.BudgetViewModelFactory
+import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
+import com.makemission.makeflow.ui.viewmodel.HistoryViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModelFactory
+import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
+import com.makemission.makeflow.ui.viewmodel.InsightsViewModelFactory
 import kotlinx.coroutines.launch
 
 enum class MakeFlowTab {
@@ -72,12 +83,22 @@ fun MainScreen(
             categoryDao = db.categoryDao(),
             transactionDao = db.transactionDao(),
             taskDao = db.taskDao(),
-            accountDao = db.accountDao()
+            accountDao = db.accountDao(),
+            budgetDao = db.budgetDao()
         )
     }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val homeViewModel: HomeDashboardViewModel = viewModel(
         factory = HomeDashboardViewModelFactory(repository, userPrefDataStore)
+    )
+    val historyViewModel: HistoryViewModel = viewModel(
+        factory = HistoryViewModelFactory(repository, userPrefDataStore)
+    )
+    val insightsViewModel: InsightsViewModel = viewModel(
+        factory = InsightsViewModelFactory(repository, userPrefDataStore)
+    )
+    val budgetViewModel: BudgetViewModel = viewModel(
+        factory = BudgetViewModelFactory(repository, userPrefDataStore)
     )
 
     val accounts by homeViewModel.accounts.collectAsState()
@@ -85,6 +106,7 @@ fun MainScreen(
     val currencySymbol by homeViewModel.currencySymbol.collectAsState()
 
     var showAddTransaction by remember { mutableStateOf(false) }
+    var showBudgetScreen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Box(
@@ -101,10 +123,13 @@ fun MainScreen(
                     HomeDashboard(viewModel = homeViewModel)
                 }
                 MakeFlowTab.INSIGHTS -> {
-                    Text(text = "Insights Analytics Metric Frame", color = Color.White, fontSize = 20.sp)
+                    InsightsScreen(
+                        viewModel = insightsViewModel,
+                        onOpenBudgets = { showBudgetScreen = true }
+                    )
                 }
                 MakeFlowTab.HISTORY -> {
-                    Text(text = "Transaction History Ledger Track", color = Color.White, fontSize = 20.sp)
+                    HistoryScreen(viewModel = historyViewModel)
                 }
             }
         }
@@ -116,7 +141,7 @@ fun MainScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Bottom
         ) {
-            if (activeTab == MakeFlowTab.HOME) {
+            if (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) {
                 FloatingActionButton(
                     onClick = { showAddTransaction = true },
                     containerColor = Color.White,
@@ -138,6 +163,17 @@ fun MainScreen(
                 onTabSelected = { activeTab = it }
             )
         }
+
+        AnimatedVisibility(
+            visible = showBudgetScreen,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            BudgetScreen(
+                onBack = { showBudgetScreen = false },
+                viewModel = budgetViewModel
+            )
+        }
     }
 
     if (showAddTransaction) {
@@ -155,6 +191,7 @@ fun MainScreen(
                             timestamp = timestamp
                         )
                     )
+                    repository.syncBudgetSpending(categoryId, amount, type)
                     showAddTransaction = false
                 }
             },

@@ -10,11 +10,13 @@ import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
     suspend fun insertAccount(account: AccountEntity)
+    fun getAllAccounts(): Flow<List<AccountEntity>>
     fun getAllCategories(): Flow<List<CategoryEntity>>
     fun getMonthlySpendingByCategory(monthStartMillis: Long, monthEndMillis: Long): Flow<List<CategorySpending>>
     fun getAllTransactions(): Flow<List<TransactionEntity>>
     fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
     fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
+    fun getMonthlyTotalIncome(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
     suspend fun insertCategory(category: CategoryEntity)
     suspend fun updateCategory(category: CategoryEntity)
     suspend fun deleteCategory(category: CategoryEntity)

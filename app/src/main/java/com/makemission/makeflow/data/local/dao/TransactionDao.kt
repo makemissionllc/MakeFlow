@@ -36,6 +36,9 @@ interface TransactionDao {
     @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'EXPENSE' AND timestamp >= :monthStartMillis AND timestamp <= :monthEndMillis")
     fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
 
+    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE type = 'INCOME' AND timestamp >= :monthStartMillis AND timestamp <= :monthEndMillis")
+    fun getMonthlyTotalIncome(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
+
     @Query("SELECT * FROM transactions WHERE timestamp >= :startMillis AND timestamp <= :endMillis ORDER BY timestamp ASC")
     fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
 }

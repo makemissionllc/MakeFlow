@@ -70,6 +70,8 @@ import java.util.UUID
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
+    selectedCurrency: String = "KES",
+    onCurrencyChange: (String) -> Unit = {},
     onOnboardingComplete: (username: String, seededAccounts: List<AccountEntity>) -> Unit
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
@@ -104,7 +106,12 @@ fun OnboardingScreen(
                     .weight(1f)
             ) { page ->
                 when (page) {
-                    0 -> WelcomeStageView(username = username, onNameChange = { username = it })
+                    0 -> WelcomeStageView(
+                        username = username,
+                        onNameChange = { username = it },
+                        selectedCurrency = selectedCurrency,
+                        onCurrencyChange = onCurrencyChange
+                    )
                     1 -> AccountSetupStageView(
                         transientAccounts = transientAccounts,
                         accountName = accountName,
@@ -196,7 +203,14 @@ fun OnboardingScreen(
 }
 
 @Composable
-fun WelcomeStageView(username: String, onNameChange: (String) -> Unit) {
+fun WelcomeStageView(
+    username: String,
+    onNameChange: (String) -> Unit,
+    selectedCurrency: String = "KES",
+    onCurrencyChange: (String) -> Unit = {}
+) {
+    val currencies = listOf("KES", "USD", "EUR", "GBP", "UGX", "TZS")
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -253,6 +267,28 @@ fun WelcomeStageView(username: String, onNameChange: (String) -> Unit) {
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                currencies.forEach { code ->
+                    val isSelected = code == selectedCurrency
+                    Text(
+                        text = code,
+                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .background(
+                                if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                RoundedCornerShape(14.dp)
+                            )
+                            .clickable { onCurrencyChange(code) }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
 
             Text(text = "All your financial data is kept securely on your local device.", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp)
         }

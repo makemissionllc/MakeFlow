@@ -32,9 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.userPrefDataStore
+import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.ui.screens.HomeDashboard
+import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
+import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModelFactory
 
 enum class MakeFlowTab {
     HOME, INSIGHTS, HISTORY
@@ -47,6 +56,21 @@ fun MainScreen(
 ) {
     var activeTab by remember { mutableStateOf(MakeFlowTab.HOME) }
 
+    val context = LocalContext.current
+    val db = remember { AppDatabase.getDatabase(context) }
+    val repository = remember {
+        FinanceRepositoryImpl(
+            categoryDao = db.categoryDao(),
+            transactionDao = db.transactionDao(),
+            taskDao = db.taskDao(),
+            accountDao = db.accountDao()
+        )
+    }
+    val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
+    val homeViewModel: HomeDashboardViewModel = viewModel(
+        factory = HomeDashboardViewModelFactory(repository, userPrefDataStore)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -55,12 +79,10 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 100.dp),
-            contentAlignment = Alignment.Center
         ) {
             when (activeTab) {
                 MakeFlowTab.HOME -> {
-                    Text(text = "Home Dashboard for $username", color = Color.White, fontSize = 20.sp)
+                    HomeDashboard(viewModel = homeViewModel)
                 }
                 MakeFlowTab.INSIGHTS -> {
                     Text(text = "Insights Analytics Metric Frame", color = Color.White, fontSize = 20.sp)

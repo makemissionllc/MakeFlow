@@ -72,7 +72,9 @@ import java.util.UUID
 fun OnboardingScreen(
     selectedCurrency: String = "KES",
     onCurrencyChange: (String) -> Unit = {},
-    onOnboardingComplete: (username: String, seededAccounts: List<AccountEntity>) -> Unit
+    onSaveAccounts: suspend (List<AccountEntity>) -> Unit = {},
+    onSaveName: suspend (String) -> Unit = {},
+    onOnboardingComplete: () -> Unit = {}
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
@@ -80,11 +82,12 @@ fun OnboardingScreen(
     var username by remember { mutableStateOf("") }
     var accountName by remember { mutableStateOf("") }
     var accountBalance by remember { mutableStateOf("") }
+    var showNameError by remember { mutableStateOf(false) }
 
     val transientAccounts = remember {
         mutableStateListOf<AccountEntity>().apply {
-            add(AccountEntity(UUID.randomUUID().toString(), "Cash", 0.0, 0.0, "#FFFFFF"))
-            add(AccountEntity(UUID.randomUUID().toString(), "Bank account", 0.0, 0.0, "#FFFFFF"))
+            add(AccountEntity(UUID.randomUUID().toString(), "Cash", 0.0, 0.0, "#4CAF50"))
+            add(AccountEntity(UUID.randomUUID().toString(), "Bank account", 0.0, 0.0, "#4CAF50"))
         }
     }
 
@@ -108,9 +111,13 @@ fun OnboardingScreen(
                 when (page) {
                     0 -> WelcomeStageView(
                         username = username,
-                        onNameChange = { username = it },
+                        onNameChange = {
+                            username = it
+                            if (it.isNotBlank()) showNameError = false
+                        },
                         selectedCurrency = selectedCurrency,
-                        onCurrencyChange = onCurrencyChange
+                        onCurrencyChange = onCurrencyChange,
+                        showNameError = showNameError
                     )
                     1 -> AccountSetupStageView(
                         transientAccounts = transientAccounts,
@@ -172,14 +179,20 @@ fun OnboardingScreen(
                         if (pagerState.currentPage == 0) {
                             if (username.isNotBlank()) {
                                 coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                            } else {
+                                showNameError = true
                             }
                         } else {
                             if (username.isNotBlank() && transientAccounts.isNotEmpty()) {
-                                onOnboardingComplete(username.trim(), transientAccounts.toList())
+                                coroutineScope.launch {
+                                    onSaveName(username.trim())
+                                    onSaveAccounts(transientAccounts.toList())
+                                    onOnboardingComplete()
+                                }
                             }
                         }
                     },
-                    enabled = if (pagerState.currentPage == 0) username.isNotBlank() else transientAccounts.isNotEmpty(),
+                    enabled = if (pagerState.currentPage == 0) true else transientAccounts.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = Color(0xFF121315),
@@ -207,7 +220,8 @@ fun WelcomeStageView(
     username: String,
     onNameChange: (String) -> Unit,
     selectedCurrency: String = "KES",
-    onCurrencyChange: (String) -> Unit = {}
+    onCurrencyChange: (String) -> Unit = {},
+    showNameError: Boolean = false
 ) {
     val currencies = listOf("KES", "USD", "EUR", "GBP", "UGX", "TZS")
 
@@ -267,6 +281,15 @@ fun WelcomeStageView(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
+
+            if (showNameError) {
+                Text(
+                    text = "Please enter your name to continue",
+                    color = Color(0xFFFF3B30),
+                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),

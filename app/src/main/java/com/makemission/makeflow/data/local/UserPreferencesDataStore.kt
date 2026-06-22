@@ -3,6 +3,7 @@ package com.makemission.makeflow.data.local
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -23,7 +24,36 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val userName: Flow<String> = dataStore.data.map { prefs ->
+        prefs[PREF_USER_NAME] ?: ""
+    }
+
+    val isProfiled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[PREF_IS_PROFILED] ?: false
+    }
+
+    suspend fun saveName(name: String) {
+        dataStore.edit { prefs ->
+            prefs[PREF_USER_NAME] = name
+        }
+    }
+
+    suspend fun setProfiled() {
+        dataStore.edit { prefs ->
+            prefs[PREF_IS_PROFILED] = true
+        }
+    }
+
+    suspend fun clearProfile() {
+        dataStore.edit { prefs ->
+            prefs.remove(PREF_USER_NAME)
+            prefs.remove(PREF_IS_PROFILED)
+        }
+    }
+
     companion object {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
+        private val PREF_USER_NAME = stringPreferencesKey("user_name")
+        private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
     }
 }

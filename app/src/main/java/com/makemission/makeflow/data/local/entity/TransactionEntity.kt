@@ -23,6 +23,7 @@ data class TransactionEntity(
     val amount: Double,
     val type: String,
     val categoryId: String? = null,
+    val accountId: String = "",
     val note: String = "",
     val timestamp: Long = System.currentTimeMillis()
 )

@@ -50,11 +50,15 @@ import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.ui.screens.AccountsScreen
 import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.BudgetScreen
 import com.makemission.makeflow.ui.screens.HistoryScreen
 import com.makemission.makeflow.ui.screens.HomeDashboard
 import com.makemission.makeflow.ui.screens.InsightsScreen
+import com.makemission.makeflow.ui.screens.SettingsScreen
+import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
+import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
@@ -63,6 +67,8 @@ import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModelFactory
+import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
+import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.launch
 
 enum class MakeFlowTab {
@@ -100,6 +106,12 @@ fun MainScreen(
     val budgetViewModel: BudgetViewModel = viewModel(
         factory = BudgetViewModelFactory(repository, userPrefDataStore)
     )
+    val accountsViewModel: AccountsViewModel = viewModel(
+        factory = AccountsViewModelFactory(repository, userPrefDataStore)
+    )
+    val settingsViewModel: SettingsViewModel = viewModel(
+        factory = SettingsViewModelFactory(repository, userPrefDataStore)
+    )
 
     val accounts by homeViewModel.accounts.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
@@ -107,6 +119,8 @@ fun MainScreen(
 
     var showAddTransaction by remember { mutableStateOf(false) }
     var showBudgetScreen by remember { mutableStateOf(false) }
+    var showAccountsScreen by remember { mutableStateOf(false) }
+    var showSettingsScreen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     Box(
@@ -120,7 +134,11 @@ fun MainScreen(
         ) {
             when (activeTab) {
                 MakeFlowTab.HOME -> {
-                    HomeDashboard(viewModel = homeViewModel)
+                    HomeDashboard(
+                        viewModel = homeViewModel,
+                        onOpenAccounts = { showAccountsScreen = true },
+                        onOpenSettings = { showSettingsScreen = true }
+                    )
                 }
                 MakeFlowTab.INSIGHTS -> {
                     InsightsScreen(
@@ -173,6 +191,40 @@ fun MainScreen(
                 onBack = { showBudgetScreen = false },
                 viewModel = budgetViewModel
             )
+        }
+
+        AnimatedVisibility(
+            visible = showAccountsScreen,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF0A0A0A))
+            ) {
+                AccountsScreen(
+                    onBack = { showAccountsScreen = false },
+                    viewModel = accountsViewModel
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showSettingsScreen,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF121315))
+            ) {
+                SettingsScreen(
+                    onBack = { showSettingsScreen = false },
+                    viewModel = settingsViewModel
+                )
+            }
         }
     }
 

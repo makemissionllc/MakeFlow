@@ -44,6 +44,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val selectedTheme: Flow<String> = dataStore.data.map { prefs ->
+        prefs[SELECTED_THEME_KEY] ?: "forest"
+    }
+
+    suspend fun saveTheme(theme: String) {
+        dataStore.edit { prefs ->
+            prefs[SELECTED_THEME_KEY] = theme
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -55,5 +65,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
+        private val SELECTED_THEME_KEY = stringPreferencesKey("selected_theme")
     }
 }

@@ -25,6 +25,14 @@ class FinanceRepositoryImpl(
         accountDao?.insertAccount(account)
     }
 
+    override suspend fun updateAccount(account: AccountEntity) {
+        accountDao?.updateAccount(account)
+    }
+
+    override suspend fun deleteAccount(account: AccountEntity) {
+        accountDao?.deleteAccount(account)
+    }
+
     override fun getAllAccounts(): Flow<List<AccountEntity>> =
         accountDao?.getAllAccounts() ?: kotlinx.coroutines.flow.flowOf(emptyList())
 
@@ -72,11 +80,34 @@ class FinanceRepositoryImpl(
         }
     }
 
+    override suspend fun updateTransaction(transaction: TransactionEntity) {
+        transactionDao.getTransactionById(transaction.id)?.let { old ->
+            accountDao?.getAccountById(old.accountId)?.let { account ->
+                val reverseDelta = if (old.type == "INCOME") -old.amount else old.amount
+                accountDao?.updateAccount(account.copy(balance = account.balance + reverseDelta))
+            }
+            if (old.categoryId != null && old.type == "EXPENSE") {
+                budgetDao?.decrementBudgetSpending(old.categoryId, old.amount)
+            }
+        }
+        transactionDao.updateTransaction(transaction)
+        accountDao?.getAccountById(transaction.accountId)?.let { account ->
+            val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
+            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        }
+        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+            budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+        }
+    }
+
     override suspend fun deleteTransaction(transaction: TransactionEntity) {
         transactionDao.deleteTransaction(transaction)
         accountDao?.getAccountById(transaction.accountId)?.let { account ->
             val delta = if (transaction.type == "INCOME") -transaction.amount else transaction.amount
             accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        }
+        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+            budgetDao?.decrementBudgetSpending(transaction.categoryId, transaction.amount)
         }
     }
 
@@ -104,5 +135,21 @@ class FinanceRepositoryImpl(
         if (categoryId != null && type == "EXPENSE") {
             budgetDao?.updateBudgetSpending(categoryId, amount)
         }
+    }
+
+    override suspend fun clearAllTransactions() {
+        transactionDao.clearAll()
+    }
+
+    override suspend fun clearAllAccounts() {
+        accountDao?.clearAll()
+    }
+
+    override suspend fun clearAllBudgets() {
+        budgetDao?.clearAll()
+    }
+
+    override suspend fun clearAllCategories() {
+        categoryDao.clearAll()
     }
 }

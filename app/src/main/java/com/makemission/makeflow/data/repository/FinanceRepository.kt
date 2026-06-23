@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
     suspend fun insertAccount(account: AccountEntity)
+    suspend fun updateAccount(account: AccountEntity)
+    suspend fun deleteAccount(account: AccountEntity)
     fun getAllAccounts(): Flow<List<AccountEntity>>
     fun getAllCategories(): Flow<List<CategoryEntity>>
     fun getMonthlySpendingByCategory(monthStartMillis: Long, monthEndMillis: Long): Flow<List<CategorySpending>>
@@ -23,6 +25,7 @@ interface FinanceRepository {
     suspend fun deleteCategory(category: CategoryEntity)
     suspend fun deleteCategoryById(id: String)
     suspend fun insertTransaction(transaction: TransactionEntity)
+    suspend fun updateTransaction(transaction: TransactionEntity)
     suspend fun deleteTransaction(transaction: TransactionEntity)
     fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?>
     suspend fun updateTaskCategory(taskId: String, categoryId: String?)
@@ -31,4 +34,8 @@ interface FinanceRepository {
     suspend fun insertBudget(budget: BudgetEntity)
     suspend fun deleteBudget(budget: BudgetEntity)
     suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String)
+    suspend fun clearAllTransactions()
+    suspend fun clearAllAccounts()
+    suspend fun clearAllBudgets()
+    suspend fun clearAllCategories()
 }

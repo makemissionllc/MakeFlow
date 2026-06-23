@@ -63,4 +63,7 @@ interface CategoryDao {
     @Transaction
     @Query("SELECT * FROM categories WHERE id = :id")
     fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?>
+
+    @Query("DELETE FROM categories")
+    suspend fun clearAll()
 }

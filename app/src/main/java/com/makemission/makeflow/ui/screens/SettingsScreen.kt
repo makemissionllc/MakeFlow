@@ -1,0 +1,333 @@
+package com.makemission.makeflow.ui.screens
+
+import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
+
+data class ThemeOption(val key: String, val label: String)
+data class CurrencyOption(val code: String, val symbol: String)
+
+private val themes = listOf(
+    ThemeOption("forest", "Forest"),
+    ThemeOption("ocean", "Ocean"),
+    ThemeOption("sunset", "Sunset"),
+    ThemeOption("purple", "Royal Purple"),
+    ThemeOption("dynamic", "Dynamic")
+)
+
+private val currencies = listOf(
+    CurrencyOption("KES", "KES"),
+    CurrencyOption("USD", "$"),
+    CurrencyOption("EUR", "\u20AC"),
+    CurrencyOption("GBP", "\u00A3"),
+    CurrencyOption("UGX", "UGX"),
+    CurrencyOption("TZS", "TZS")
+)
+
+@Composable
+fun SettingsScreen(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel
+) {
+    val currentCurrency by viewModel.selectedCurrency.collectAsState()
+    val currentTheme by viewModel.selectedTheme.collectAsState()
+    var showCurrencyPicker by remember { mutableStateOf(false) }
+    var showThemePicker by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121315))
+    ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
+                .windowInsetsPadding(WindowInsets.statusBars),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            item {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Settings",
+                        color = Color.White,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            item { SectionHeader(text = "Preferences") }
+
+            item {
+                SettingsRow(
+                    icon = Icons.Outlined.SwapHoriz,
+                    title = "Currency",
+                    subtitle = currentCurrency,
+                    onClick = { showCurrencyPicker = true }
+                )
+            }
+
+            item {
+                SettingsRow(
+                    icon = Icons.Outlined.Palette,
+                    title = "Theme",
+                    subtitle = themes.find { it.key == currentTheme }?.label ?: "Forest",
+                    onClick = { showThemePicker = true }
+                )
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { SectionHeader(text = "Data") }
+
+            item {
+                SettingsRow(
+                    icon = Icons.Outlined.FileDownload,
+                    title = "Export CSV",
+                    subtitle = "Download all transactions",
+                    onClick = {
+                        viewModel.exportCsv(context)
+                        Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
+            item {
+                SettingsRow(
+                    icon = Icons.Outlined.Delete,
+                    title = "Clear All Data",
+                    subtitle = "Reset everything",
+                    onClick = { showClearConfirm = true }
+                )
+            }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { SectionHeader(text = "About") }
+
+            item {
+                SettingsRow(
+                    icon = Icons.Outlined.Info,
+                    title = "MakeFlow",
+                    subtitle = "Version 1.0",
+                    onClick = { }
+                )
+            }
+        }
+    }
+
+    if (showCurrencyPicker) {
+        PickerDialog(
+            title = "Select Currency",
+            items = currencies.map { it.code },
+            currentItem = currentCurrency,
+            onDismiss = { showCurrencyPicker = false },
+            onSelect = {
+                viewModel.saveCurrency(it)
+                showCurrencyPicker = false
+            }
+        )
+    }
+
+    if (showThemePicker) {
+        PickerDialog(
+            title = "Select Theme",
+            items = themes.map { it.label },
+            currentItem = themes.find { it.key == currentTheme }?.label ?: "Forest",
+            onDismiss = { showThemePicker = false },
+            onSelect = { label ->
+                themes.find { it.label == label }?.key?.let { key ->
+                    viewModel.saveTheme(key)
+                }
+                showThemePicker = false
+            }
+        )
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Clear All Data?", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("This will delete all transactions, budgets, accounts, and categories. This action cannot be undone.", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearAllData()
+                    showClearConfirm = false
+                }) {
+                    Text("Clear", color = Color(0xFFEF5350))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        color = Color.White.copy(alpha = 0.4f),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+    )
+}
+
+@Composable
+private fun SettingsRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = subtitle, color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PickerDialog(
+    title: String,
+    items: List<String>,
+    currentItem: String,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1B1C1F),
+        title = {
+            Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column {
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onSelect(item) }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = item, color = Color.White, fontSize = 15.sp)
+                        if (item == currentItem) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                tint = Color(0xFF4CAF50),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+            }
+        }
+    )
+}

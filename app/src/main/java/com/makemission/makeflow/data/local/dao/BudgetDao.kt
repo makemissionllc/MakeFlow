@@ -17,4 +17,10 @@ interface BudgetDao {
 
     @Delete
     suspend fun deleteBudget(budget: BudgetEntity)
+
+    @Query("UPDATE budgets SET spentAmount = MAX(spentAmount - :amount, 0) WHERE categoryId = :categoryId")
+    suspend fun decrementBudgetSpending(categoryId: String, amount: Double)
+
+    @Query("DELETE FROM budgets")
+    suspend fun clearAll()
 }

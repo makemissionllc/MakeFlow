@@ -41,4 +41,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE timestamp >= :startMillis AND timestamp <= :endMillis ORDER BY timestamp ASC")
     fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
+
+    @Query("DELETE FROM transactions")
+    suspend fun clearAll()
 }

@@ -68,7 +68,9 @@ data class CategoryLegend(
 
 @Composable
 fun HomeDashboard(
-    viewModel: HomeDashboardViewModel
+    viewModel: HomeDashboardViewModel,
+    onOpenAccounts: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -120,7 +122,7 @@ fun HomeDashboard(
             contentPadding = PaddingValues(top = 96.dp)
         ) {
             item { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) }
-            item { AccountsCard(accounts = accountChips) }
+            item { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) }
             item { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
             item { CategoriesCard(categories = categoryLegends, monthLabel = currentMonthLabel) }
             item { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) }
@@ -167,7 +169,7 @@ fun HomeDashboard(
                         modifier = Modifier.size(22.dp)
                     )
                 }
-                IconButton(onClick = { }) {
+                IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Rounded.Settings,
                         contentDescription = "Settings",
@@ -240,7 +242,8 @@ fun AccountsCard(
     accounts: List<AccountChip> = listOf(
         AccountChip("Cash", "KES 0.00", Color(0xFF34C759)),
         AccountChip("Bank account", "KES 0.00", Color(0xFF007AFF))
-    )
+    ),
+    onOpenAccounts: () -> Unit = {}
 ) {
     CardContainer {
         Row(
@@ -258,7 +261,9 @@ fun AccountsCard(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = "View all",
                 tint = Color.White.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier
+                    .size(20.dp)
+                    .clickable { onOpenAccounts() }
             )
         }
 

@@ -32,4 +32,10 @@ interface AccountDao {
 
     @Query("SELECT * FROM accounts LIMIT 1")
     suspend fun getAnyAccount(): AccountEntity?
+
+    @Query("UPDATE accounts SET balance = :newBalance WHERE id = :accountId")
+    suspend fun updateBalance(accountId: String, newBalance: Double)
+
+    @Query("DELETE FROM accounts")
+    suspend fun clearAll()
 }

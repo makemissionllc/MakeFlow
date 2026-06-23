@@ -9,16 +9,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 
 data class ThemeOption(val key: String, val label: String)
@@ -79,6 +77,7 @@ fun SettingsScreen(
 ) {
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
+    val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
@@ -90,34 +89,13 @@ fun SettingsScreen(
             .background(Color(0xFF121315))
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
-                .windowInsetsPadding(WindowInsets.statusBars),
-            contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp),
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(top = 96.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Settings",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
 
             item { SectionHeader(text = "Preferences") }
 
@@ -175,6 +153,21 @@ fun SettingsScreen(
                 )
             }
         }
+
+        CollapsingTopBar(
+            title = "Settings",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            leading = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+            }
+        )
     }
 
     if (showCurrencyPicker) {

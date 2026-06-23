@@ -63,14 +63,19 @@ class InsightsViewModel(
             it.type == "EXPENSE" && it.timestamp in monthStart..monthEnd
         }
         val totalExpenses = expenseTxs.sumOf { it.amount }
-        val grouped = expenseTxs.groupBy { it.categoryId }
-        val items = grouped.map { (catId, catTxs) ->
-            val amount = catTxs.sumOf { it.amount }
-            val cat = cats.find { it.id == catId }
+        val childToParent = cats.filter { it.parentCategoryId != null }
+            .associate { it.id to it.parentCategoryId!! }
+        val parents = cats.filter { it.parentCategoryId == null }.associateBy { it.id }
+        val grouped = expenseTxs.groupBy { tx ->
+            childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+        }
+        val items = grouped.map { (parentId, parentTxs) ->
+            val amount = parentTxs.sumOf { it.amount }
+            val parent = parents[parentId]
             CategorySpendingItem(
-                categoryId = catId ?: "",
-                categoryName = cat?.name ?: "Uncategorized",
-                color = cat?.colorHex ?: "#9E9E9E",
+                categoryId = parentId,
+                categoryName = parent?.name ?: "Uncategorized",
+                color = parent?.colorHex ?: "#9E9E9E",
                 amount = amount,
                 percentage = if (totalExpenses > 0) (amount / totalExpenses * 100).toFloat() else 0f
             )

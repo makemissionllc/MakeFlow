@@ -9,17 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
@@ -61,6 +60,7 @@ fun BudgetScreen(
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val listState = rememberLazyListState()
     var showAddBudget by remember { mutableStateOf(false) }
     var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
     val scope = rememberCoroutineScope()
@@ -103,10 +103,11 @@ fun BudgetScreen(
                 }
             } else {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalFadingEdge(
-                            topFadeHeight = 72.dp,
+                            topFadeHeight = 60.dp,
                             bottomFadeHeight = 80.dp
                         ),
                     contentPadding = PaddingValues(
@@ -184,19 +185,11 @@ fun BudgetScreen(
                 }
             }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF121315).copy(alpha = 0.85f))
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        CollapsingTopBar(
+            title = "Budgets",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            leading = {
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -204,20 +197,17 @@ fun BudgetScreen(
                         tint = Color.White
                     )
                 }
-                Text(
-                    text = "Budgets",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
-                )
+            },
+            trailing = {
+                IconButton(onClick = { showAddBudget = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Add budget",
+                        tint = Color.White
+                    )
+                }
             }
-            IconButton(onClick = { showAddBudget = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Add budget",
-                    tint = Color.White
-                )
-            }
-        }
+        )
     }
 
     if (showAddBudget) {

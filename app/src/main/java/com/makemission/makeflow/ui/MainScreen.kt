@@ -1,5 +1,6 @@
 package com.makemission.makeflow.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -141,12 +142,14 @@ fun MainScreen(
                     )
                 }
                 MakeFlowTab.INSIGHTS -> {
+                    BackHandler { activeTab = MakeFlowTab.HOME }
                     InsightsScreen(
                         viewModel = insightsViewModel,
                         onOpenBudgets = { showBudgetScreen = true }
                     )
                 }
                 MakeFlowTab.HISTORY -> {
+                    BackHandler { activeTab = MakeFlowTab.HOME }
                     HistoryScreen(viewModel = historyViewModel)
                 }
             }
@@ -187,10 +190,13 @@ fun MainScreen(
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
         ) {
-            BudgetScreen(
-                onBack = { showBudgetScreen = false },
-                viewModel = budgetViewModel
-            )
+            Box(Modifier.fillMaxSize()) {
+                BackHandler { showBudgetScreen = false }
+                BudgetScreen(
+                    onBack = { showBudgetScreen = false },
+                    viewModel = budgetViewModel
+                )
+            }
         }
 
         AnimatedVisibility(
@@ -203,6 +209,7 @@ fun MainScreen(
                     .fillMaxSize()
                     .background(Color(0xFF0A0A0A))
             ) {
+                BackHandler { showAccountsScreen = false }
                 AccountsScreen(
                     onBack = { showAccountsScreen = false },
                     viewModel = accountsViewModel
@@ -220,6 +227,7 @@ fun MainScreen(
                     .fillMaxSize()
                     .background(Color(0xFF121315))
             ) {
+                BackHandler { showSettingsScreen = false }
                 SettingsScreen(
                     onBack = { showSettingsScreen = false },
                     viewModel = settingsViewModel

@@ -58,12 +58,22 @@ fun AddBudgetBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
-    val expenseCategories = remember(categories) {
-        categories.filter { it.type == "EXPENSE" }
+    val expenseParents = remember(categories) {
+        categories.filter { it.type == "EXPENSE" && it.parentCategoryId == null }
     }
 
-    var selectedCategoryId by remember { mutableStateOf(expenseCategories.firstOrNull()?.id ?: "") }
-    var selectedCategoryName by remember { mutableStateOf(expenseCategories.firstOrNull()?.name ?: "") }
+    var selectedParentCategory by remember { mutableStateOf(expenseParents.firstOrNull()) }
+    var selectedChildCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+
+    val childCategories = remember(categories, selectedParentCategory) {
+        selectedParentCategory?.let { parent ->
+            categories.filter { it.parentCategoryId == parent.id }
+        } ?: emptyList()
+    }
+
+    val selectedCategoryId = selectedChildCategory?.id ?: selectedParentCategory?.id ?: ""
+    val selectedCategoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: ""
+
     var amountInput by remember { mutableStateOf("") }
     var selectedPeriod by remember { mutableStateOf("Monthly") }
 
@@ -110,10 +120,10 @@ fun AddBudgetBottomSheet(
                     color = Color.White.copy(alpha = 0.5f)
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(expenseCategories) { category ->
-                        val isSelected = category.id == selectedCategoryId
+                    items(expenseParents) { parent ->
+                        val isSelected = parent.id == selectedParentCategory?.id
                         Text(
-                            text = category.name,
+                            text = parent.name,
                             color = if (isSelected) Color(0xFF121315) else Color.White,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 13.sp,
@@ -123,11 +133,36 @@ fun AddBudgetBottomSheet(
                                     RoundedCornerShape(14.dp)
                                 )
                                 .clickable {
-                                    selectedCategoryId = category.id
-                                    selectedCategoryName = category.name
+                                    selectedParentCategory = parent
+                                    selectedChildCategory = null
                                 }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         )
+                    }
+                }
+                if (childCategories.isNotEmpty()) {
+                    Text(
+                        text = "Subcategory",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.35f)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(childCategories) { child ->
+                            val isSelected = child.id == selectedChildCategory?.id
+                            Text(
+                                text = child.name,
+                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(
+                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { selectedChildCategory = child }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
                     }
                 }
             }

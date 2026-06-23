@@ -8,18 +8,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -48,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import java.text.SimpleDateFormat
@@ -76,11 +75,12 @@ fun HomeDashboard(
     val accounts by viewModel.accounts.collectAsState()
     val monthlyIncome by viewModel.monthlyIncome.collectAsState()
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
-    val categories by viewModel.categories.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()
+    val parentCategorySpending by viewModel.parentCategorySpending.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val formattedBalance = "$currencySymbol ${String.format("%,.2f", totalBalance)}"
@@ -97,25 +97,23 @@ fun HomeDashboard(
         AccountChip(entity.name, "$currencySymbol ${String.format("%,.2f", entity.balance)}", color)
     }
 
-    val spendingMap = categorySpending.associate { it.categoryId to it.totalSpent }
-
-    val categoryLegends = categories.map { entity ->
+    val categoryLegends = parentCategorySpending.map { pcs ->
         val color = try {
-            Color(android.graphics.Color.parseColor(entity.colorHex))
+            Color(android.graphics.Color.parseColor(pcs.color))
         } catch (_: Exception) {
             Color(0xFFFF3B30)
         }
-        val spent = spendingMap[entity.id] ?: 0.0
-        CategoryLegend(entity.name, "$currencySymbol ${String.format("%,.2f", spent)}", color)
+        CategoryLegend(pcs.categoryName, "$currencySymbol ${String.format("%,.2f", pcs.amount)}", color)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
                 .verticalFadingEdge(
-                    topFadeHeight = 72.dp,
+                    topFadeHeight = 60.dp,
                     bottomFadeHeight = 80.dp
                 ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -124,7 +122,7 @@ fun HomeDashboard(
             item { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) }
             item { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) }
             item { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
-            item { CategoriesCard(categories = categoryLegends, monthLabel = currentMonthLabel) }
+            item { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) }
             item { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) }
 
             item {
@@ -144,41 +142,31 @@ fun HomeDashboard(
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF121315).copy(alpha = 0.85f))
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .align(Alignment.TopCenter),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Home",
-                color = Color.White,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                IconButton(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Rounded.CloudOff,
-                        contentDescription = "Local storage",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Settings",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
-                    )
+        CollapsingTopBar(
+            title = "Home",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            trailing = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    IconButton(onClick = { }) {
+                        Icon(
+                            imageVector = Icons.Rounded.CloudOff,
+                            contentDescription = "Local storage",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
             }
-        }
+        )
     }
 }
 

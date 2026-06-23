@@ -1,5 +1,7 @@
 package com.makemission.makeflow.ui.screens
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,37 +10,47 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
@@ -56,7 +68,10 @@ fun HistoryScreen(
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val recentlyDeleted by viewModel.recentlyDeleted.collectAsState()
 
+    val listState = rememberLazyListState()
+    val snackbarHostState = remember { SnackbarHostState() }
     val todayCal = remember { Calendar.getInstance() }
     val yesterdayCal = remember { Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) } }
 
@@ -67,7 +82,24 @@ fun HistoryScreen(
         }.toSortedMap(reverseOrder())
     }
 
+    LaunchedEffect(recentlyDeleted) {
+        if (recentlyDeleted != null) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Transaction deleted",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDelete()
+            }
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent
+    ) { _ ->
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -160,10 +192,11 @@ fun HistoryScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalFadingEdge(
-                        topFadeHeight = 72.dp,
+                        topFadeHeight = 60.dp,
                         bottomFadeHeight = 80.dp
                     ),
                 contentPadding = PaddingValues(
@@ -195,73 +228,114 @@ fun HistoryScreen(
                         val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else Color(0xFFFF3B30)
                         val formattedAmount = "$currencySymbol ${String.format("%,.2f", tx.amount)}"
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(categoryColor, CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = categoryName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = Color.White
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { value ->
+                                if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    viewModel.deleteTransaction(tx)
+                                    true
+                                } else false
+                            }
+                        )
+
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            enableDismissFromEndToStart = true,
+                            backgroundContent = {
+                                val bgColor by animateColorAsState(
+                                    targetValue = if (dismissState.progress > 0f)
+                                        Color(0xFFB71C1C) else Color(0xFF2C2C2C),
+                                    animationSpec = tween(300),
+                                    label = "swipeBg"
                                 )
-                                val subtitle = buildString {
-                                    if (accountName.isNotEmpty()) append(accountName)
-                                    if (tx.note.isNotBlank()) {
-                                        if (isNotEmpty()) append(" - ")
-                                        append(tx.note)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .background(bgColor)
+                                        .padding(end = 24.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Delete,
+                                            contentDescription = "Delete",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Text(
+                                            text = "Delete",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
                                     }
                                 }
-                                if (subtitle.isNotEmpty()) {
+                            }
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .padding(bottom = 2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(categoryColor, CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = categoryName,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = Color.White
+                                        )
+                                        val subtitle = buildString {
+                                            if (accountName.isNotEmpty()) append(accountName)
+                                            if (tx.note.isNotBlank()) {
+                                                if (isNotEmpty()) append(" - ")
+                                                append(tx.note)
+                                            }
+                                        }
+                                        if (subtitle.isNotEmpty()) {
+                                            Text(
+                                                text = subtitle,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = Color.White.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
                                     Text(
-                                        text = subtitle,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = Color.White.copy(alpha = 0.5f)
+                                        text = "$prefix$formattedAmount",
+                                        color = amountColor,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        textAlign = TextAlign.End
                                     )
                                 }
+                                HorizontalDivider(
+                                    color = Color.White.copy(alpha = 0.06f),
+                                    thickness = 0.5.dp
+                                )
                             }
-                            Text(
-                                text = "$prefix$formattedAmount",
-                                color = amountColor,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.End
-                            )
                         }
-                        HorizontalDivider(
-                            color = Color.White.copy(alpha = 0.06f),
-                            thickness = 0.5.dp
-                        )
                     }
                 }
             }
         }
     }
+    }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF121315).copy(alpha = 0.85f))
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "History",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White
-            )
-        }
+        CollapsingTopBar(
+            title = "History",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }
 

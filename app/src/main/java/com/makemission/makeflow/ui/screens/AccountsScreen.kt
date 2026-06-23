@@ -10,17 +10,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -50,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import kotlinx.coroutines.launch
@@ -64,6 +63,7 @@ fun AccountsScreen(
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val listState = rememberLazyListState()
     var showAddAccount by remember { mutableStateOf(false) }
     var showEditAccount by remember { mutableStateOf<AccountEntity?>(null) }
     var accountToDelete by remember { mutableStateOf<AccountEntity?>(null) }
@@ -107,10 +107,11 @@ fun AccountsScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalFadingEdge(
-                        topFadeHeight = 72.dp,
+                        topFadeHeight = 60.dp,
                         bottomFadeHeight = 80.dp
                     ),
                 contentPadding = PaddingValues(
@@ -189,19 +190,11 @@ fun AccountsScreen(
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF121315).copy(alpha = 0.85f))
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+        CollapsingTopBar(
+            title = "Accounts",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter),
+            leading = {
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -209,20 +202,17 @@ fun AccountsScreen(
                         tint = Color.White
                     )
                 }
-                Text(
-                    text = "Accounts",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
-                )
+            },
+            trailing = {
+                IconButton(onClick = { showAddAccount = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Add account",
+                        tint = Color.White
+                    )
+                }
             }
-            IconButton(onClick = { showAddAccount = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Add account",
-                    tint = Color.White
-                )
-            }
-        }
+        )
     }
 
     if (showAddAccount) {

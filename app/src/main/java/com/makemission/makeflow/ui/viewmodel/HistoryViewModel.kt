@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class HistoryViewModel(
     private val financeRepository: FinanceRepository,
@@ -57,6 +58,24 @@ class HistoryViewModel(
             else -> allTxs
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val recentlyDeleted = MutableStateFlow<TransactionEntity?>(null)
+
+    fun deleteTransaction(transaction: TransactionEntity) {
+        viewModelScope.launch {
+            recentlyDeleted.value = transaction
+            financeRepository.deleteTransaction(transaction)
+        }
+    }
+
+    fun undoDelete() {
+        viewModelScope.launch {
+            recentlyDeleted.value?.let { transaction ->
+                financeRepository.insertTransaction(transaction)
+                recentlyDeleted.value = null
+            }
+        }
+    }
 }
 
 class HistoryViewModelFactory(

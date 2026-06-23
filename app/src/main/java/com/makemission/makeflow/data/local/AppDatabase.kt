@@ -17,6 +17,9 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -93,7 +96,7 @@ abstract class AppDatabase : RoomDatabase() {
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
-                    Room.databaseBuilder(
+                    val instance = Room.databaseBuilder(
                         context.applicationContext,
                         AppDatabase::class.java,
                         "makeflow_database"
@@ -101,7 +104,11 @@ abstract class AppDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build()
-                    .also { INSTANCE = it }
+                    INSTANCE = instance
+                    CoroutineScope(Dispatchers.IO).launch {
+                        DatabaseInitializer.populate(instance)
+                    }
+                    instance
                 } catch (e: Exception) {
                     Log.e("MakeFlowDebug", "Failed to initialize AppDatabase", e)
                     throw e

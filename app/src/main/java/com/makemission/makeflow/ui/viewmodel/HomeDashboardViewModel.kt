@@ -8,12 +8,21 @@ import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.util.Calendar
+
+data class ParentCategorySpending(
+    val categoryId: String,
+    val categoryName: String,
+    val color: String,
+    val amount: Double
+)
 
 class HomeDashboardViewModel(
     private val financeRepository: FinanceRepository,
@@ -56,6 +65,31 @@ class HomeDashboardViewModel(
 
     val categorySpending: StateFlow<List<CategorySpending>> = financeRepository.getMonthlySpendingByCategory(monthStart, monthEnd)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val allTransactions = financeRepository.getAllTransactions()
+
+    val parentCategorySpending: StateFlow<List<ParentCategorySpending>> = combine(
+        allTransactions, categories
+    ) { txs, cats ->
+        val childToParent = cats.filter { it.parentCategoryId != null }
+            .associate { it.id to it.parentCategoryId!! }
+        val parents = cats.filter { it.parentCategoryId == null }.associateBy { it.id }
+        val expenseTxs = txs.filter {
+            it.type == "EXPENSE" && it.timestamp in monthStart..monthEnd
+        }
+        val grouped = expenseTxs.groupBy { tx ->
+            childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+        }
+        grouped.map { (parentId, parentTxs) ->
+            val parent = parents[parentId]
+            ParentCategorySpending(
+                categoryId = parentId,
+                categoryName = parent?.name ?: "Uncategorized",
+                color = parent?.colorHex ?: "#9E9E9E",
+                amount = parentTxs.sumOf { it.amount }
+            )
+        }.sortedByDescending { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val budgets: StateFlow<List<BudgetEntity>> = financeRepository.getAllBudgets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())

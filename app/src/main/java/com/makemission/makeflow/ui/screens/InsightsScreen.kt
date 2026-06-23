@@ -9,16 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -46,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
@@ -70,13 +69,16 @@ fun InsightsScreen(
     val totalExpenses by viewModel.totalExpenses.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val listState = rememberLazyListState()
+
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
+        state = listState,
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF121315))
             .verticalFadingEdge(
-                topFadeHeight = 72.dp,
+                topFadeHeight = 60.dp,
                 bottomFadeHeight = 80.dp
             ),
         contentPadding = PaddingValues(
@@ -85,6 +87,38 @@ fun InsightsScreen(
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { viewModel.previousMonth() }) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronLeft,
+                        contentDescription = "Previous month",
+                        tint = Color.White
+                    )
+                }
+                Text(
+                    text = selectedMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + selectedMonth.year,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+                IconButton(
+                    onClick = { viewModel.nextMonth() },
+                    enabled = selectedMonth.isBefore(java.time.YearMonth.now())
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = "Next month",
+                        tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) Color.White else Color.White.copy(alpha = 0.2f)
+                    )
+                }
+            }
+        }
+
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -449,55 +483,10 @@ fun InsightsScreen(
         }
     }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF121315).copy(alpha = 0.85f))
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .align(Alignment.TopCenter)
-                .padding(horizontal = 20.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Insights",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { viewModel.previousMonth() }) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronLeft,
-                        contentDescription = "Previous month",
-                        tint = Color.White
-                    )
-                }
-                Text(
-                    text = selectedMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + selectedMonth.year,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                IconButton(
-                    onClick = { viewModel.nextMonth() },
-                    enabled = selectedMonth.isBefore(java.time.YearMonth.now())
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Next month",
-                        tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) Color.White else Color.White.copy(alpha = 0.2f)
-                    )
-                }
-            }
-        }
+        CollapsingTopBar(
+            title = "Insights",
+            listState = listState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
     }
 }

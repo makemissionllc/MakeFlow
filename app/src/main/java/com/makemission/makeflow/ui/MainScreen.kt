@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -200,7 +201,7 @@ fun MainScreen(
             verticalArrangement = Arrangement.Bottom
         ) {
             AnimatedVisibility(
-                visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
+                visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
                 enter = scaleIn(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -212,7 +213,13 @@ fun MainScreen(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessMedium
                     )
-                ) + fadeOut(tween(100))
+                ) + fadeOut(tween(100)) + slideOutVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    targetOffsetY = { -it / 3 }
+                )
             ) {
                 FloatingActionButton(
                     onClick = { showAddTransaction = true },
@@ -380,6 +387,12 @@ fun FloatingCapsuleNavBar(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) { onTabSelected(tab) }
+                    .animateContentSize(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
                     .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -397,8 +410,27 @@ fun FloatingCapsuleNavBar(
 
                 AnimatedVisibility(
                     visible = isSelected,
-                    enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMedium)),
-                    exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessHigh))
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + slideInVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        initialOffsetY = { it }
+                    ),
+                    exit = fadeOut(
+                        animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                    ) + slideOutVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessHigh
+                        ),
+                        targetOffsetY = { -it / 2 }
+                    )
                 ) {
                     Text(
                         text = when (tab) {

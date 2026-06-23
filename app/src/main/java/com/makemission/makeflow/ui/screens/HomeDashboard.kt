@@ -2,6 +2,7 @@ package com.makemission.makeflow.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import java.text.SimpleDateFormat
@@ -256,13 +258,18 @@ fun AccountsCard(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
+            val chevronInteractionSource = remember { MutableInteractionSource() }
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,
                 contentDescription = "View all",
                 tint = Color.White.copy(alpha = 0.5f),
                 modifier = Modifier
                     .size(20.dp)
-                    .clickable { onOpenAccounts() }
+                    .pressScale(interactionSource = chevronInteractionSource)
+                    .clickable(
+                        interactionSource = chevronInteractionSource,
+                        indication = null
+                    ) { onOpenAccounts() }
             )
         }
 

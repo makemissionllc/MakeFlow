@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +29,6 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -47,8 +46,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
@@ -125,7 +127,8 @@ fun BudgetScreen(
                     item {
                         LargeTitleItem(title = "Budgets", scrollState = listState)
                     }
-                    items(budgets, key = { it.id }) { budget ->
+                    itemsIndexed(budgets, key = { _, budget -> budget.id }) { index, budget ->
+                        StaggeredItem(index = index + 1) {
                         val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                         val progressColor = when {
                             progress >= 1f -> Color(0xFFEF5350)
@@ -137,6 +140,7 @@ fun BudgetScreen(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .pressScale()
                                     .combinedClickable(
                                         onClick = { },
                                         onLongClick = { budgetToDelete = budget }
@@ -177,10 +181,9 @@ fun BudgetScreen(
                                     color = Color.White.copy(alpha = 0.6f)
                                 )
 
-                                LinearProgressIndicator(
+                                AnimatedProgressBar(
                                     progress = progress,
                                     color = progressColor,
-                                    trackColor = Color(0xFF2C2C2C),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(6.dp)
@@ -190,6 +193,7 @@ fun BudgetScreen(
                         }
 
                         Spacer(modifier = Modifier.height(2.dp))
+                        }
                     }
                 }
             }

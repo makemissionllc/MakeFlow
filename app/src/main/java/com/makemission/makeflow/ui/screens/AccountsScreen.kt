@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,8 +51,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.ui.components.AnimatedCounter
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import kotlinx.coroutines.launch
@@ -130,6 +133,7 @@ fun AccountsScreen(
                     LargeTitleItem(title = "Accounts", scrollState = listState)
                 }
                 item {
+                    StaggeredItem(index = 1) {
                     CardContainer {
                         Column {
                             Text(
@@ -138,26 +142,30 @@ fun AccountsScreen(
                                 color = Color.White.copy(alpha = 0.6f)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "$currencySymbol ${String.format("%,.2f", totalBalance)}",
+                            AnimatedCounter(
+                                targetValue = totalBalance,
+                                prefix = "$currencySymbol ",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = Color.White
                             )
                         }
                     }
+                    }
                 }
 
-                items(accounts, key = { it.id }) { account ->
+                itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
                     val dotColor = try {
                         Color(android.graphics.Color.parseColor(account.colorHex))
                     } catch (_: Exception) {
                         Color(0xFF4CAF50)
                     }
 
+                    StaggeredItem(index = index + 2) {
                     CardContainer {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .pressScale()
                                 .combinedClickable(
                                     onClick = { showEditAccount = account },
                                     onLongClick = { accountToDelete = account }
@@ -190,6 +198,7 @@ fun AccountsScreen(
                                 textAlign = TextAlign.End
                             )
                         }
+                    }
                     }
                 }
 

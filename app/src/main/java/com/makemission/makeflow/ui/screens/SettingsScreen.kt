@@ -52,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 
 data class ThemeOption(val key: String, val label: String)
@@ -107,30 +109,35 @@ fun SettingsScreen(
                 LargeTitleItem(title = "Settings", scrollState = listState)
             }
 
-            item { SectionHeader(text = "Preferences") }
+            item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
 
             item {
+                StaggeredItem(index = 2) {
                 SettingsRow(
                     icon = Icons.Outlined.SwapHoriz,
                     title = "Currency",
                     subtitle = currentCurrency,
                     onClick = { showCurrencyPicker = true }
                 )
+                }
             }
 
             item {
+                StaggeredItem(index = 3) {
                 SettingsRow(
                     icon = Icons.Outlined.Palette,
                     title = "Theme",
                     subtitle = themes.find { it.key == currentTheme }?.label ?: "Forest",
                     onClick = { showThemePicker = true }
                 )
+                }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionHeader(text = "Data") }
+            item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
+            item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
 
             item {
+                StaggeredItem(index = 6) {
                 SettingsRow(
                     icon = Icons.Outlined.FileDownload,
                     title = "Export CSV",
@@ -140,27 +147,32 @@ fun SettingsScreen(
                         Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show()
                     }
                 )
+                }
             }
 
             item {
+                StaggeredItem(index = 7) {
                 SettingsRow(
                     icon = Icons.Outlined.Delete,
                     title = "Clear All Data",
                     subtitle = "Reset everything",
                     onClick = { showClearConfirm = true }
                 )
+                }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
-            item { SectionHeader(text = "About") }
+            item { StaggeredItem(index = 8) { Spacer(modifier = Modifier.height(16.dp)) } }
+            item { StaggeredItem(index = 9) { SectionHeader(text = "About") } }
 
             item {
+                StaggeredItem(index = 10) {
                 SettingsRow(
                     icon = Icons.Outlined.Info,
                     title = "MakeFlow",
                     subtitle = "Version 1.0",
                     onClick = { }
                 )
+                }
             }
         }
 
@@ -256,6 +268,7 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressScale()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF1B1C1F))
             .clickable(onClick = onClick)

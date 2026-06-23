@@ -1,13 +1,20 @@
 package com.makemission.makeflow.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -133,24 +140,54 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            when (activeTab) {
-                MakeFlowTab.HOME -> {
-                    HomeDashboard(
-                        viewModel = homeViewModel,
-                        onOpenAccounts = { showAccountsScreen = true },
-                        onOpenSettings = { showSettingsScreen = true }
-                    )
-                }
-                MakeFlowTab.INSIGHTS -> {
-                    BackHandler { activeTab = MakeFlowTab.HOME }
-                    InsightsScreen(
-                        viewModel = insightsViewModel,
-                        onOpenBudgets = { showBudgetScreen = true }
-                    )
-                }
-                MakeFlowTab.HISTORY -> {
-                    BackHandler { activeTab = MakeFlowTab.HOME }
-                    HistoryScreen(viewModel = historyViewModel)
+            val tabIndex = when (activeTab) {
+                MakeFlowTab.HOME -> 0
+                MakeFlowTab.INSIGHTS -> 1
+                MakeFlowTab.HISTORY -> 2
+            }
+            val previousTabIndex = remember { mutableStateOf(0) }
+
+            AnimatedContent(
+                targetState = activeTab,
+                transitionSpec = {
+                    val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
+                    previousTabIndex.value = tabIndex
+                    (fadeIn(tween(220)) + slideInHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        initialOffsetX = { it / 6 * direction }
+                    )) togetherWith
+                    (fadeOut(tween(180)) + slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessLow
+                        ),
+                        targetOffsetX = { -it / 6 * direction }
+                    ))
+                },
+                label = "TabContent"
+            ) { tab ->
+                when (tab) {
+                    MakeFlowTab.HOME -> {
+                        HomeDashboard(
+                            viewModel = homeViewModel,
+                            onOpenAccounts = { showAccountsScreen = true },
+                            onOpenSettings = { showSettingsScreen = true }
+                        )
+                    }
+                    MakeFlowTab.INSIGHTS -> {
+                        BackHandler { activeTab = MakeFlowTab.HOME }
+                        InsightsScreen(
+                            viewModel = insightsViewModel,
+                            onOpenBudgets = { showBudgetScreen = true }
+                        )
+                    }
+                    MakeFlowTab.HISTORY -> {
+                        BackHandler { activeTab = MakeFlowTab.HOME }
+                        HistoryScreen(viewModel = historyViewModel)
+                    }
                 }
             }
         }
@@ -162,7 +199,21 @@ fun MainScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Bottom
         ) {
-            if (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) {
+            AnimatedVisibility(
+                visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
+                enter = scaleIn(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) + fadeIn(tween(150)),
+                exit = scaleOut(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                ) + fadeOut(tween(100))
+            ) {
                 FloatingActionButton(
                     onClick = { showAddTransaction = true },
                     containerColor = Color.White,
@@ -176,6 +227,12 @@ fun MainScreen(
                         tint = Color(0xFF121315)
                     )
                 }
+            }
+            AnimatedVisibility(
+                visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
+                enter = fadeIn(tween(150)),
+                exit = fadeOut(tween(100))
+            ) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
@@ -187,8 +244,20 @@ fun MainScreen(
 
         AnimatedVisibility(
             visible = showBudgetScreen,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            enter = slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                initialOffsetY = { it }
+            ) + fadeIn(tween(200)),
+            exit = slideOutVertically(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                targetOffsetY = { it }
+            ) + fadeOut(tween(150))
         ) {
             Box(Modifier.fillMaxSize()) {
                 BackHandler { showBudgetScreen = false }
@@ -201,8 +270,20 @@ fun MainScreen(
 
         AnimatedVisibility(
             visible = showAccountsScreen,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            enter = slideInHorizontally(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                initialOffsetX = { it }
+            ) + fadeIn(tween(200)),
+            exit = slideOutHorizontally(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                targetOffsetX = { it }
+            ) + fadeOut(tween(150))
         ) {
             Box(
                 modifier = Modifier
@@ -219,8 +300,20 @@ fun MainScreen(
 
         AnimatedVisibility(
             visible = showSettingsScreen,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            enter = slideInHorizontally(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                initialOffsetX = { it }
+            ) + fadeIn(tween(200)),
+            exit = slideOutHorizontally(
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                targetOffsetX = { it }
+            ) + fadeOut(tween(150))
         ) {
             Box(
                 modifier = Modifier

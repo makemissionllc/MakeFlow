@@ -28,7 +28,6 @@ import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,8 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
@@ -96,6 +97,7 @@ fun InsightsScreen(
             LargeTitleItem(title = "Insights", scrollState = listState)
         }
         item {
+            StaggeredItem(index = 1) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
@@ -125,9 +127,11 @@ fun InsightsScreen(
                     )
                 }
             }
+            }
         }
 
         item {
+            StaggeredItem(index = 2) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -171,9 +175,11 @@ fun InsightsScreen(
                     }
                 }
             }
+            }
         }
 
         item {
+            StaggeredItem(index = 3) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -320,9 +326,11 @@ fun InsightsScreen(
                     }
                 }
             }
+            }
         }
 
         item {
+            StaggeredItem(index = 4) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -384,9 +392,11 @@ fun InsightsScreen(
                     )
                 }
             }
+            }
         }
 
         item {
+            StaggeredItem(index = 5) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -473,10 +483,9 @@ fun InsightsScreen(
                                 )
                             }
 
-                            LinearProgressIndicator(
+                            AnimatedProgressBar(
                                 progress = progress,
                                 color = progressColor,
-                                trackColor = Color(0xFF2C2C2C),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(6.dp)
@@ -487,6 +496,7 @@ fun InsightsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                     }
                 }
+            }
             }
         }
     }

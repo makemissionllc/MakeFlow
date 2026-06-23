@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -55,6 +56,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
@@ -124,6 +127,7 @@ fun HistoryScreen(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                     modifier = Modifier
+                        .pressScale()
                         .background(
                             if (isSelected) Color.White else Color(0xFF1B1C1F),
                             RoundedCornerShape(14.dp)
@@ -140,6 +144,7 @@ fun HistoryScreen(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                     modifier = Modifier
+                        .pressScale()
                         .background(
                             if (isSelected) Color.White else Color(0xFF1B1C1F),
                             RoundedCornerShape(14.dp)
@@ -156,6 +161,7 @@ fun HistoryScreen(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                     modifier = Modifier
+                        .pressScale()
                         .background(
                             if (isSelected) Color.White else Color(0xFF1B1C1F),
                             RoundedCornerShape(14.dp)
@@ -212,17 +218,21 @@ fun HistoryScreen(
                     top = 20.dp, bottom = 140.dp
                 )
             ) {
-                groupedTransactions.forEach { (dateKey, items) ->
+                var itemIndex = 0
+                groupedTransactions.forEach { (dateKey, txList) ->
                     item(key = "header_$dateKey") {
-                        val label = getDateHeaderLabel(dateKey, todayCal, yesterdayCal)
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
+                        StaggeredItem(index = itemIndex++) {
+                            val label = getDateHeaderLabel(dateKey, todayCal, yesterdayCal)
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            )
+                        }
                     }
-                    items(items, key = { it.id }) { tx ->
+                    itemsIndexed(txList, key = { _, tx -> tx.id }) { txIndex, tx ->
+                        StaggeredItem(index = itemIndex++) {
                         val category = categories.find { it.id == tx.categoryId }
                         val categoryName = category?.name ?: "Uncategorized"
                         val categoryColor = try {
@@ -331,6 +341,7 @@ fun HistoryScreen(
                                     thickness = 0.5.dp
                                 )
                             }
+                        }
                         }
                     }
                 }

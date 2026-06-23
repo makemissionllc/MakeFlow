@@ -107,117 +107,116 @@ fun HistoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { _ ->
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121315))
-    ) {
-        LazyRow(
-            modifier = Modifier.padding(
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+                .verticalFadingEdge(
+                    topFadeHeight = 80.dp,
+                    bottomFadeHeight = 80.dp
+                ),
+            contentPadding = PaddingValues(
                 start = 20.dp, end = 20.dp,
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                bottom = 140.dp
             ),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item {
-                val isSelected = selectedFilter == "ALL"
-                Text(
-                    text = "All",
-                    color = if (isSelected) Color(0xFF121315) else Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .pressScale()
-                        .background(
-                            if (isSelected) Color.White else Color(0xFF1B1C1F),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .clickable { viewModel.selectedFilter.value = "ALL" }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                )
+                LargeTitleItem(title = "History", scrollState = listState)
             }
-            item {
-                val isSelected = selectedFilter == "INCOME"
-                Text(
-                    text = "Income",
-                    color = if (isSelected) Color(0xFF121315) else Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .pressScale()
-                        .background(
-                            if (isSelected) Color.White else Color(0xFF1B1C1F),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .clickable { viewModel.selectedFilter.value = "INCOME" }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                )
-            }
-            item {
-                val isSelected = selectedFilter == "EXPENSE"
-                Text(
-                    text = "Expense",
-                    color = if (isSelected) Color(0xFF121315) else Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .pressScale()
-                        .background(
-                            if (isSelected) Color.White else Color(0xFF1B1C1F),
-                            RoundedCornerShape(14.dp)
-                        )
-                        .clickable { viewModel.selectedFilter.value = "EXPENSE" }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                )
-            }
-        }
 
-        if (transactions.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
-                        top = 20.dp,
-                        bottom = 80.dp
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Receipt,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.3f),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Text(
-                        text = "No transactions yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "Tap + to log your first transaction",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.3f)
-                    )
+                    item {
+                        val isSelected = selectedFilter == "ALL"
+                        Text(
+                            text = "All",
+                            color = if (isSelected) Color(0xFF121315) else Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .pressScale()
+                                .background(
+                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { viewModel.selectedFilter.value = "ALL" }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                    }
+                    item {
+                        val isSelected = selectedFilter == "INCOME"
+                        Text(
+                            text = "Income",
+                            color = if (isSelected) Color(0xFF121315) else Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .pressScale()
+                                .background(
+                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { viewModel.selectedFilter.value = "INCOME" }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                    }
+                    item {
+                        val isSelected = selectedFilter == "EXPENSE"
+                        Text(
+                            text = "Expense",
+                            color = if (isSelected) Color(0xFF121315) else Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .pressScale()
+                                .background(
+                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                    RoundedCornerShape(14.dp)
+                                )
+                                .clickable { viewModel.selectedFilter.value = "EXPENSE" }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalFadingEdge(
-                        topFadeHeight = 80.dp,
-                        bottomFadeHeight = 80.dp
-                    ),
-                contentPadding = PaddingValues(
-                    start = 20.dp, end = 20.dp,
-                    top = 20.dp, bottom = 140.dp
-                )
-            ) {
+
+            if (transactions.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Receipt,
+                                contentDescription = null,
+                                tint = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Text(
+                                text = "No transactions yet",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "Tap + to log your first transaction",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+                }
+            } else {
                 var itemIndex = 0
                 groupedTransactions.forEach { (dateKey, txList) ->
                     item(key = "header_$dateKey") {
@@ -347,14 +346,13 @@ fun HistoryScreen(
                 }
             }
         }
-    }
-    }
 
         CollapsingTopBar(
             title = "History",
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart)
         )
+    }
     }
 }
 

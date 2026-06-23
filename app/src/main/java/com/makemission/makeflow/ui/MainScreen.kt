@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -39,6 +40,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +55,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.components.AdaptiveConfig
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
@@ -132,6 +137,9 @@ fun MainScreen(
     var showSettingsScreen by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
+    val config = rememberAdaptiveConfig()
+
+    CompositionLocalProvider(LocalAdaptiveConfig provides config) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -140,200 +148,210 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .then(
+                    if (config.isTablet) Modifier.widthIn(max = config.contentMaxWidth)
+                    else Modifier
+                )
+                .align(Alignment.Center)
         ) {
-            val tabIndex = when (activeTab) {
-                MakeFlowTab.HOME -> 0
-                MakeFlowTab.INSIGHTS -> 1
-                MakeFlowTab.HISTORY -> 2
-            }
-            val previousTabIndex = remember { mutableStateOf(0) }
+            Box(modifier = Modifier.fillMaxSize()) {
+                val tabIndex = when (activeTab) {
+                    MakeFlowTab.HOME -> 0
+                    MakeFlowTab.INSIGHTS -> 1
+                    MakeFlowTab.HISTORY -> 2
+                }
+                val previousTabIndex = remember { mutableStateOf(0) }
 
-            AnimatedContent(
-                targetState = activeTab,
-                transitionSpec = {
-                    val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
-                    previousTabIndex.value = tabIndex
-                    (fadeIn(tween(220)) + slideInHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        initialOffsetX = { it / 6 * direction }
-                    )) togetherWith
-                    (fadeOut(tween(180)) + slideOutHorizontally(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        targetOffsetX = { -it / 6 * direction }
-                    ))
-                },
-                label = "TabContent"
-            ) { tab ->
-                when (tab) {
-                    MakeFlowTab.HOME -> {
-                        HomeDashboard(
-                            viewModel = homeViewModel,
-                            onOpenAccounts = { showAccountsScreen = true },
-                            onOpenSettings = { showSettingsScreen = true }
-                        )
-                    }
-                    MakeFlowTab.INSIGHTS -> {
-                        BackHandler { activeTab = MakeFlowTab.HOME }
-                        InsightsScreen(
-                            viewModel = insightsViewModel,
-                            onOpenBudgets = { showBudgetScreen = true }
-                        )
-                    }
-                    MakeFlowTab.HISTORY -> {
-                        BackHandler { activeTab = MakeFlowTab.HOME }
-                        HistoryScreen(viewModel = historyViewModel)
+                AnimatedContent(
+                    targetState = activeTab,
+                    transitionSpec = {
+                        val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
+                        previousTabIndex.value = tabIndex
+                        (fadeIn(tween(220)) + slideInHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            initialOffsetX = { it / 6 * direction }
+                        )) togetherWith
+                        (fadeOut(tween(180)) + slideOutHorizontally(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessLow
+                            ),
+                            targetOffsetX = { -it / 6 * direction }
+                        ))
+                    },
+                    label = "TabContent"
+                ) { tab ->
+                    when (tab) {
+                        MakeFlowTab.HOME -> {
+                            HomeDashboard(
+                                viewModel = homeViewModel,
+                                onOpenAccounts = { showAccountsScreen = true },
+                                onOpenSettings = { showSettingsScreen = true }
+                            )
+                        }
+                        MakeFlowTab.INSIGHTS -> {
+                            BackHandler { activeTab = MakeFlowTab.HOME }
+                            InsightsScreen(
+                                viewModel = insightsViewModel,
+                                onOpenBudgets = { showBudgetScreen = true }
+                            )
+                        }
+                        MakeFlowTab.HISTORY -> {
+                            BackHandler { activeTab = MakeFlowTab.HOME }
+                            HistoryScreen(viewModel = historyViewModel)
+                        }
                     }
                 }
             }
-        }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom
-        ) {
-            AnimatedVisibility(
-                visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
-                enter = scaleIn(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeIn(tween(150)),
-                exit = scaleOut(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ) + fadeOut(tween(100)) + slideOutVertically(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    ),
-                    targetOffsetY = { -it / 3 }
-                )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
             ) {
-                FloatingActionButton(
-                    onClick = { showAddTransaction = true },
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315),
-                    shape = CircleShape,
-                    modifier = Modifier.size(56.dp)
+                AnimatedVisibility(
+                    visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
+                    enter = scaleIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeIn(tween(150)),
+                    exit = scaleOut(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    ) + fadeOut(tween(100)) + slideOutVertically(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        ),
+                        targetOffsetY = { -it / 3 }
+                    )
                 ) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add transaction",
-                        tint = Color(0xFF121315)
+                    FloatingActionButton(
+                        onClick = { showAddTransaction = true },
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF121315),
+                        shape = CircleShape,
+                        modifier = Modifier.size(config.fabSize)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Add transaction",
+                            tint = Color(0xFF121315),
+                            modifier = Modifier.size(if (config.isTablet) 28.dp else 24.dp)
+                        )
+                    }
+                }
+                AnimatedVisibility(
+                    visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
+                    enter = fadeIn(tween(150)),
+                    exit = fadeOut(tween(100))
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                FloatingCapsuleNavBar(
+                    selectedTab = activeTab,
+                    onTabSelected = { activeTab = it },
+                    config = config
+                )
+            }
+
+            AnimatedVisibility(
+                visible = showBudgetScreen,
+                enter = slideInVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialOffsetY = { it }
+                ) + fadeIn(tween(200)),
+                exit = slideOutVertically(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    targetOffsetY = { it }
+                ) + fadeOut(tween(150))
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    BackHandler { showBudgetScreen = false }
+                    BudgetScreen(
+                        onBack = { showBudgetScreen = false },
+                        viewModel = budgetViewModel
                     )
                 }
             }
+
             AnimatedVisibility(
-                visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
-                enter = fadeIn(tween(150)),
-                exit = fadeOut(tween(100))
+                visible = showAccountsScreen,
+                enter = slideInHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialOffsetX = { it }
+                ) + fadeIn(tween(200)),
+                exit = slideOutHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    targetOffsetX = { it }
+                ) + fadeOut(tween(150))
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF0A0A0A))
+                ) {
+                    BackHandler { showAccountsScreen = false }
+                    AccountsScreen(
+                        onBack = { showAccountsScreen = false },
+                        viewModel = accountsViewModel
+                    )
+                }
             }
 
-            FloatingCapsuleNavBar(
-                selectedTab = activeTab,
-                onTabSelected = { activeTab = it }
-            )
-        }
-
-        AnimatedVisibility(
-            visible = showBudgetScreen,
-            enter = slideInVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                initialOffsetY = { it }
-            ) + fadeIn(tween(200)),
-            exit = slideOutVertically(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                targetOffsetY = { it }
-            ) + fadeOut(tween(150))
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                BackHandler { showBudgetScreen = false }
-                BudgetScreen(
-                    onBack = { showBudgetScreen = false },
-                    viewModel = budgetViewModel
-                )
-            }
-        }
-
-        AnimatedVisibility(
-            visible = showAccountsScreen,
-            enter = slideInHorizontally(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                initialOffsetX = { it }
-            ) + fadeIn(tween(200)),
-            exit = slideOutHorizontally(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                targetOffsetX = { it }
-            ) + fadeOut(tween(150))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF0A0A0A))
+            AnimatedVisibility(
+                visible = showSettingsScreen,
+                enter = slideInHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    initialOffsetX = { it }
+                ) + fadeIn(tween(200)),
+                exit = slideOutHorizontally(
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessLow
+                    ),
+                    targetOffsetX = { it }
+                ) + fadeOut(tween(150))
             ) {
-                BackHandler { showAccountsScreen = false }
-                AccountsScreen(
-                    onBack = { showAccountsScreen = false },
-                    viewModel = accountsViewModel
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF121315))
+                ) {
+                    BackHandler { showSettingsScreen = false }
+                    SettingsScreen(
+                        onBack = { showSettingsScreen = false },
+                        viewModel = settingsViewModel
+                    )
+                }
             }
         }
-
-        AnimatedVisibility(
-            visible = showSettingsScreen,
-            enter = slideInHorizontally(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                initialOffsetX = { it }
-            ) + fadeIn(tween(200)),
-            exit = slideOutHorizontally(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                targetOffsetX = { it }
-            ) + fadeOut(tween(150))
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF121315))
-            ) {
-                BackHandler { showSettingsScreen = false }
-                SettingsScreen(
-                    onBack = { showSettingsScreen = false },
-                    viewModel = settingsViewModel
-                )
-            }
-        }
+    }
     }
 
     if (showAddTransaction) {
@@ -364,7 +382,8 @@ fun MainScreen(
 @Composable
 fun FloatingCapsuleNavBar(
     selectedTab: MakeFlowTab,
-    onTabSelected: (MakeFlowTab) -> Unit
+    onTabSelected: (MakeFlowTab) -> Unit,
+    config: AdaptiveConfig = AdaptiveConfig()
 ) {
     val tabs = MakeFlowTab.values()
 
@@ -372,8 +391,8 @@ fun FloatingCapsuleNavBar(
         modifier = Modifier
             .clip(CircleShape)
             .background(Color(0xFF24262B))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = if (config.isTablet) 12.dp else 8.dp, vertical = if (config.isTablet) 8.dp else 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (config.isTablet) 10.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         tabs.forEach { tab ->
@@ -393,7 +412,7 @@ fun FloatingCapsuleNavBar(
                             stiffness = Spring.StiffnessMedium
                         )
                     )
-                    .padding(horizontal = if (isSelected) 16.dp else 12.dp, vertical = 10.dp),
+                    .padding(horizontal = if (isSelected) (if (config.isTablet) 20.dp else 16.dp) else (if (config.isTablet) 16.dp else 12.dp), vertical = if (config.isTablet) 14.dp else 10.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -405,7 +424,7 @@ fun FloatingCapsuleNavBar(
                     },
                     contentDescription = tab.name,
                     tint = if (isSelected) Color(0xFF121315) else Color.White,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(config.navIconSize)
                 )
 
                 AnimatedVisibility(
@@ -439,10 +458,10 @@ fun FloatingCapsuleNavBar(
                             MakeFlowTab.HISTORY -> "History"
                         },
                         color = Color(0xFF121315),
-                        fontSize = 14.sp,
+                        fontSize = if (config.isTablet) 16.sp else 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
-                        modifier = Modifier.padding(start = 8.dp)
+                        modifier = Modifier.padding(start = if (config.isTablet) 10.dp else 8.dp)
                     )
                 }
             }

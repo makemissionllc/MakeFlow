@@ -54,6 +54,7 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.AnimatedCounter
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
@@ -70,6 +71,7 @@ fun AccountsScreen(
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
     var showAddAccount by remember { mutableStateOf(false) }
     var showEditAccount by remember { mutableStateOf<AccountEntity?>(null) }
@@ -86,8 +88,8 @@ fun AccountsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(
-                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
-                        start = 32.dp, end = 32.dp, bottom = 32.dp
+                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                        start = config.horizontalPadding, end = config.horizontalPadding, bottom = 32.dp
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -123,11 +125,11 @@ fun AccountsScreen(
                         bottomFadeHeight = 80.dp
                     ),
                 contentPadding = PaddingValues(
-                    start = 20.dp, end = 20.dp,
-                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                    start = config.horizontalPadding, end = config.horizontalPadding,
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                     bottom = 140.dp
                 ),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
             ) {
                 item {
                     LargeTitleItem(title = "Accounts", scrollState = listState)

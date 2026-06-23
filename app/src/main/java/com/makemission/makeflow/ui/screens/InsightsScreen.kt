@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
@@ -74,6 +75,7 @@ fun InsightsScreen(
     val totalExpenses by viewModel.totalExpenses.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
+    val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -87,11 +89,11 @@ fun InsightsScreen(
                 bottomFadeHeight = 80.dp
             ),
         contentPadding = PaddingValues(
-            start = 20.dp, end = 20.dp,
-            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+            start = config.horizontalPadding, end = config.horizontalPadding,
+            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
             bottom = 140.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
     ) {
         item {
             LargeTitleItem(title = "Insights", scrollState = listState)

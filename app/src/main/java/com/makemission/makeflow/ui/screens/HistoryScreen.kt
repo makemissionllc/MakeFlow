@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
@@ -102,6 +103,7 @@ fun HistoryScreen(
         }
     }
 
+    val config = LocalAdaptiveConfig.current
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -117,8 +119,8 @@ fun HistoryScreen(
                     bottomFadeHeight = 80.dp
                 ),
             contentPadding = PaddingValues(
-                start = 20.dp, end = 20.dp,
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                start = config.horizontalPadding, end = config.horizontalPadding,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 140.dp
             ),
             verticalArrangement = Arrangement.spacedBy(8.dp)

@@ -24,7 +24,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun CollapsingTopBar(
@@ -34,6 +36,7 @@ fun CollapsingTopBar(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    val config = LocalAdaptiveConfig.current
     val collapseFraction by remember {
         derivedStateOf {
             when {
@@ -48,7 +51,7 @@ fun CollapsingTopBar(
         modifier = modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .height(56.dp)
+            .height(config.barHeight)
             .clipToBounds()
     ) {
         Box(
@@ -96,6 +99,7 @@ fun LargeTitleItem(
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
+    val config = LocalAdaptiveConfig.current
     val collapseFraction by remember {
         derivedStateOf {
             when {
@@ -111,7 +115,8 @@ fun LargeTitleItem(
         style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
         color = Color.White.copy(alpha = 1f - collapseFraction),
+        fontSize = config.titleFontSize,
         modifier = modifier
-            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp)
+            .padding(start = config.horizontalPadding, end = config.horizontalPadding, top = 8.dp, bottom = config.titlePaddingBottom)
     )
 }

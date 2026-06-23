@@ -52,6 +52,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
@@ -90,6 +91,7 @@ fun HomeDashboard(
     val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
+    val config = LocalAdaptiveConfig.current
     val formattedBalance = "$currencySymbol ${String.format("%,.2f", totalBalance)}"
     val formattedIncome = "$currencySymbol ${String.format("%,.2f", monthlyIncome)}"
     val formattedExpenses = "$currencySymbol ${String.format("%,.2f", monthlyExpenses)}"
@@ -118,14 +120,14 @@ fun HomeDashboard(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = config.horizontalPadding)
                 .verticalFadingEdge(
                     topFadeHeight = 80.dp,
                     bottomFadeHeight = 80.dp
                 ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(config.cardSpacing),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 140.dp
             )
         ) {

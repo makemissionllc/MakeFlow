@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
@@ -88,6 +89,7 @@ fun SettingsScreen(
     var showThemePicker by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val config = LocalAdaptiveConfig.current
 
     Box(
         modifier = Modifier
@@ -98,9 +100,9 @@ fun SettingsScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp),
+                .padding(horizontal = config.horizontalPadding),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 32.dp
             ),
             verticalArrangement = Arrangement.spacedBy(4.dp)

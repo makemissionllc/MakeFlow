@@ -9,11 +9,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 
 data class ThemeOption(val key: String, val label: String)
@@ -93,9 +97,15 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(top = 96.dp, bottom = 32.dp),
+            contentPadding = PaddingValues(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                bottom = 32.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
+            item {
+                LargeTitleItem(title = "Settings", scrollState = listState)
+            }
 
             item { SectionHeader(text = "Preferences") }
 
@@ -156,9 +166,9 @@ fun SettingsScreen(
 
         CollapsingTopBar(
             title = "Settings",
-            listState = listState,
-            modifier = Modifier.align(Alignment.TopCenter),
-            leading = {
+            scrollState = listState,
+            modifier = Modifier.align(Alignment.TopStart),
+            navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,

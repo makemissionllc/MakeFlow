@@ -10,11 +10,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -49,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import kotlinx.coroutines.launch
@@ -74,13 +78,14 @@ fun AccountsScreen(
             .fillMaxSize()
             .background(Color(0xFF121315))
     ) {
-        Spacer(modifier = Modifier.height(96.dp))
-
         if (accounts.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(32.dp),
+                    .padding(
+                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                        start = 32.dp, end = 32.dp, bottom = 32.dp
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -111,15 +116,19 @@ fun AccountsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalFadingEdge(
-                        topFadeHeight = 60.dp,
+                        topFadeHeight = 80.dp,
                         bottomFadeHeight = 80.dp
                     ),
                 contentPadding = PaddingValues(
                     start = 20.dp, end = 20.dp,
-                    top = 96.dp, bottom = 140.dp
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                    bottom = 140.dp
                 ),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                item {
+                    LargeTitleItem(title = "Accounts", scrollState = listState)
+                }
                 item {
                     CardContainer {
                         Column {
@@ -192,9 +201,9 @@ fun AccountsScreen(
 
         CollapsingTopBar(
             title = "Accounts",
-            listState = listState,
-            modifier = Modifier.align(Alignment.TopCenter),
-            leading = {
+            scrollState = listState,
+            modifier = Modifier.align(Alignment.TopStart),
+            navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
@@ -203,7 +212,7 @@ fun AccountsScreen(
                     )
                 }
             },
-            trailing = {
+            actions = {
                 IconButton(onClick = { showAddAccount = true }) {
                     Icon(
                         imageVector = Icons.Filled.Add,

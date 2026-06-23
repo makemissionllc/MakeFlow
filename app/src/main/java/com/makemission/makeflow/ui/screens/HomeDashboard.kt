@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -47,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import java.text.SimpleDateFormat
@@ -113,12 +117,18 @@ fun HomeDashboard(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
                 .verticalFadingEdge(
-                    topFadeHeight = 60.dp,
+                    topFadeHeight = 80.dp,
                     bottomFadeHeight = 80.dp
                 ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
-            contentPadding = PaddingValues(top = 96.dp)
+            contentPadding = PaddingValues(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 56.dp,
+                bottom = 140.dp
+            )
         ) {
+            item {
+                LargeTitleItem(title = "Home", scrollState = listState)
+            }
             item { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) }
             item { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) }
             item { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
@@ -144,26 +154,24 @@ fun HomeDashboard(
 
         CollapsingTopBar(
             title = "Home",
-            listState = listState,
-            modifier = Modifier.align(Alignment.TopCenter),
-            trailing = {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            imageVector = Icons.Rounded.CloudOff,
-                            contentDescription = "Local storage",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = "Settings",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+            scrollState = listState,
+            modifier = Modifier.align(Alignment.TopStart),
+            actions = {
+                IconButton(onClick = { }) {
+                    Icon(
+                        imageVector = Icons.Rounded.CloudOff,
+                        contentDescription = "Local storage",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
             }
         )

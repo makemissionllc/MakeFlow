@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +20,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -46,10 +47,25 @@ fun CollapsingTopBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.97f))
             .windowInsetsPadding(WindowInsets.statusBars)
             .height(56.dp)
+            .clipToBounds()
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colorStops = arrayOf(
+                            0f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
+                            0.75f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
+                            0.90f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.30f),
+                            1f to Color.Transparent
+                        )
+                    )
+                )
+        )
+
         if (navigationIcon != null) {
             Box(
                 modifier = Modifier
@@ -70,14 +86,6 @@ fun CollapsingTopBar(
                 .align(Alignment.CenterEnd)
                 .padding(end = 4.dp),
             content = actions
-        )
-
-        HorizontalDivider(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .alpha(collapseFraction),
-            thickness = 0.5.dp,
-            color = Color(0xFF3A3A3A)
         )
     }
 }

@@ -1,25 +1,14 @@
 package com.makemission.makeflow.data.local
 
-import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
-import com.makemission.makeflow.data.local.entity.TransactionEntity
 import java.util.UUID
 
 object DatabaseInitializer {
 
     suspend fun populate(db: AppDatabase) {
-        val accountDao = db.accountDao()
         val categoryDao = db.categoryDao()
-        val transactionDao = db.transactionDao()
 
         if (categoryDao.getCount() > 0) return
-
-        accountDao.insertAccount(
-            AccountEntity(id = "virtual_card", name = "Virtual Card", balance = 24562.00, initialBalance = 24562.00, colorHex = "#1E88E5")
-        )
-        accountDao.insertAccount(
-            AccountEntity(id = "savings_account", name = "Savings Account", balance = 15000.00, initialBalance = 15000.00, colorHex = "#43A047")
-        )
 
         // ── Expense Parents ──────────────────────────────────────────
         val foodDrinks = CategoryEntity(id = UUID.randomUUID().toString(), name = "Food & Drinks", type = "EXPENSE", parentCategoryId = null, iconName = "local_dining", colorHex = "#FF7043")
@@ -90,23 +79,5 @@ object DatabaseInitializer {
         categoryDao.insertCategory(interest)
         categoryDao.insertCategory(giftsIncome)
         categoryDao.insertCategory(otherIncome)
-
-        // ── Sample Transactions ─────────────────────────────────────
-        val now = System.currentTimeMillis()
-        transactionDao.insertTransaction(
-            TransactionEntity(amount = 4250.00, type = "INCOME", note = "Salary Deposit", timestamp = now - 3600_000, categoryId = salary.id)
-        )
-        transactionDao.insertTransaction(
-            TransactionEntity(amount = 999.00, type = "EXPENSE", note = "Apple Store", timestamp = now - 7200_000, categoryId = shopping.id)
-        )
-        transactionDao.insertTransaction(
-            TransactionEntity(amount = 24.50, type = "EXPENSE", note = "Uber Ride", timestamp = now - 10800_000, categoryId = transport.id)
-        )
-        transactionDao.insertTransaction(
-            TransactionEntity(amount = 15.99, type = "EXPENSE", note = "Netflix", timestamp = now - 14400_000, categoryId = leisure.id)
-        )
-        transactionDao.insertTransaction(
-            TransactionEntity(amount = 156.78, type = "EXPENSE", note = "Whole Foods", timestamp = now - 18000_000, categoryId = foodDrinks.id)
-        )
     }
 }

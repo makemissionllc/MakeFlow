@@ -61,11 +61,24 @@ class FinanceRepositoryImpl(
 
     override suspend fun deleteCategoryById(id: String) = categoryDao.deleteCategoryById(id)
 
-    override suspend fun insertTransaction(transaction: TransactionEntity) =
+    override suspend fun insertTransaction(transaction: TransactionEntity) {
         transactionDao.insertTransaction(transaction)
+        accountDao?.getAccountById(transaction.accountId)?.let { account ->
+            val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
+            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        }
+        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+            budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+        }
+    }
 
-    override suspend fun deleteTransaction(transaction: TransactionEntity) =
+    override suspend fun deleteTransaction(transaction: TransactionEntity) {
         transactionDao.deleteTransaction(transaction)
+        accountDao?.getAccountById(transaction.accountId)?.let { account ->
+            val delta = if (transaction.type == "INCOME") -transaction.amount else transaction.amount
+            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        }
+    }
 
     override fun getCategoryWithTasks(id: String): Flow<CategoryWithTasks?> =
         categoryDao.getCategoryWithTasks(id)

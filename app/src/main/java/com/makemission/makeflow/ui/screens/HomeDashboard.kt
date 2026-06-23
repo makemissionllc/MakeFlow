@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import java.text.SimpleDateFormat
@@ -73,6 +75,8 @@ fun HomeDashboard(
     val monthlyIncome by viewModel.monthlyIncome.collectAsState()
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
     val categories by viewModel.categories.collectAsState()
+    val categorySpending by viewModel.categorySpending.collectAsState()
+    val budgets by viewModel.budgets.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
@@ -91,13 +95,16 @@ fun HomeDashboard(
         AccountChip(entity.name, "$currencySymbol ${String.format("%,.2f", entity.balance)}", color)
     }
 
+    val spendingMap = categorySpending.associate { it.categoryId to it.totalSpent }
+
     val categoryLegends = categories.map { entity ->
         val color = try {
             Color(android.graphics.Color.parseColor(entity.colorHex))
         } catch (_: Exception) {
             Color(0xFFFF3B30)
         }
-        CategoryLegend(entity.name, "$currencySymbol 0.00", color)
+        val spent = spendingMap[entity.id] ?: 0.0
+        CategoryLegend(entity.name, "$currencySymbol ${String.format("%,.2f", spent)}", color)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -116,7 +123,7 @@ fun HomeDashboard(
             item { AccountsCard(accounts = accountChips) }
             item { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
             item { CategoriesCard(categories = categoryLegends, monthLabel = currentMonthLabel) }
-            item { BudgetsCard() }
+            item { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) }
 
             item {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -530,7 +537,10 @@ fun CategoriesCard(
 }
 
 @Composable
-fun BudgetsCard() {
+fun BudgetsCard(
+    budgets: List<BudgetEntity> = emptyList(),
+    currencySymbol: String = "KES"
+) {
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -551,34 +561,77 @@ fun BudgetsCard() {
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFF121315), CircleShape),
-                contentAlignment = Alignment.Center
+        if (budgets.isEmpty()) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.TrackChanges,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(24.dp)
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(Color(0xFF121315), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.TrackChanges,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.4f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "No active budgets",
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 14.sp
                 )
             }
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "No active budgets",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 14.sp
-            )
+        } else {
+            budgets.take(3).forEach { budget ->
+                val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+                val progressColor = when {
+                    progress >= 1f -> Color(0xFFEF5350)
+                    progress >= 0.7f -> Color(0xFFFFA726)
+                    else -> Color(0xFF4CAF50)
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = budget.categoryName,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = "$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        color = progressColor,
+                        trackColor = Color(0xFF2C2C2C),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp))
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
     }
 }
 

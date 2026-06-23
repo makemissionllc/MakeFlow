@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,6 +53,12 @@ class HomeDashboardViewModel(
 
     val monthlyExpenses: StateFlow<Double> = financeRepository.getMonthlyTotalExpense(monthStart, monthEnd)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val categorySpending: StateFlow<List<CategorySpending>> = financeRepository.getMonthlySpendingByCategory(monthStart, monthEnd)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val budgets: StateFlow<List<BudgetEntity>> = financeRepository.getAllBudgets()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private fun getCurrentMonthRange(): Pair<Long, Long> {
         val cal = Calendar.getInstance()

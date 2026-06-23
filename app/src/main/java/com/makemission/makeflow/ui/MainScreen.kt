@@ -191,7 +191,6 @@ fun MainScreen(
                             timestamp = timestamp
                         )
                     )
-                    repository.syncBudgetSpending(categoryId, amount, type)
                     showAddTransaction = false
                 }
             },

@@ -149,7 +149,7 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .then(
-                    if (config.isTablet) Modifier.widthIn(max = config.contentMaxWidth)
+                    if (config.isTablet && !config.isLandscape) Modifier.widthIn(max = config.contentMaxWidth)
                     else Modifier
                 )
                 .align(Alignment.Center)

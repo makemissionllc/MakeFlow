@@ -111,69 +111,83 @@ fun SettingsScreen(
                 LargeTitleItem(title = "Settings", scrollState = listState)
             }
 
-            item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
+            if (config.isTablet && config.isLandscape) {
+                item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
 
-            item {
-                StaggeredItem(index = 2) {
-                SettingsRow(
-                    icon = Icons.Outlined.SwapHoriz,
-                    title = "Currency",
-                    subtitle = currentCurrency,
-                    onClick = { showCurrencyPicker = true }
-                )
-                }
-            }
-
-            item {
-                StaggeredItem(index = 3) {
-                SettingsRow(
-                    icon = Icons.Outlined.Palette,
-                    title = "Theme",
-                    subtitle = themes.find { it.key == currentTheme }?.label ?: "Forest",
-                    onClick = { showThemePicker = true }
-                )
-                }
-            }
-
-            item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
-            item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
-
-            item {
-                StaggeredItem(index = 6) {
-                SettingsRow(
-                    icon = Icons.Outlined.FileDownload,
-                    title = "Export CSV",
-                    subtitle = "Download all transactions",
-                    onClick = {
-                        viewModel.exportCsv(context)
-                        Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show()
+                item {
+                    StaggeredItem(index = 2) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Currency", subtitle=currentCurrency, onClick={ showCurrencyPicker = true })
+                        }
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
+                        }
                     }
-                )
+                    }
                 }
-            }
 
-            item {
-                StaggeredItem(index = 7) {
-                SettingsRow(
-                    icon = Icons.Outlined.Delete,
-                    title = "Clear All Data",
-                    subtitle = "Reset everything",
-                    onClick = { showClearConfirm = true }
-                )
+                item { StaggeredItem(index = 3) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 4) { SectionHeader(text = "Data") } }
+
+                item {
+                    StaggeredItem(index = 5) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
+                        }
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
+                        }
+                    }
+                    }
                 }
-            }
 
-            item { StaggeredItem(index = 8) { Spacer(modifier = Modifier.height(16.dp)) } }
-            item { StaggeredItem(index = 9) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 7) { SectionHeader(text = "About") } }
 
-            item {
-                StaggeredItem(index = 10) {
-                SettingsRow(
-                    icon = Icons.Outlined.Info,
-                    title = "MakeFlow",
-                    subtitle = "Version 1.0",
-                    onClick = { }
-                )
+                item {
+                    StaggeredItem(index = 8) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    }
+                }
+            } else {
+                item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
+
+                item {
+                    StaggeredItem(index = 2) {
+                    SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Currency", subtitle=currentCurrency, onClick={ showCurrencyPicker = true })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 3) {
+                    SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
+                    }
+                }
+
+                item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
+
+                item {
+                    StaggeredItem(index = 6) {
+                    SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 7) {
+                    SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
+                    }
+                }
+
+                item { StaggeredItem(index = 8) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 9) { SectionHeader(text = "About") } }
+
+                item {
+                    StaggeredItem(index = 10) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    }
                 }
             }
         }

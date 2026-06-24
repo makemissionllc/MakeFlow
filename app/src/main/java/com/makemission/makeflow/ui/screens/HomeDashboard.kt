@@ -131,30 +131,76 @@ fun HomeDashboard(
                 bottom = 140.dp
             )
         ) {
-            item {
-                LargeTitleItem(title = "Home", scrollState = listState)
-            }
-            item { StaggeredItem(index = 1) { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) } }
-            item { StaggeredItem(index = 2) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) } }
-            item { StaggeredItem(index = 3) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) } }
-            item { StaggeredItem(index = 4) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) } }
-            item { StaggeredItem(index = 5) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) } }
+            if (config.isTablet && config.isLandscape) {
+                item {
+                    LargeTitleItem(title = "Home", scrollState = listState)
+                }
+                item { StaggeredItem(index = 1) { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) } }
+                item {
+                    StaggeredItem(index = 2) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) }
+                            Box(modifier = Modifier.weight(1f)) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
+                        }
+                    }
+                }
+                item {
+                    StaggeredItem(index = 3) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                        ) {
+                            Box(modifier = Modifier.weight(1f)) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) }
+                            Box(modifier = Modifier.weight(1f)) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) }
+                        }
+                    }
+                }
+                item {
+                    StaggeredItem(index = 4) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Edit cards",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { }
+                                .padding(vertical = 12.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
+                }
+            } else {
+                item {
+                    LargeTitleItem(title = "Home", scrollState = listState)
+                }
+                item { StaggeredItem(index = 1) { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) } }
+                item { StaggeredItem(index = 2) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) } }
+                item { StaggeredItem(index = 3) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) } }
+                item { StaggeredItem(index = 4) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) } }
+                item { StaggeredItem(index = 5) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) } }
 
-            item {
-                StaggeredItem(index = 6) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Edit cards",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { }
-                            .padding(vertical = 12.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(80.dp))
+                item {
+                    StaggeredItem(index = 6) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Edit cards",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { }
+                                .padding(vertical = 12.dp),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
         }

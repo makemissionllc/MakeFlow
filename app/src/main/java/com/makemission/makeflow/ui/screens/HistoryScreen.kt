@@ -131,7 +131,7 @@ fun HistoryScreen(
 
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(if (config.isTablet && config.isLandscape) 12.dp else 8.dp)
                 ) {
                     item {
                         val isSelected = selectedFilter == "ALL"
@@ -139,15 +139,15 @@ fun HistoryScreen(
                             text = "All",
                             color = if (isSelected) Color(0xFF121315) else Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                             modifier = Modifier
                                 .pressScale()
                                 .background(
                                     if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                                 )
                                 .clickable { viewModel.selectedFilter.value = "ALL" }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
                         )
                     }
                     item {
@@ -156,15 +156,15 @@ fun HistoryScreen(
                             text = "Income",
                             color = if (isSelected) Color(0xFF121315) else Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                             modifier = Modifier
                                 .pressScale()
                                 .background(
                                     if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                                 )
                                 .clickable { viewModel.selectedFilter.value = "INCOME" }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
                         )
                     }
                     item {
@@ -173,15 +173,15 @@ fun HistoryScreen(
                             text = "Expense",
                             color = if (isSelected) Color(0xFF121315) else Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                             modifier = Modifier
                                 .pressScale()
                                 .background(
                                     if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                                 )
                                 .clickable { viewModel.selectedFilter.value = "EXPENSE" }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
                         )
                     }
                 }
@@ -292,28 +292,18 @@ fun HistoryScreen(
                             }
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .padding(bottom = 2.dp)
+                                modifier = Modifier.clip(MaterialTheme.shapes.medium)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(categoryColor, CircleShape)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = categoryName,
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            color = Color.White
-                                        )
+                                if (config.isTablet && config.isLandscape) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(Modifier.size(10.dp).background(categoryColor, CircleShape))
+                                        Spacer(Modifier.width(14.dp))
+                                        Column(modifier = Modifier.weight(0.3f)) {
+                                            Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                        }
                                         val subtitle = buildString {
                                             if (accountName.isNotEmpty()) append(accountName)
                                             if (tx.note.isNotBlank()) {
@@ -321,26 +311,46 @@ fun HistoryScreen(
                                                 append(tx.note)
                                             }
                                         }
-                                        if (subtitle.isNotEmpty()) {
-                                            Text(
-                                                text = subtitle,
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = Color.White.copy(alpha = 0.5f)
-                                            )
-                                        }
+                                        Text(
+                                            text = subtitle.ifEmpty { "" },
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = Color.White.copy(alpha = 0.5f),
+                                            modifier = Modifier.weight(0.4f),
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "$prefix$formattedAmount",
+                                            color = amountColor,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.End,
+                                            modifier = Modifier.weight(0.3f)
+                                        )
                                     }
-                                    Text(
-                                        text = "$prefix$formattedAmount",
-                                        color = amountColor,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.SemiBold,
-                                        textAlign = TextAlign.End
-                                    )
+                                } else {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(Modifier.size(8.dp).background(categoryColor, CircleShape))
+                                        Spacer(Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            val subtitle = buildString {
+                                                if (accountName.isNotEmpty()) append(accountName)
+                                                if (tx.note.isNotBlank()) {
+                                                    if (isNotEmpty()) append(" - ")
+                                                    append(tx.note)
+                                                }
+                                            }
+                                            if (subtitle.isNotEmpty()) {
+                                                Text(subtitle, style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.5f))
+                                            }
+                                        }
+                                        Text("$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End)
+                                    }
                                 }
-                                HorizontalDivider(
-                                    color = Color.White.copy(alpha = 0.06f),
-                                    thickness = 0.5.dp
-                                )
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 0.5.dp)
                             }
                         }
                         }

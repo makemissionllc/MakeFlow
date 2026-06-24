@@ -129,72 +129,78 @@ fun BudgetScreen(
                     item {
                         LargeTitleItem(title = "Budgets", scrollState = listState)
                     }
-                    itemsIndexed(budgets, key = { _, budget -> budget.id }) { index, budget ->
-                        StaggeredItem(index = index + 1) {
-                        val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
-                        val progressColor = when {
-                            progress >= 1f -> Color(0xFFEF5350)
-                            progress >= 0.7f -> Color(0xFFFFA726)
-                            else -> Color(0xFF4CAF50)
-                        }
-
-                        CardContainer {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .pressScale()
-                                    .combinedClickable(
-                                        onClick = { },
-                                        onLongClick = { budgetToDelete = budget }
-                                    ),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    if (config.isTablet && config.isLandscape) {
+                        val chunked = budgets.chunked(2)
+                        itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
+                            StaggeredItem(index = index + 1) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = budget.categoryName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = when (budget.period) {
-                                            "Weekly" -> "Weekly"
-                                            "Monthly" -> "Monthly"
-                                            "Annual" -> "Annual"
-                                            else -> budget.period
-                                        },
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.6f),
-                                        modifier = Modifier
-                                            .background(
-                                                Color(0xFF2C2C2C),
-                                                RoundedCornerShape(6.dp)
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                                chunk.forEach { budget ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+                                        val progressColor = when {
+                                            progress >= 1f -> Color(0xFFEF5350)
+                                            progress >= 0.7f -> Color(0xFFFFA726)
+                                            else -> Color(0xFF4CAF50)
+                                        }
+
+                                        CardContainer {
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={}, onLongClick={ budgetToDelete = budget }),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
+                                                    Text(budget.categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                    Text(
+                                                        when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
+                                                        style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
+                                                        modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
+                                                    )
+                                                }
+                                                Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} of $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
+                                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                            }
+                                        }
+                                    }
                                 }
-
-                                Text(
-                                    text = "$currencySymbol ${String.format("%,.2f", budget.spentAmount)} of $currencySymbol ${String.format("%,.2f", budget.amount)}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White.copy(alpha = 0.6f)
-                                )
-
-                                AnimatedProgressBar(
-                                    progress = progress,
-                                    color = progressColor,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp))
-                                )
+                                if (chunk.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
                             }
                         }
+                    } else {
+                        itemsIndexed(budgets, key = { _, budget -> budget.id }) { index, budget ->
+                            StaggeredItem(index = index + 1) {
+                            val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+                            val progressColor = when {
+                                progress >= 1f -> Color(0xFFEF5350)
+                                progress >= 0.7f -> Color(0xFFFFA726)
+                                else -> Color(0xFF4CAF50)
+                            }
 
-                        Spacer(modifier = Modifier.height(2.dp))
+                            CardContainer {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={}, onLongClick={ budgetToDelete = budget }),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
+                                        Text(budget.categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                        Text(
+                                            when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
+                                            style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
+                                            modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
+                                        )
+                                    }
+                                    Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} of $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
+                                    AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(2.dp))
+                            }
                         }
                     }
                 }

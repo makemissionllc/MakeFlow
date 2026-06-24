@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -182,6 +183,102 @@ fun InsightsScreen(
 
         item {
             StaggeredItem(index = 3) {
+            val displayItems = if (categorySpending.size > 5) {
+                val top4 = categorySpending.take(4)
+                val others = categorySpending.drop(4)
+                val othersAmount = others.sumOf { it.amount }
+                val othersPercent = others.sumOf { it.percentage.toDouble() }.toFloat()
+                top4 + CategorySpendingItem("others", "Others", "#9E9E9E", othersAmount, othersPercent)
+            } else {
+                categorySpending
+            }
+
+            if (config.isTablet && config.isLandscape) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .weight(0.4f)
+                            .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Spending by category",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(280.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (categorySpending.isEmpty()) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val outerR = 90.dp.toPx()
+                                    val innerR = 60.dp.toPx()
+                                    val strokeW = outerR - innerR
+                                    drawArc(color=Color(0xFF2C2C2C), startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
+                                }
+                                Text("No expenses", color=Color.White.copy(alpha=0.4f), fontSize=14.sp)
+                            } else {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val outerR = 90.dp.toPx()
+                                    val innerR = 60.dp.toPx()
+                                    val strokeW = outerR - innerR
+                                    var startAngle = -90f
+                                    val total = categorySpending.sumOf { it.amount }
+                                    if (total > 0) {
+                                        categorySpending.forEach { item ->
+                                            val sweep = (item.percentage / 100f * 360f).coerceAtLeast(0f)
+                                            val gapAngle = if (sweep > 0f) 2f else 0f
+                                            val drawSweep = (sweep - gapAngle).coerceAtLeast(0f)
+                                            val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                                            if (drawSweep > 0f) {
+                                                drawArc(color=arcColor, startAngle=startAngle, sweepAngle=drawSweep, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW,cap=StrokeCap.Butt))
+                                                startAngle += sweep
+                                            }
+                                        }
+                                    }
+                                }
+                                Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                                    Text("$currencySymbol ${String.format("%,.2f", totalExpenses)}", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                                    Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                }
+                            }
+                        }
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(0.6f)
+                            .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Breakdown",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            displayItems.forEach { item ->
+                                Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) {
+                                    val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                                    Box(Modifier.size(10.dp).background(dotColor, CircleShape))
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                                    Text("$currencySymbol ${String.format("%,.2f", item.amount)}", style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
+                                    Spacer(Modifier.width(10.dp))
+                                    Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -207,24 +304,9 @@ fun InsightsScreen(
                             val outerR = 80.dp.toPx()
                             val innerR = 52.dp.toPx()
                             val strokeW = outerR - innerR
-                            drawArc(
-                                color = Color(0xFF2C2C2C),
-                                startAngle = -90f,
-                                sweepAngle = 360f,
-                                useCenter = false,
-                                topLeft = Offset(
-                                    (size.width - outerR * 2) / 2f,
-                                    (size.height - outerR * 2) / 2f
-                                ),
-                                size = Size(outerR * 2, outerR * 2),
-                                style = Stroke(width = strokeW)
-                            )
+                            drawArc(color=Color(0xFF2C2C2C), startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
                         }
-                        Text(
-                            text = "No expenses",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 14.sp
-                        )
+                        Text("No expenses", color=Color.White.copy(alpha=0.4f), fontSize=14.sp)
                     } else {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val outerR = 80.dp.toPx()
@@ -232,101 +314,40 @@ fun InsightsScreen(
                             val strokeW = outerR - innerR
                             var startAngle = -90f
                             val total = categorySpending.sumOf { it.amount }
-
                             if (total > 0) {
                                 categorySpending.forEach { item ->
                                     val sweep = (item.percentage / 100f * 360f).coerceAtLeast(0f)
                                     val gapAngle = if (sweep > 0f) 2f else 0f
                                     val drawSweep = (sweep - gapAngle).coerceAtLeast(0f)
-                                    val arcColor = try {
-                                        Color(android.graphics.Color.parseColor(item.color))
-                                    } catch (_: Exception) {
-                                        Color(0xFF9E9E9E)
-                                    }
+                                    val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
                                     if (drawSweep > 0f) {
-                                        drawArc(
-                                            color = arcColor,
-                                            startAngle = startAngle,
-                                            sweepAngle = drawSweep,
-                                            useCenter = false,
-                                            topLeft = Offset(
-                                                (size.width - outerR * 2) / 2f,
-                                                (size.height - outerR * 2) / 2f
-                                            ),
-                                            size = Size(outerR * 2, outerR * 2),
-                                            style = Stroke(width = strokeW, cap = StrokeCap.Butt)
-                                        )
+                                        drawArc(color=arcColor, startAngle=startAngle, sweepAngle=drawSweep, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW,cap=StrokeCap.Butt))
                                         startAngle += sweep
                                     }
                                 }
                             }
                         }
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "$currencySymbol ${String.format("%,.2f", totalExpenses)}",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Total",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.5f)
-                            )
+                        Column(horizontalAlignment=Alignment.CenterHorizontally) {
+                            Text("$currencySymbol ${String.format("%,.2f", totalExpenses)}", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                            Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
                         }
                     }
-                }
-
-                val displayItems = if (categorySpending.size > 5) {
-                    val top4 = categorySpending.take(4)
-                    val others = categorySpending.drop(4)
-                    val othersAmount = others.sumOf { it.amount }
-                    val othersPercent = others.sumOf { it.percentage.toDouble() }.toFloat()
-                    top4 + CategorySpendingItem("others", "Others", "#9E9E9E", othersAmount, othersPercent)
-                } else {
-                    categorySpending
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     displayItems.forEach { item ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val dotColor = try {
-                                Color(android.graphics.Color.parseColor(item.color))
-                            } catch (_: Exception) {
-                                Color(0xFF9E9E9E)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .background(dotColor, CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = item.categoryName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "$currencySymbol ${String.format("%,.2f", item.amount)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Color.White,
-                                textAlign = TextAlign.End
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "${String.format("%.1f", item.percentage)}%",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.5f),
-                                textAlign = TextAlign.End
-                            )
+                        Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) {
+                            val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                            Box(Modifier.size(8.dp).background(dotColor, CircleShape))
+                            Spacer(Modifier.width(8.dp))
+                            Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                            Text("$currencySymbol ${String.format("%,.2f", item.amount)}", style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
+                            Spacer(Modifier.width(8.dp))
+                            Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
                         }
                     }
                 }
+            }
             }
             }
         }
@@ -353,7 +374,7 @@ fun InsightsScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp),
+                            .height(if (config.isTablet && config.isLandscape) 260.dp else 200.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -390,7 +411,7 @@ fun InsightsScreen(
                         modelProducer = barModelProducer,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
+                            .height(if (config.isTablet && config.isLandscape) 260.dp else 200.dp)
                     )
                 }
             }
@@ -459,43 +480,64 @@ fun InsightsScreen(
                         )
                     }
                 } else {
-                    budgets.forEach { budget ->
-                        val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
-                        val progressColor = when {
-                            progress >= 1f -> Color(0xFFEF5350)
-                            progress >= 0.7f -> Color(0xFFFFA726)
-                            else -> Color(0xFF4CAF50)
-                        }
-
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (config.isTablet && config.isLandscape) {
+                        val chunked = budgets.chunked(2)
+                        chunked.forEachIndexed { _, chunk ->
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
                             ) {
-                                Text(
-                                    text = budget.categoryName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.5f)
-                                )
+                                chunk.forEach { budget ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+                                        val progressColor = when {
+                                            progress >= 1f -> Color(0xFFEF5350)
+                                            progress >= 0.7f -> Color(0xFFFFA726)
+                                            else -> Color(0xFF4CAF50)
+                                        }
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                                Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                            }
+                                            AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                        }
+                                        Spacer(modifier = Modifier.height(12.dp))
+                                    }
+                                }
+                                if (chunk.size == 1) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            }
+                        }
+                    } else {
+                        budgets.forEach { budget ->
+                            val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+                            val progressColor = when {
+                                progress >= 1f -> Color(0xFFEF5350)
+                                progress >= 0.7f -> Color(0xFFFFA726)
+                                else -> Color(0xFF4CAF50)
                             }
 
-                            AnimatedProgressBar(
-                                progress = progress,
-                                color = progressColor,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp)
-                                    .background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp))
-                            )
-                        }
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                    Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
                     }
                 }
             }

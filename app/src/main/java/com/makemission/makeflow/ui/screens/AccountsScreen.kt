@@ -155,52 +155,57 @@ fun AccountsScreen(
                     }
                 }
 
-                itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
-                    val dotColor = try {
-                        Color(android.graphics.Color.parseColor(account.colorHex))
-                    } catch (_: Exception) {
-                        Color(0xFF4CAF50)
-                    }
-
-                    StaggeredItem(index = index + 2) {
-                    CardContainer {
+                if (config.isTablet && config.isLandscape) {
+                    val chunked = accounts.chunked(2)
+                    itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
+                        StaggeredItem(index = index + 2) {
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .pressScale()
-                                .combinedClickable(
-                                    onClick = { showEditAccount = account },
-                                    onLongClick = { accountToDelete = account }
-                                ),
-                            verticalAlignment = Alignment.CenterVertically
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clip(CircleShape)
-                                    .background(dotColor, CircleShape)
-                            )
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = account.name,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = Color.White
-                                )
-                                Text(
-                                    text = "Initial: $currencySymbol ${String.format("%,.2f", account.initialBalance)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.5f)
-                                )
+                            chunk.forEach { account ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                                    CardContainer {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                            Spacer(Modifier.width(14.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                Text("Initial: $currencySymbol ${String.format("%,.2f", account.initialBalance)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                            }
+                                            Text("$currencySymbol ${String.format("%,.2f", account.balance)}", style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                        }
+                                    }
+                                }
                             }
-                            Text(
-                                text = "$currencySymbol ${String.format("%,.2f", account.balance)}",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Color.White,
-                                textAlign = TextAlign.End
-                            )
+                            if (chunk.size == 1) { Spacer(modifier = Modifier.weight(1f)) }
+                        }
                         }
                     }
+                } else {
+                    itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
+                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+
+                        StaggeredItem(index = index + 2) {
+                        CardContainer {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                Spacer(Modifier.width(14.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                    Text("Initial: $currencySymbol ${String.format("%,.2f", account.initialBalance)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                }
+                                Text("$currencySymbol ${String.format("%,.2f", account.balance)}", style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                            }
+                        }
+                        }
                     }
                 }
 

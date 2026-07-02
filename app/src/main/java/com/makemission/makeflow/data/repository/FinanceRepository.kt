@@ -8,6 +8,7 @@ import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.domain.BudgetSuggestion
 import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
@@ -42,4 +43,12 @@ interface FinanceRepository {
 
     suspend fun refreshRecurringPatterns()
     fun getUpcomingRecurring(fromDate: Long): Flow<List<RecurringPattern>>
+
+    suspend fun getBudgetSuggestions(
+        dismissedKeys: Set<String>
+    ): List<BudgetSuggestion>
+
+    suspend fun updateBudgetAmount(budgetId: String, newAmount: Double)
+
+    suspend fun getBudgetByCategory(categoryId: String): BudgetEntity?
 }

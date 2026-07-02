@@ -5,19 +5,28 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.dao.CardHourCount
+import com.makemission.makeflow.data.local.dao.CardInteractionDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.data.local.entity.CardInteractionEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.domain.CashFlowProjection
+import com.makemission.makeflow.domain.CashFlowProjector
+import com.makemission.makeflow.domain.DashboardCardRanker
+import com.makemission.makeflow.domain.DashboardCardType
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.util.Calendar
 
 data class ParentCategorySpending(
@@ -29,7 +38,8 @@ data class ParentCategorySpending(
 
 class HomeDashboardViewModel(
     private val financeRepository: FinanceRepository,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val cardInteractionDao: CardInteractionDao
 ) : ViewModel() {
 
     val totalBalance: StateFlow<Double> = financeRepository.getAllAccounts()
@@ -107,9 +117,57 @@ class HomeDashboardViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val defaultCardOrder = listOf(
+        DashboardCardType.INSIGHTS_SUMMARY,
+        DashboardCardType.ACCOUNTS,
+        DashboardCardType.BUDGET_PROGRESS,
+        DashboardCardType.RECURRING
+    )
+
+    private val _cardOrder = MutableStateFlow(defaultCardOrder)
+    val cardOrder: StateFlow<List<DashboardCardType>> = _cardOrder
+
+    private val thisMonthTransactions: StateFlow<List<TransactionEntity>> =
+        financeRepository.getTransactionsInRange(monthStart, monthEnd)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val cashFlowProjection: StateFlow<CashFlowProjection?> = combine(
+        totalBalance,
+        thisMonthTransactions,
+        recurringPatterns
+    ) { balance, txs, patterns ->
+        val today = LocalDate.now()
+        if (today.dayOfMonth < 3) return@combine null
+        CashFlowProjector.project(
+            currentBalance = balance,
+            allTransactionsThisMonth = txs,
+            recurringPatterns = patterns,
+            today = today
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun logCardInteraction(cardType: DashboardCardType) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            cardInteractionDao.insert(
+                CardInteractionEntity(
+                    cardType = cardType.name,
+                    hourOfDay = hour,
+                    timestamp = now
+                )
+            )
+        }
+    }
+
     init {
         viewModelScope.launch {
             financeRepository.refreshRecurringPatterns()
+        }
+        viewModelScope.launch {
+            val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            val counts = cardInteractionDao.getInteractionCounts()
+            _cardOrder.value = DashboardCardRanker.rank(currentHour, counts, defaultCardOrder)
         }
     }
 
@@ -130,10 +188,11 @@ class HomeDashboardViewModel(
 
 class HomeDashboardViewModelFactory(
     private val financeRepository: FinanceRepository,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val cardInteractionDao: CardInteractionDao
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HomeDashboardViewModel(financeRepository, userPreferencesDataStore) as T
+        return HomeDashboardViewModel(financeRepository, userPreferencesDataStore, cardInteractionDao) as T
     }
 }

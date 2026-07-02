@@ -9,12 +9,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.makemission.makeflow.data.local.dao.AccountDao
 import com.makemission.makeflow.data.local.dao.BudgetDao
+import com.makemission.makeflow.data.local.dao.CardInteractionDao
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.data.local.entity.CardInteractionEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
@@ -30,9 +32,10 @@ import kotlinx.coroutines.launch
         TransactionEntity::class,
         TaskEntity::class,
         BudgetEntity::class,
-        RecurringPatternEntity::class
+        RecurringPatternEntity::class,
+        CardInteractionEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -43,6 +46,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
     abstract fun budgetDao(): BudgetDao
     abstract fun recurringPatternDao(): RecurringPatternDao
+    abstract fun cardInteractionDao(): CardInteractionDao
 
     companion object {
         @Volatile
@@ -115,6 +119,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS card_interactions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        cardType TEXT NOT NULL,
+                        hourOfDay INTEGER NOT NULL,
+                        timestamp INTEGER NOT NULL
+                    )"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -123,12 +140,14 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .fallbackToDestructiveMigration()
                     .build()
                     INSTANCE = instance
                     CoroutineScope(Dispatchers.IO).launch {
                         DatabaseInitializer.populate(instance)
+                        val cutoff = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
+                        instance.cardInteractionDao().deleteOlderThan(cutoff)
                     }
                     instance
                 } catch (e: Exception) {

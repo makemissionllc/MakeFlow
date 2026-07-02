@@ -57,6 +57,8 @@ import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.domain.BudgetSuggestion
+import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
 import kotlinx.coroutines.launch
 
@@ -70,6 +72,11 @@ fun BudgetScreen(
     val budgets by viewModel.budgets.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val budgetSuggestions by viewModel.budgetSuggestions.collectAsState()
+
+    val suggestionsByCategory = remember(budgetSuggestions) {
+        budgetSuggestions.associateBy { it.categoryId }
+    }
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -162,6 +169,16 @@ fun BudgetScreen(
                                 horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
                             ) {
                                 chunk.forEach { budget ->
+                                    val suggestion = suggestionsByCategory[budget.categoryId]
+                                    if (suggestion != null) {
+                                        SuggestionCard(
+                                            suggestion = suggestion,
+                                            currencySymbol = currencySymbol,
+                                            onApply = { viewModel.applySuggestion(suggestion) },
+                                            onDismiss = { viewModel.dismissSuggestion(suggestion) }
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                    }
                                     Box(modifier = Modifier.weight(1f)) {
                                         val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                                         val progressColor = when {
@@ -198,6 +215,16 @@ fun BudgetScreen(
                     } else {
                         itemsIndexed(budgets, key = { _, budget -> budget.id }) { index, budget ->
                             StaggeredItem(index = index + 1) {
+                            val suggestion = suggestionsByCategory[budget.categoryId]
+                            if (suggestion != null) {
+                                SuggestionCard(
+                                    suggestion = suggestion,
+                                    currencySymbol = currencySymbol,
+                                    onApply = { viewModel.applySuggestion(suggestion) },
+                                    onDismiss = { viewModel.dismissSuggestion(suggestion) }
+                                )
+                                Spacer(modifier = Modifier.height(config.cardSpacing))
+                            }
                             val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                             val progressColor = when {
                                 progress >= 1f -> Color(0xFFEF5350)
@@ -300,5 +327,52 @@ fun BudgetScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+fun SuggestionCard(
+    suggestion: BudgetSuggestion,
+    currencySymbol: String,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val lowConfidence = suggestion.confidence < 0.5f
+    val alpha = if (lowConfidence) 0.6f else 1f
+    val message = when (suggestion.reason) {
+        SuggestionReason.NO_BUDGET_SET -> "Based on your last 3 months, try a budget of $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)}"
+        SuggestionReason.CONSISTENTLY_OVER -> "You've gone over this budget 2 months running — adjust to $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)}?"
+        SuggestionReason.CONSISTENTLY_UNDER -> "You're consistently under this budget — lower it to $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)} and free up room elsewhere?"
+    }
+
+    CardContainer {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = message,
+                color = Color.White.copy(alpha = alpha),
+                fontSize = if (lowConfidence) 12.sp else 13.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(
+                    onClick = onApply,
+                    modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp))
+                ) {
+                    Text("Apply", color = Color(0xFF121315), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                }
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(10.dp))
+                ) {
+                    Text("Dismiss", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                }
+            }
+        }
     }
 }

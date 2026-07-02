@@ -9,11 +9,33 @@ import androidx.room.Update
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
+data class MonthlyCategorySpend(
+    val yearMonth: String,
+    val totalSpent: Double
+)
+
 @Dao
 interface TransactionDao {
 
     @Query("SELECT * FROM transactions ORDER BY timestamp DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
+
+    @Query("""
+        SELECT strftime('%Y-%m', timestamp / 1000.0, 'unixepoch') AS yearMonth,
+               COALESCE(SUM(amount), 0) AS totalSpent
+        FROM transactions
+        WHERE categoryId = :categoryId
+          AND type = 'EXPENSE'
+          AND timestamp >= :startMillis
+          AND timestamp <= :endMillis
+        GROUP BY yearMonth
+        ORDER BY yearMonth ASC
+    """)
+    suspend fun getCategorySpendByMonth(
+        categoryId: String,
+        startMillis: Long,
+        endMillis: Long
+    ): List<MonthlyCategorySpend>
 
     @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY timestamp DESC")
     fun getTransactionsByCategory(categoryId: String): Flow<List<TransactionEntity>>

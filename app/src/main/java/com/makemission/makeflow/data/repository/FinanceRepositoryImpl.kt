@@ -4,6 +4,7 @@ import com.makemission.makeflow.data.RecurringDetector
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.dao.MonthlyCategorySpend
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
@@ -14,10 +15,14 @@ import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.domain.BudgetSuggestion
+import com.makemission.makeflow.domain.SuggestionReason
+import com.makemission.makeflow.domain.BudgetSuggestionEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import java.util.Calendar
 
 class FinanceRepositoryImpl(
     private val categoryDao: CategoryDao,
@@ -177,6 +182,64 @@ class FinanceRepositoryImpl(
 
     override suspend fun clearAllCategories() {
         categoryDao.clearAll()
+    }
+
+    override suspend fun getBudgetSuggestions(
+        dismissedKeys: Set<String>
+    ): List<BudgetSuggestion> {
+        val categories = categoryDao.getAllCategories().first()
+        val budgets = budgetDao?.getAllBudgetsFlow()?.first() ?: emptyList()
+        val budgetMap = budgets.associateBy { it.categoryId }
+        val now = Calendar.getInstance()
+        val endCal = Calendar.getInstance().apply {
+            timeInMillis = now.timeInMillis
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+            add(Calendar.MONTH, -1)
+        }
+        val startCal = Calendar.getInstance().apply {
+            timeInMillis = endCal.timeInMillis
+            add(Calendar.MONTH, -2)
+            set(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+
+        return categories.filter { it.type == "EXPENSE" }.mapNotNull { cat ->
+            val key = "${cat.id}:${SuggestionReason.NO_BUDGET_SET}"
+            if (key in dismissedKeys || "all" in dismissedKeys) return@mapNotNull null
+
+            val rawMonthly = transactionDao.getCategorySpendByMonth(
+                categoryId = cat.id,
+                startMillis = startCal.timeInMillis,
+                endMillis = endCal.timeInMillis
+            )
+
+            val startYm = "%04d-%02d".format(startCal.get(Calendar.YEAR), startCal.get(Calendar.MONTH) + 1)
+            val endYm = "%04d-%02d".format(endCal.get(Calendar.YEAR), endCal.get(Calendar.MONTH) + 1)
+            val monthly = BudgetSuggestionEngine.fillMissingMonths(rawMonthly, startYm, endYm)
+
+            val currentBudget = budgetMap[cat.id]
+            BudgetSuggestionEngine.suggest(
+                categoryId = cat.id,
+                categoryName = cat.name,
+                monthlySpend = monthly,
+                currentBudget = currentBudget?.amount
+            )
+        }
+    }
+
+    override suspend fun updateBudgetAmount(budgetId: String, newAmount: Double) {
+        budgetDao?.updateBudgetAmount(budgetId, newAmount)
+    }
+
+    override suspend fun getBudgetByCategory(categoryId: String): BudgetEntity? {
+        return budgetDao?.getBudgetByCategory(categoryId)
     }
 }
 

@@ -116,7 +116,7 @@ fun MainScreen(
     }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val homeViewModel: HomeDashboardViewModel = viewModel(
-        factory = HomeDashboardViewModelFactory(repository, userPrefDataStore)
+        factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao())
     )
     val historyViewModel: HistoryViewModel = viewModel(
         factory = HistoryViewModelFactory(repository, userPrefDataStore)

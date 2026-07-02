@@ -64,6 +64,17 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val dismissedSuggestions: Flow<Set<String>> = dataStore.data.map { prefs ->
+        prefs[DISMISSED_SUGGESTIONS_KEY]?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+    }
+
+    suspend fun dismissSuggestion(key: String) {
+        dataStore.edit { prefs ->
+            val current = prefs[DISMISSED_SUGGESTIONS_KEY]?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
+            prefs[DISMISSED_SUGGESTIONS_KEY] = (current + key).joinToString(",")
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -77,5 +88,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
         private val SELECTED_THEME_KEY = stringPreferencesKey("selected_theme")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
+        private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
     }
 }

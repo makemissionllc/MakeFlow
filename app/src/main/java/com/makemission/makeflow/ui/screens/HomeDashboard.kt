@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material.icons.rounded.TrendingDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +54,8 @@ import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.domain.CashFlowProjection
+import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -94,6 +97,8 @@ fun HomeDashboard(
     val budgets by viewModel.budgets.collectAsState()
     val recurringPatterns by viewModel.recurringPatterns.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val cardOrder by viewModel.cardOrder.collectAsState()
+    val cashFlowProjection by viewModel.cashFlowProjection.collectAsState()
 
     val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
@@ -138,84 +143,83 @@ fun HomeDashboard(
                 bottom = 140.dp
             )
         ) {
-            if (config.isTablet && config.isLandscape) {
-                item {
-                    LargeTitleItem(title = "Home", scrollState = listState)
-                }
-                item { StaggeredItem(index = 1) { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) } }
-                item {
-                    StaggeredItem(index = 2) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) }
-                            Box(modifier = Modifier.weight(1f)) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) }
+            item {
+                LargeTitleItem(title = "Home", scrollState = listState)
+            }
+            item {
+                TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel)
+            }
+            cardOrder.forEach { cardType ->
+                when (cardType) {
+                    DashboardCardType.INSIGHTS_SUMMARY -> item {
+                        Box(Modifier.animateItem()) {
+                            CashFlowCard(
+                                income = formattedIncome,
+                                expenses = formattedExpenses,
+                                net = formattedNet,
+                                monthLabel = currentMonthLabel,
+                                onTap = { viewModel.logCardInteraction(DashboardCardType.INSIGHTS_SUMMARY) }
+                            )
                         }
                     }
-                }
-                item {
-                    StaggeredItem(index = 3) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
-                        ) {
-                            Box(modifier = Modifier.weight(1f)) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) }
-                            Box(modifier = Modifier.weight(1f)) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager) }
+                    DashboardCardType.ACCOUNTS -> item {
+                        Box(Modifier.animateItem()) {
+                            AccountsCard(
+                                accounts = accountChips,
+                                onOpenAccounts = {
+                                    viewModel.logCardInteraction(DashboardCardType.ACCOUNTS)
+                                    onOpenAccounts()
+                                }
+                            )
                         }
                     }
-                }
-                if (recurringPatterns.isNotEmpty()) {
-                    item { StaggeredItem(index = 4) { RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol) } }
-                }
-                item {
-                    StaggeredItem(index = if (recurringPatterns.isNotEmpty()) 5 else 4) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Edit cards",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { }
-                                .padding(vertical = 12.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(80.dp))
+                    DashboardCardType.BUDGET_PROGRESS -> if (budgets.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.animateItem().clickable {
+                                    viewModel.logCardInteraction(DashboardCardType.BUDGET_PROGRESS)
+                                }
+                            ) {
+                                BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager)
+                            }
+                        }
                     }
-                }
-            } else {
-                item {
-                    LargeTitleItem(title = "Home", scrollState = listState)
-                }
-                item { StaggeredItem(index = 1) { TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel) } }
-                item { StaggeredItem(index = 2) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) } }
-                item { StaggeredItem(index = 3) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) } }
-                item { StaggeredItem(index = 4) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) } }
-                item { StaggeredItem(index = 5) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager) } }
-
-                if (recurringPatterns.isNotEmpty()) {
-                    item { StaggeredItem(index = 6) { RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol) } }
-                }
-
-                item {
-                    StaggeredItem(index = if (recurringPatterns.isNotEmpty()) 7 else 6) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Edit cards",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { }
-                                .padding(vertical = 12.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(80.dp))
+                    DashboardCardType.RECURRING -> if (recurringPatterns.isNotEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier.animateItem().clickable {
+                                    viewModel.logCardInteraction(DashboardCardType.RECURRING)
+                                }
+                            ) {
+                                RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol)
+                            }
+                        }
                     }
+                    DashboardCardType.QUICK_ADD -> { }
                 }
+            }
+            item {
+                CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel)
+            }
+            cashFlowProjection?.let { projection ->
+                item {
+                    ProjectionCard(projection = projection, currencySymbol = currencySymbol)
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Edit cards",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { }
+                        .padding(vertical = 12.dp),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
 
@@ -377,8 +381,12 @@ fun CashFlowCard(
     income: String = "KES 0.00",
     expenses: String = "KES 0.00",
     net: String = "KES 0.00",
-    monthLabel: String = "June 2026"
+    monthLabel: String = "June 2026",
+    onTap: (() -> Unit)? = null
 ) {
+    Box(
+        modifier = if (onTap != null) Modifier.clickable { onTap() } else Modifier
+    ) {
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -509,6 +517,7 @@ fun CashFlowCard(
                 fontWeight = FontWeight.Bold
             )
         }
+    }
     }
 }
 
@@ -817,5 +826,52 @@ fun CardContainer(content: @Composable () -> Unit) {
             .padding(16.dp)
     ) {
         content()
+    }
+}
+
+@Composable
+private fun ProjectionCard(
+    projection: CashFlowProjection,
+    currencySymbol: String
+) {
+    val dateFormat = remember { SimpleDateFormat("d MMMM", Locale.getDefault()) }
+    val endOfMonth = remember {
+        val cal = java.util.Calendar.getInstance()
+        cal.set(java.util.Calendar.DAY_OF_MONTH, projection.daysRemainingInMonth + java.time.LocalDate.now().dayOfMonth)
+        dateFormat.format(cal.time)
+    }
+    val isNegative = projection.projectedEndOfMonthBalance < 0
+    val formattedProjected = "$currencySymbol ${String.format("%,.2f", projection.projectedEndOfMonthBalance)}"
+
+    CardContainer {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isNegative) {
+                Icon(
+                    imageVector = Icons.Rounded.TrendingDown,
+                    contentDescription = null,
+                    tint = Color(0xFFEF5350),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Projected balance",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "At this pace, you'll have $formattedProjected by $endOfMonth",
+                    color = if (isNegative) Color(0xFFEF5350) else Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = if (isNegative) FontWeight.SemiBold else FontWeight.Normal
+                )
+            }
+        }
     }
 }

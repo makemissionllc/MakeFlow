@@ -30,6 +30,9 @@ class SettingsViewModel(
     val selectedTheme: StateFlow<String> = userPreferencesDataStore.selectedTheme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "forest")
 
+    val hapticsEnabled: StateFlow<Boolean> = userPreferencesDataStore.hapticsEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         when (code) {
             "USD" -> "$"
@@ -50,6 +53,12 @@ class SettingsViewModel(
     fun saveCurrency(currency: String) {
         viewModelScope.launch {
             userPreferencesDataStore.saveCurrency(currency)
+        }
+    }
+
+    fun saveHapticsEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveHapticsEnabled(enabled)
         }
     }
 

@@ -38,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -48,6 +49,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
@@ -57,6 +61,7 @@ import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
+import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -77,7 +82,8 @@ data class CategoryLegend(
 fun HomeDashboard(
     viewModel: HomeDashboardViewModel,
     onOpenAccounts: () -> Unit = {},
-    onOpenSettings: () -> Unit = {}
+    onOpenSettings: () -> Unit = {},
+    hapticManager: HapticManager? = null
 ) {
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -86,6 +92,7 @@ fun HomeDashboard(
     val categorySpending by viewModel.categorySpending.collectAsState()
     val parentCategorySpending by viewModel.parentCategorySpending.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
+    val recurringPatterns by viewModel.recurringPatterns.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
 
     val listState = rememberLazyListState()
@@ -122,8 +129,8 @@ fun HomeDashboard(
                 .fillMaxSize()
                 .padding(horizontal = config.horizontalPadding)
                 .verticalFadingEdge(
-                    topFadeHeight = 80.dp,
-                    bottomFadeHeight = 80.dp
+                    topFadeHeight = config.fadingEdgeHeight,
+                    bottomFadeHeight = config.fadingEdgeHeight
                 ),
             verticalArrangement = Arrangement.spacedBy(config.cardSpacing),
             contentPadding = PaddingValues(
@@ -154,12 +161,15 @@ fun HomeDashboard(
                             horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
                         ) {
                             Box(modifier = Modifier.weight(1f)) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) }
-                            Box(modifier = Modifier.weight(1f)) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) }
+                            Box(modifier = Modifier.weight(1f)) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager) }
                         }
                     }
                 }
+                if (recurringPatterns.isNotEmpty()) {
+                    item { StaggeredItem(index = 4) { RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol) } }
+                }
                 item {
-                    StaggeredItem(index = 4) {
+                    StaggeredItem(index = if (recurringPatterns.isNotEmpty()) 5 else 4) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Edit cards",
@@ -183,10 +193,14 @@ fun HomeDashboard(
                 item { StaggeredItem(index = 2) { AccountsCard(accounts = accountChips, onOpenAccounts = onOpenAccounts) } }
                 item { StaggeredItem(index = 3) { CashFlowCard(income = formattedIncome, expenses = formattedExpenses, net = formattedNet, monthLabel = currentMonthLabel) } }
                 item { StaggeredItem(index = 4) { CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel) } }
-                item { StaggeredItem(index = 5) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol) } }
+                item { StaggeredItem(index = 5) { BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager) } }
+
+                if (recurringPatterns.isNotEmpty()) {
+                    item { StaggeredItem(index = 6) { RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol) } }
+                }
 
                 item {
-                    StaggeredItem(index = 6) {
+                    StaggeredItem(index = if (recurringPatterns.isNotEmpty()) 7 else 6) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "Edit cards",
@@ -598,8 +612,28 @@ fun CategoriesCard(
 @Composable
 fun BudgetsCard(
     budgets: List<BudgetEntity> = emptyList(),
-    currencySymbol: String = "KES"
+    currencySymbol: String = "KES",
+    hapticManager: HapticManager? = null
 ) {
+    val previousBudgetZones = remember { mutableMapOf<String, String>() }
+    LaunchedEffect(budgets) {
+        budgets.forEach { budget ->
+            val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+            val currentZone = when {
+                progress >= 1f -> "red"
+                progress >= 0.7f -> "orange"
+                else -> "green"
+            }
+            val prevZone = previousBudgetZones[budget.id]
+            if (prevZone != null && prevZone != currentZone) {
+                when (currentZone) {
+                    "orange" -> hapticManager?.fire(HapticEvent.BUDGET_WARNING)
+                    "red" -> hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                }
+            }
+            previousBudgetZones[budget.id] = currentZone
+        }
+    }
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -690,6 +724,87 @@ fun BudgetsCard(
         }
 
         Spacer(modifier = Modifier.height(4.dp))
+    }
+}
+
+@Composable
+fun RecurringCard(
+    patterns: List<RecurringPattern>,
+    currencySymbol: String
+) {
+    CardContainer {
+        Text(
+            text = "Upcoming",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        patterns.take(5).forEach { pattern ->
+            val titleCase = pattern.normalizedDescription
+                .split(" ")
+                .joinToString(" ") { it.replaceFirstChar(Char::uppercase) }
+            val relativeDate = getRelativeDateLabel(pattern.nextExpectedDate)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = titleCase,
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (pattern.confidence < 0.6f) {
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "estimated",
+                                color = Color(0xFFFFA726),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                    }
+                    Text(
+                        text = "$currencySymbol ${String.format("%,.2f", pattern.avgAmount)}",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 13.sp
+                    )
+                }
+                Text(
+                    text = relativeDate,
+                    color = if (relativeDate == "Tomorrow") Color(0xFFFFA726) else Color.White.copy(alpha = 0.5f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            if (pattern != patterns.take(5).last()) {
+                HorizontalDivider(
+                    color = Color.White.copy(alpha = 0.08f),
+                    thickness = 0.5.dp
+                )
+            }
+        }
+    }
+}
+
+private fun getRelativeDateLabel(nextExpectedDate: Long): String {
+    val now = System.currentTimeMillis()
+    val diffDays = ((nextExpectedDate - now) / (1000.0 * 60 * 60 * 24)).roundToInt()
+    return when {
+        diffDays <= 0 -> "Today"
+        diffDays == 1 -> "Tomorrow"
+        diffDays <= 7 -> "In $diffDays days"
+        diffDays <= 14 -> "In $diffDays days"
+        else -> {
+            val sdf = java.text.SimpleDateFormat("dd MMM", java.util.Locale.getDefault())
+            sdf.format(java.util.Date(nextExpectedDate))
+        }
     }
 }
 

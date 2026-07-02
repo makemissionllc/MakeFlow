@@ -51,6 +51,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.ui.theme.SheetTopSlideShape
@@ -67,7 +69,8 @@ fun AddTransactionBottomSheet(
     onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long) -> Unit,
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
-    currencySymbol: String
+    currencySymbol: String,
+    hapticManager: HapticManager
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -202,6 +205,8 @@ fun AddTransactionBottomSheet(
                     onValueChange = { newValue ->
                         if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
                             amountInput = newValue
+                        } else {
+                            hapticManager.fire(HapticEvent.VALIDATION_ERROR)
                         }
                     },
                     textStyle = TextStyle(
@@ -363,6 +368,7 @@ fun AddTransactionBottomSheet(
                     val amount = parsedAmount ?: return@Button
                     scope.launch {
                         onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate)
+                        hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                         onDismiss()
                     }
                 },

@@ -6,6 +6,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
+import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,7 @@ interface FinanceRepository {
     suspend fun clearAllAccounts()
     suspend fun clearAllBudgets()
     suspend fun clearAllCategories()
+
+    suspend fun refreshRecurringPatterns()
+    fun getUpcomingRecurring(fromDate: Long): Flow<List<RecurringPattern>>
 }

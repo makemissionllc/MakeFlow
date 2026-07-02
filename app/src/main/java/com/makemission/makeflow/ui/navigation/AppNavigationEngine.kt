@@ -12,6 +12,7 @@ import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
@@ -37,6 +38,7 @@ fun AppNavigationEngine() {
     val username by userPrefDataStore.userName.collectAsState(initial = "")
     val currency by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
     val selectedTheme by userPrefDataStore.selectedTheme.collectAsState(initial = "forest")
+    val hapticManager = rememberHapticManager()
 
     MakeFlowTheme(themePalette = selectedTheme) {
         Crossfade(
@@ -67,7 +69,8 @@ fun AppNavigationEngine() {
                     },
                     onOnboardingComplete = {
                         scope.launch { userPrefDataStore.setProfiled() }
-                    }
+                    },
+                    hapticManager = hapticManager
                 )
             }
         }

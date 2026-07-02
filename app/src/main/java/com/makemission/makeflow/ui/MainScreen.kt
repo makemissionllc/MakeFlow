@@ -24,8 +24,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,6 +63,8 @@ import com.makemission.makeflow.ui.components.AdaptiveConfig
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -104,7 +110,8 @@ fun MainScreen(
             transactionDao = db.transactionDao(),
             taskDao = db.taskDao(),
             accountDao = db.accountDao(),
-            budgetDao = db.budgetDao()
+            budgetDao = db.budgetDao(),
+            recurringPatternDao = db.recurringPatternDao()
         )
     }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
@@ -126,6 +133,10 @@ fun MainScreen(
     val settingsViewModel: SettingsViewModel = viewModel(
         factory = SettingsViewModelFactory(repository, userPrefDataStore)
     )
+    val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
+
+    val hapticManager = rememberHapticManager()
+    hapticManager.isEnabled = hapticsEnabled
 
     val accounts by homeViewModel.accounts.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
@@ -135,6 +146,13 @@ fun MainScreen(
     var showBudgetScreen by remember { mutableStateOf(false) }
     var showAccountsScreen by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
+    val previousTab = remember { mutableStateOf(activeTab) }
+    LaunchedEffect(activeTab) {
+        if (previousTab.value != activeTab) {
+            hapticManager.fire(HapticEvent.TAB_SWITCH)
+            previousTab.value = activeTab
+        }
+    }
     val scope = rememberCoroutineScope()
 
     val config = rememberAdaptiveConfig()
@@ -189,19 +207,24 @@ fun MainScreen(
                             HomeDashboard(
                                 viewModel = homeViewModel,
                                 onOpenAccounts = { showAccountsScreen = true },
-                                onOpenSettings = { showSettingsScreen = true }
+                                onOpenSettings = { showSettingsScreen = true },
+                                hapticManager = hapticManager
                             )
                         }
                         MakeFlowTab.INSIGHTS -> {
                             BackHandler { activeTab = MakeFlowTab.HOME }
                             InsightsScreen(
                                 viewModel = insightsViewModel,
-                                onOpenBudgets = { showBudgetScreen = true }
+                                onOpenBudgets = { showBudgetScreen = true },
+                                hapticManager = hapticManager
                             )
                         }
                         MakeFlowTab.HISTORY -> {
                             BackHandler { activeTab = MakeFlowTab.HOME }
-                            HistoryScreen(viewModel = historyViewModel)
+                            HistoryScreen(
+                                viewModel = historyViewModel,
+                                hapticManager = hapticManager
+                            )
                         }
                     }
                 }
@@ -210,7 +233,11 @@ fun MainScreen(
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .padding(
+                        top = 24.dp,
+                        bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
@@ -236,7 +263,7 @@ fun MainScreen(
                     )
                 ) {
                     FloatingActionButton(
-                        onClick = { showAddTransaction = true },
+                        onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
                         containerColor = Color.White,
                         contentColor = Color(0xFF121315),
                         shape = CircleShape,
@@ -286,7 +313,8 @@ fun MainScreen(
                     BackHandler { showBudgetScreen = false }
                     BudgetScreen(
                         onBack = { showBudgetScreen = false },
-                        viewModel = budgetViewModel
+                        viewModel = budgetViewModel,
+                        hapticManager = hapticManager
                     )
                 }
             }
@@ -346,7 +374,8 @@ fun MainScreen(
                     BackHandler { showSettingsScreen = false }
                     SettingsScreen(
                         onBack = { showSettingsScreen = false },
-                        viewModel = settingsViewModel
+                        viewModel = settingsViewModel,
+                        hapticManager = hapticManager
                     )
                 }
             }
@@ -374,7 +403,8 @@ fun MainScreen(
             },
             accounts = accounts,
             categories = categories,
-            currencySymbol = currencySymbol
+            currencySymbol = currencySymbol,
+            hapticManager = hapticManager
         )
     }
 }

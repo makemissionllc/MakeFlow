@@ -54,6 +54,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
@@ -69,7 +71,8 @@ import java.util.Locale
 
 @Composable
 fun HistoryScreen(
-    viewModel: HistoryViewModel
+    viewModel: HistoryViewModel,
+    hapticManager: HapticManager
 ) {
     val transactions by viewModel.filteredTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -92,6 +95,7 @@ fun HistoryScreen(
 
     LaunchedEffect(recentlyDeleted) {
         if (recentlyDeleted != null) {
+            hapticManager.fire(HapticEvent.DELETE_UNDO_AVAILABLE)
             val result = snackbarHostState.showSnackbar(
                 message = "Transaction deleted",
                 actionLabel = "Undo",
@@ -115,8 +119,8 @@ fun HistoryScreen(
                 .fillMaxSize()
                 .background(Color(0xFF121315))
                 .verticalFadingEdge(
-                    topFadeHeight = 80.dp,
-                    bottomFadeHeight = 80.dp
+                    topFadeHeight = config.fadingEdgeHeight,
+                    bottomFadeHeight = config.fadingEdgeHeight
                 ),
             contentPadding = PaddingValues(
                 start = config.horizontalPadding, end = config.horizontalPadding,
@@ -251,6 +255,7 @@ fun HistoryScreen(
                             confirmValueChange = { value ->
                                 if (value == SwipeToDismissBoxValue.EndToStart) {
                                     viewModel.deleteTransaction(tx)
+                                    hapticManager.fire(HapticEvent.TRANSACTION_DELETED)
                                     true
                                 } else false
                             }

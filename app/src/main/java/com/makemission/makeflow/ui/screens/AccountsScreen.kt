@@ -121,8 +121,8 @@ fun AccountsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalFadingEdge(
-                        topFadeHeight = 80.dp,
-                        bottomFadeHeight = 80.dp
+                        topFadeHeight = config.fadingEdgeHeight,
+                        bottomFadeHeight = config.fadingEdgeHeight
                     ),
                 contentPadding = PaddingValues(
                     start = config.horizontalPadding, end = config.horizontalPadding,

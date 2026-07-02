@@ -5,12 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,9 +24,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun CollapsingTopBar(
@@ -37,6 +35,7 @@ fun CollapsingTopBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val config = LocalAdaptiveConfig.current
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val collapseFraction by remember {
         derivedStateOf {
             when {
@@ -50,8 +49,7 @@ fun CollapsingTopBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .height(config.barHeight)
+            .height(config.barHeight + statusBarHeight)
             .clipToBounds()
     ) {
         Box(
@@ -61,7 +59,7 @@ fun CollapsingTopBar(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
                             0f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
-                            0.75f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
+                            (statusBarHeight / (config.barHeight + statusBarHeight)) to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
                             0.90f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.30f),
                             1f to Color.Transparent
                         )
@@ -69,27 +67,33 @@ fun CollapsingTopBar(
                 )
         )
 
-        if (navigationIcon != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 4.dp)
-            ) { navigationIcon() }
-        }
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = Color.White.copy(alpha = collapseFraction),
-            modifier = Modifier.align(Alignment.Center)
-        )
-
-        Row(
+        Box(
             modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 4.dp),
-            content = actions
-        )
+                .fillMaxSize()
+                .padding(top = statusBarHeight)
+        ) {
+            if (navigationIcon != null) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 4.dp)
+                ) { navigationIcon() }
+            }
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White.copy(alpha = collapseFraction),
+                modifier = Modifier.align(Alignment.Center)
+            )
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp),
+                content = actions
+            )
+        }
     }
 }
 

@@ -8,15 +8,17 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.makemission.makeflow.data.local.dao.AccountDao
+import com.makemission.makeflow.data.local.dao.BudgetDao
 import com.makemission.makeflow.data.local.dao.CategoryDao
+import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
-import com.makemission.makeflow.data.local.dao.BudgetDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
-import com.makemission.makeflow.data.local.entity.BudgetEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,9 +29,10 @@ import kotlinx.coroutines.launch
         CategoryEntity::class,
         TransactionEntity::class,
         TaskEntity::class,
-        BudgetEntity::class
+        BudgetEntity::class,
+        RecurringPatternEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +42,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun taskDao(): TaskDao
     abstract fun budgetDao(): BudgetDao
+    abstract fun recurringPatternDao(): RecurringPatternDao
 
     companion object {
         @Volatile
@@ -93,6 +97,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS recurring_patterns (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        normalizedDescription TEXT NOT NULL,
+                        avgAmount REAL NOT NULL,
+                        intervalDays INTEGER NOT NULL,
+                        lastSeenDate INTEGER NOT NULL,
+                        nextExpectedDate INTEGER NOT NULL,
+                        confidence REAL NOT NULL,
+                        categoryId TEXT,
+                        transactionType TEXT NOT NULL
+                    )"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -101,7 +123,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration()
                     .build()
                     INSTANCE = instance

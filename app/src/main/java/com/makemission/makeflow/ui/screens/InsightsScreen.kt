@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -66,7 +68,8 @@ import com.patrykandpatrick.vico.core.common.component.LineComponent
 @Composable
 fun InsightsScreen(
     viewModel: InsightsViewModel,
-    onOpenBudgets: () -> Unit = {}
+    onOpenBudgets: () -> Unit = {},
+    hapticManager: HapticManager? = null
 ) {
     val selectedMonth by viewModel.selectedMonth.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()
@@ -75,6 +78,26 @@ fun InsightsScreen(
     val totalIncome by viewModel.totalIncome.collectAsState()
     val totalExpenses by viewModel.totalExpenses.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+
+    val previousBudgetZones = remember { mutableMapOf<String, String>() }
+    LaunchedEffect(budgets) {
+        budgets.forEach { budget ->
+            val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+            val currentZone = when {
+                progress >= 1f -> "red"
+                progress >= 0.7f -> "orange"
+                else -> "green"
+            }
+            val prevZone = previousBudgetZones[budget.id]
+            if (prevZone != null && prevZone != currentZone) {
+                when (currentZone) {
+                    "orange" -> hapticManager?.fire(HapticEvent.BUDGET_WARNING)
+                    "red" -> hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                }
+            }
+            previousBudgetZones[budget.id] = currentZone
+        }
+    }
 
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
@@ -86,8 +109,8 @@ fun InsightsScreen(
             .fillMaxSize()
             .background(Color(0xFF121315))
             .verticalFadingEdge(
-                topFadeHeight = 80.dp,
-                bottomFadeHeight = 80.dp
+                topFadeHeight = config.fadingEdgeHeight,
+                bottomFadeHeight = config.fadingEdgeHeight
             ),
         contentPadding = PaddingValues(
             start = config.horizontalPadding, end = config.horizontalPadding,

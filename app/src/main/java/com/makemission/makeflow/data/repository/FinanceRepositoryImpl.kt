@@ -1,24 +1,31 @@
 package com.makemission.makeflow.data.repository
 
+import com.makemission.makeflow.data.RecurringDetector
+import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
+import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 class FinanceRepositoryImpl(
     private val categoryDao: CategoryDao,
     private val transactionDao: TransactionDao,
     private val taskDao: TaskDao,
     private val accountDao: com.makemission.makeflow.data.local.dao.AccountDao? = null,
-    private val budgetDao: com.makemission.makeflow.data.local.dao.BudgetDao? = null
+    private val budgetDao: com.makemission.makeflow.data.local.dao.BudgetDao? = null,
+    private val recurringPatternDao: RecurringPatternDao? = null
 ) : FinanceRepository {
 
     override suspend fun insertAccount(account: AccountEntity) {
@@ -78,6 +85,7 @@ class FinanceRepositoryImpl(
         if (transaction.categoryId != null && transaction.type == "EXPENSE") {
             budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
         }
+        refreshRecurringPatterns()
     }
 
     override suspend fun updateTransaction(transaction: TransactionEntity) {
@@ -98,6 +106,7 @@ class FinanceRepositoryImpl(
         if (transaction.categoryId != null && transaction.type == "EXPENSE") {
             budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
         }
+        refreshRecurringPatterns()
     }
 
     override suspend fun deleteTransaction(transaction: TransactionEntity) {
@@ -137,6 +146,23 @@ class FinanceRepositoryImpl(
         }
     }
 
+    override suspend fun refreshRecurringPatterns() {
+        val allTransactions = transactionDao.getAllTransactions().first()
+        val patterns = RecurringDetector.detect(allTransactions)
+        recurringPatternDao?.let { dao ->
+            dao.deleteAll()
+            if (patterns.isNotEmpty()) {
+                dao.insertAll(patterns.map { it.toEntity() })
+            }
+        }
+    }
+
+    override fun getUpcomingRecurring(fromDate: Long): Flow<List<RecurringPattern>> {
+        return recurringPatternDao?.getUpcoming(fromDate)
+            ?.map { entities -> entities.map { it.toDomain() } }
+            ?: flowOf(emptyList())
+    }
+
     override suspend fun clearAllTransactions() {
         transactionDao.clearAll()
     }
@@ -153,3 +179,25 @@ class FinanceRepositoryImpl(
         categoryDao.clearAll()
     }
 }
+
+private fun RecurringPatternEntity.toDomain() = RecurringPattern(
+    normalizedDescription = normalizedDescription,
+    avgAmount = avgAmount,
+    intervalDays = intervalDays,
+    lastSeenDate = lastSeenDate,
+    nextExpectedDate = nextExpectedDate,
+    confidence = confidence,
+    categoryId = categoryId,
+    transactionType = transactionType
+)
+
+private fun RecurringPattern.toEntity() = RecurringPatternEntity(
+    normalizedDescription = normalizedDescription,
+    avgAmount = avgAmount,
+    intervalDays = intervalDays,
+    lastSeenDate = lastSeenDate,
+    nextExpectedDate = nextExpectedDate,
+    confidence = confidence,
+    categoryId = categoryId,
+    transactionType = transactionType
+)

@@ -63,6 +63,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -74,7 +76,8 @@ fun OnboardingScreen(
     onCurrencyChange: (String) -> Unit = {},
     onSaveAccounts: suspend (List<AccountEntity>) -> Unit = {},
     onSaveName: suspend (String) -> Unit = {},
-    onOnboardingComplete: () -> Unit = {}
+    onOnboardingComplete: () -> Unit = {},
+    hapticManager: HapticManager? = null
 ) {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
@@ -178,7 +181,10 @@ fun OnboardingScreen(
                     onClick = {
                         if (pagerState.currentPage == 0) {
                             if (username.isNotBlank()) {
-                                coroutineScope.launch { pagerState.animateScrollToPage(1) }
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(1)
+                                    hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
+                                }
                             } else {
                                 showNameError = true
                             }
@@ -187,6 +193,7 @@ fun OnboardingScreen(
                                 coroutineScope.launch {
                                     onSaveName(username.trim())
                                     onSaveAccounts(transientAccounts.toList())
+                                    hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
                                     onOnboardingComplete()
                                 }
                             }

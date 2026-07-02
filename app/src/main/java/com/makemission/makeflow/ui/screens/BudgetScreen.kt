@@ -33,6 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -61,11 +64,32 @@ import kotlinx.coroutines.launch
 @Composable
 fun BudgetScreen(
     onBack: () -> Unit,
-    viewModel: BudgetViewModel
+    viewModel: BudgetViewModel,
+    hapticManager: HapticManager
 ) {
     val budgets by viewModel.budgets.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+
+    val previousBudgetZones = remember { mutableMapOf<String, String>() }
+    LaunchedEffect(budgets) {
+        budgets.forEach { budget ->
+            val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+            val currentZone = when {
+                progress >= 1f -> "red"
+                progress >= 0.7f -> "orange"
+                else -> "green"
+            }
+            val prevZone = previousBudgetZones[budget.id]
+            if (prevZone != null && prevZone != currentZone) {
+                when (currentZone) {
+                    "orange" -> hapticManager.fire(HapticEvent.BUDGET_WARNING)
+                    "red" -> hapticManager.fire(HapticEvent.BUDGET_EXCEEDED)
+                }
+            }
+            previousBudgetZones[budget.id] = currentZone
+        }
+    }
 
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
@@ -116,8 +140,8 @@ fun BudgetScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalFadingEdge(
-                            topFadeHeight = 80.dp,
-                            bottomFadeHeight = 80.dp
+                            topFadeHeight = config.fadingEdgeHeight,
+                            bottomFadeHeight = config.fadingEdgeHeight
                         ),
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding, end = config.horizontalPadding,

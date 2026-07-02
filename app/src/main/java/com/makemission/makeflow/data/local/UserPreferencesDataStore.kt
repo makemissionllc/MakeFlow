@@ -54,6 +54,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val hapticsEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[HAPTICS_ENABLED_KEY] ?: true
+    }
+
+    suspend fun saveHapticsEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[HAPTICS_ENABLED_KEY] = enabled
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -66,5 +76,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
         private val SELECTED_THEME_KEY = stringPreferencesKey("selected_theme")
+        private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
     }
 }

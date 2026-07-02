@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -13,8 +14,10 @@ import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 data class ParentCategorySpending(
@@ -93,6 +96,22 @@ class HomeDashboardViewModel(
 
     val budgets: StateFlow<List<BudgetEntity>> = financeRepository.getAllBudgets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val upcomingThreshold: Long
+        get() = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000
+
+    val recurringPatterns: StateFlow<List<RecurringPattern>> = financeRepository
+        .getUpcomingRecurring(System.currentTimeMillis())
+        .map { patterns ->
+            patterns.filter { it.nextExpectedDate <= upcomingThreshold }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            financeRepository.refreshRecurringPatterns()
+        }
+    }
 
     private fun getCurrentMonthRange(): Pair<Long, Long> {
         val cal = Calendar.getInstance()

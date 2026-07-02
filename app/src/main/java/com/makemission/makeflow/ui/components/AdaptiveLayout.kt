@@ -19,6 +19,7 @@ data class AdaptiveConfig(
     val titlePaddingBottom: Dp = 12.dp,
     val navIconSize: Dp = 20.dp,
     val navCapsulePadding: Dp = 24.dp,
+    val fadingEdgeHeight: Dp = 80.dp,
     val isTablet: Boolean = false,
     val isLandscape: Boolean = false
 )
@@ -41,6 +42,7 @@ fun rememberAdaptiveConfig(): AdaptiveConfig {
             titlePaddingBottom = 16.dp,
             navIconSize = 22.dp,
             navCapsulePadding = 48.dp,
+            fadingEdgeHeight = 120.dp,
             isTablet = true,
             isLandscape = true
         )

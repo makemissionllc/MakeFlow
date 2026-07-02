@@ -33,6 +33,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -50,6 +52,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
@@ -80,10 +84,12 @@ private val currencies = listOf(
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    viewModel: SettingsViewModel
+    viewModel: SettingsViewModel,
+    hapticManager: HapticManager? = null
 ) {
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
+    val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
@@ -127,11 +133,20 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 3) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 4) { SectionHeader(text = "Data") } }
+                item {
+                    StaggeredItem(index = 3) {
+                    HapticToggleRow(
+                        enabled = hapticsEnabled,
+                        onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
+                    )
+                    }
+                }
+
+                item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 5) {
+                    StaggeredItem(index = 6) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
@@ -143,11 +158,11 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 7) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 7) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 8) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 8) {
+                    StaggeredItem(index = 9) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
                     }
                 }
@@ -166,26 +181,35 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
+                item {
+                    StaggeredItem(index = 4) {
+                    HapticToggleRow(
+                        enabled = hapticsEnabled,
+                        onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
+                    )
+                    }
+                }
+
+                item { StaggeredItem(index = 5) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 6) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 6) {
+                    StaggeredItem(index = 7) {
                     SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 7) {
+                    StaggeredItem(index = 8) {
                     SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                     }
                 }
 
-                item { StaggeredItem(index = 8) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 9) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 10) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 10) {
+                    StaggeredItem(index = 11) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
                     }
                 }
@@ -314,6 +338,57 @@ private fun SettingsRow(
                 Text(text = subtitle, color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun HapticToggleRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onToggle(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Haptic Feedback", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color(0xFF4CAF50),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                uncheckedTrackColor = Color(0xFF2C2C2C)
+            )
+        )
     }
 }
 

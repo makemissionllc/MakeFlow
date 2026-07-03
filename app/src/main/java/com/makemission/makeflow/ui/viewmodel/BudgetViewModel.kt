@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
@@ -33,14 +34,7 @@ class BudgetViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
-        when (code) {
-            "USD" -> "$"
-            "EUR" -> "\u20AC"
-            "GBP" -> "\u00A3"
-            "UGX" -> "UGX"
-            "TZS" -> "TZS"
-            else -> "KES"
-        }
+        CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     private val dismissedSuggestions = userPreferencesDataStore.dismissedSuggestions

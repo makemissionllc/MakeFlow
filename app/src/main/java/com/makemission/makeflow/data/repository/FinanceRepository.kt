@@ -1,6 +1,7 @@
 package com.makemission.makeflow.data.repository
 
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
@@ -51,4 +52,8 @@ interface FinanceRepository {
     suspend fun updateBudgetAmount(budgetId: String, newAmount: Double)
 
     suspend fun getBudgetByCategory(categoryId: String): BudgetEntity?
+
+    suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String? = null, limit: Int = 30): List<Double>
+
+    suspend fun getRecentDescriptionsAndCategories(limit: Int = 100): List<DescriptionCategoryPair>
 }

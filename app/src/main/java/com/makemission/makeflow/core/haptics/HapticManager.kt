@@ -19,6 +19,7 @@ enum class HapticEvent(val effect: VibrationEffect) {
     BUDGET_EXCEEDED(VibrationEffect.createWaveform(longArrayOf(0, 30, 20, 30, 20, 30), -1)),
     ONBOARDING_STEP_COMPLETE(VibrationEffect.createOneShot(15, 55)),
     TOGGLE(VibrationEffect.createOneShot(6, 25)),
+    ANOMALY_DETECTED(VibrationEffect.createWaveform(longArrayOf(0, 25, 15, 25, 15, 25), -1)),
 }
 
 private val SIMPLE_SHORT_PULSE = VibrationEffect.createOneShot(10, 40)

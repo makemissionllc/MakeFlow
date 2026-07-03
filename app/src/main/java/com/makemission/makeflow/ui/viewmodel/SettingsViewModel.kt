@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -37,14 +38,7 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
-        when (code) {
-            "USD" -> "$"
-            "EUR" -> "\u20AC"
-            "GBP" -> "\u00A3"
-            "UGX" -> "UGX"
-            "TZS" -> "TZS"
-            else -> "KES"
-        }
+        CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     fun saveTheme(theme: String) {

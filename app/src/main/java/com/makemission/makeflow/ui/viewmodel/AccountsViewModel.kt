@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.util.UUID
 
 class AccountsViewModel(
@@ -28,14 +29,7 @@ class AccountsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
-        when (code) {
-            "USD" -> "$"
-            "EUR" -> "\u20AC"
-            "GBP" -> "\u00A3"
-            "UGX" -> "UGX"
-            "TZS" -> "TZS"
-            else -> "KES"
-        }
+        CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     suspend fun addAccount(name: String, balance: Double, colorHex: String) {

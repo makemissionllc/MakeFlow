@@ -4,6 +4,7 @@ import com.makemission.makeflow.data.RecurringDetector
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.dao.CategoryDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
+import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
 import com.makemission.makeflow.data.local.dao.MonthlyCategorySpend
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
@@ -240,6 +241,14 @@ class FinanceRepositoryImpl(
 
     override suspend fun getBudgetByCategory(categoryId: String): BudgetEntity? {
         return budgetDao?.getBudgetByCategory(categoryId)
+    }
+
+    override suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String?, limit: Int): List<Double> {
+        return transactionDao.getRecentAmountsForCategory(categoryId, excludingTransactionId, limit)
+    }
+
+    override suspend fun getRecentDescriptionsAndCategories(limit: Int): List<DescriptionCategoryPair> {
+        return transactionDao.getRecentDescriptionsAndCategories(limit)
     }
 }
 

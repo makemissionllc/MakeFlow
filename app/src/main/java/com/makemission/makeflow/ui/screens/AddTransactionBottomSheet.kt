@@ -51,11 +51,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.domain.AnomalyResult
+import com.makemission.makeflow.domain.AnomalySeverity
+import com.makemission.makeflow.domain.CategorySuggester
+import com.makemission.makeflow.domain.CategorySuggestion
+import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.ui.theme.SheetTopSlideShape
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -70,7 +82,10 @@ fun AddTransactionBottomSheet(
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
     currencySymbol: String,
-    hapticManager: HapticManager
+    currencyCode: String,
+    hapticManager: HapticManager,
+    onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
+    onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
@@ -81,6 +96,9 @@ fun AddTransactionBottomSheet(
     var note by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
+    var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
+    val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
 
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
@@ -90,6 +108,42 @@ fun AddTransactionBottomSheet(
 
     var selectedParentCategory by remember { mutableStateOf<CategoryEntity?>(null) }
     var selectedChildCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (onGetPastTransactions != null) {
+            pastTransactions.value = onGetPastTransactions()
+        }
+    }
+
+    LaunchedEffect(note) {
+        if (note.length < 2) {
+            categorySuggestion = null
+            return@LaunchedEffect
+        }
+        delay(300)
+        val result = CategorySuggester.suggest(note, pastTransactions.value)
+        if (result != null && result.confidence >= 0.5f) {
+            categorySuggestion = result
+            if (result.matchedOnExactPastDescription) {
+                val cat = parentCategories.find { it.id == result.categoryId }
+                if (cat != null) {
+                    selectedParentCategory = cat
+                    selectedChildCategory = null
+                } else {
+                    val childCat = categories.find { it.id == result.categoryId }
+                    if (childCat != null) {
+                        val parent = categories.find { it.id == childCat.parentCategoryId }
+                        if (parent != null) {
+                            selectedParentCategory = parent
+                            selectedChildCategory = childCat
+                        }
+                    }
+                }
+            }
+        } else {
+            categorySuggestion = null
+        }
+    }
 
     val childCategories = remember(categories, selectedParentCategory) {
         selectedParentCategory?.let { parent ->
@@ -145,6 +199,33 @@ fun AddTransactionBottomSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            AnimatedVisibility(
+                visible = anomalyResult != null,
+                enter = slideInVertically { -it } + fadeIn(),
+                exit = slideOutVertically { -it } + fadeOut()
+            ) {
+                anomalyResult?.let { result ->
+                    val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"
+                    val message = if (result.severity == AnomalySeverity.HIGH) {
+                        "This is significantly higher than your usual $categoryName spend (avg ${CurrencyFormatter.format(result.categoryAverage, currencyCode)})"
+                    } else {
+                        "This is higher than your usual $categoryName spend"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF2C2C1E), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = message,
+                            color = Color(0xFFFFA726),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -270,22 +351,38 @@ fun AddTransactionBottomSheet(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(parentCategories) { parent ->
                         val isSelected = parent.id == selectedParentCategory?.id
-                        Text(
-                            text = parent.name,
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            modifier = Modifier
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                        val isSuggested = !isSelected && categorySuggestion?.categoryId == parent.id
+                        val bgColor = when {
+                            isSelected -> Color.White
+                            isSuggested -> Color(0xFF2C2C1E)
+                            else -> Color(0xFF1B1C1F)
+                        }
+                        val textColor = if (isSelected) Color(0xFF121315) else Color.White
+                        val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                            else Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = parent.name,
+                                color = textColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .then(borderMod)
+                                    .clickable {
+                                        selectedParentCategory = parent
+                                        selectedChildCategory = null
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                            if (isSuggested) {
+                                Text(
+                                    text = "suggested",
+                                    color = Color(0xFFFFA726),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
-                                .clickable {
-                                    selectedParentCategory = parent
-                                    selectedChildCategory = null
-                                }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        )
+                            }
+                        }
                     }
                 }
                 if (childCategories.isNotEmpty()) {
@@ -297,19 +394,35 @@ fun AddTransactionBottomSheet(
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(childCategories) { child ->
                             val isSelected = child.id == selectedChildCategory?.id
-                            Text(
-                                text = child.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                modifier = Modifier
-                                    .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                            val isSuggested = !isSelected && categorySuggestion?.categoryId == child.id
+                            val bgColor = when {
+                                isSelected -> Color.White
+                                isSuggested -> Color(0xFF2C2C1E)
+                                else -> Color(0xFF1B1C1F)
+                            }
+                            val textColor = if (isSelected) Color(0xFF121315) else Color.White
+                            val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                                else Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = child.name,
+                                    color = textColor,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                    modifier = Modifier
+                                        .then(borderMod)
+                                        .clickable { selectedChildCategory = child }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                )
+                                if (isSuggested) {
+                                    Text(
+                                        text = "suggested",
+                                        color = Color(0xFFFFA726),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
-                                    .clickable { selectedChildCategory = child }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            )
+                                }
+                            }
                         }
                     }
                 }
@@ -369,7 +482,16 @@ fun AddTransactionBottomSheet(
                     scope.launch {
                         onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate)
                         hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
+                        if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
+                            val result = onAnomalyCheck(amount, resolvedCategoryId)
+                            if (result != null && result.severity != AnomalySeverity.NONE) {
+                                anomalyResult = result
+                                hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
+                                delay(2500)
+                            }
+                        }
                         onDismiss()
+                        anomalyResult = null
                     }
                 },
                 enabled = isSaveEnabled,

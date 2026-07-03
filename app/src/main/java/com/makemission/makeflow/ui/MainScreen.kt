@@ -68,6 +68,9 @@ import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.domain.AnomalyDetector
+import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
+import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.userPrefDataStore
@@ -144,6 +147,7 @@ fun MainScreen(
     val accounts by homeViewModel.accounts.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
     val currencySymbol by homeViewModel.currencySymbol.collectAsState()
+    val currencyCode by homeViewModel.selectedCurrency.collectAsState()
 
     var showAddTransaction by remember { mutableStateOf(false) }
     var showBudgetScreen by remember { mutableStateOf(false) }
@@ -410,7 +414,16 @@ fun MainScreen(
             accounts = accounts,
             categories = categories,
             currencySymbol = currencySymbol,
-            hapticManager = hapticManager
+            hapticManager = hapticManager,
+            onAnomalyCheck = { amount, categoryId ->
+                if (categoryId == null) return@AddTransactionBottomSheet null
+                val history = repository.getRecentAmountsForCategory(categoryId)
+                AnomalyDetector.analyze(amount, history)
+            },
+            onGetPastTransactions = {
+                val pairs = repository.getRecentDescriptionsAndCategories()
+                pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
+            }
         )
     }
 }

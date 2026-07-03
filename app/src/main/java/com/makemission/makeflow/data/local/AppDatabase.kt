@@ -11,6 +11,7 @@ import com.makemission.makeflow.data.local.dao.AccountDao
 import com.makemission.makeflow.data.local.dao.BudgetDao
 import com.makemission.makeflow.data.local.dao.CardInteractionDao
 import com.makemission.makeflow.data.local.dao.CategoryDao
+import com.makemission.makeflow.data.local.dao.QueuedNotificationDao
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
@@ -18,6 +19,7 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CardInteractionEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.QueuedNotificationEntity
 import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -33,9 +35,10 @@ import kotlinx.coroutines.launch
         TaskEntity::class,
         BudgetEntity::class,
         RecurringPatternEntity::class,
-        CardInteractionEntity::class
+        CardInteractionEntity::class,
+        QueuedNotificationEntity::class
     ],
-    version = 7,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -47,6 +50,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun recurringPatternDao(): RecurringPatternDao
     abstract fun cardInteractionDao(): CardInteractionDao
+    abstract fun queuedNotificationDao(): QueuedNotificationDao
 
     companion object {
         @Volatile
@@ -132,6 +136,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS queued_notifications (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        type TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        body TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        payload TEXT
+                    )"""
+                )
+            }
+        }
+
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE recurring_patterns ADD COLUMN lastNotifiedNextDate INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -140,7 +165,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                     .fallbackToDestructiveMigration()
                     .build()
                     INSTANCE = instance

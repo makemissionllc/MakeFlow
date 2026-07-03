@@ -75,6 +75,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val hasPromptedNotificationPermission: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[HAS_PROMPTED_NOTIFICATION_PERMISSION] ?: false
+    }
+
+    suspend fun setHasPromptedNotificationPermission() {
+        dataStore.edit { prefs ->
+            prefs[HAS_PROMPTED_NOTIFICATION_PERMISSION] = true
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -89,5 +99,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SELECTED_THEME_KEY = stringPreferencesKey("selected_theme")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
+        private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")
     }
 }

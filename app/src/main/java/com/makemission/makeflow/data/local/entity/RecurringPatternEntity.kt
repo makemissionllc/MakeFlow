@@ -13,5 +13,6 @@ data class RecurringPatternEntity(
     val nextExpectedDate: Long,
     val confidence: Float,
     val categoryId: String? = null,
-    val transactionType: String
+    val transactionType: String,
+    val lastNotifiedNextDate: Long = 0
 )

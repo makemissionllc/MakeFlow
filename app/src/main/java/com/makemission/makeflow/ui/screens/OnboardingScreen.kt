@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui.screens
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -63,6 +64,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -160,11 +162,13 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val reducedMotion = LocalReducedMotion.current
                     repeat(2) { index ->
                         val isSelected = pagerState.currentPage == index
+                        val widthAnimSpec = if (reducedMotion) tween<Float>(100) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                         val widthScale by animateFloatAsState(
                             targetValue = if (isSelected) 24f else 8f,
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                            animationSpec = widthAnimSpec,
                             label = "OnboardingIndicator"
                         )
                         Box(

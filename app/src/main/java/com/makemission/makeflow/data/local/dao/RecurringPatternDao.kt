@@ -21,4 +21,10 @@ interface RecurringPatternDao {
 
     @Query("SELECT * FROM recurring_patterns WHERE nextExpectedDate >= :fromDate ORDER BY nextExpectedDate ASC")
     fun getUpcoming(fromDate: Long): Flow<List<RecurringPatternEntity>>
+
+    @Query("SELECT * FROM recurring_patterns")
+    suspend fun getAllOnce(): List<RecurringPatternEntity>
+
+    @Query("UPDATE recurring_patterns SET lastNotifiedNextDate = :nextExpectedDate WHERE id = :id")
+    suspend fun updateLastNotifiedNextDate(id: Long, nextExpectedDate: Long)
 }

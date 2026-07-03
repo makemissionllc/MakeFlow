@@ -52,8 +52,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.notifications.NotificationGate
+import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
@@ -85,17 +88,20 @@ private val currencies = listOf(
 fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel,
-    hapticManager: HapticManager? = null
+    hapticManager: HapticManager? = null,
+    notificationGate: NotificationGate? = null
 ) {
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+    val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val config = LocalAdaptiveConfig.current
+    val reducedMotion = LocalReducedMotion.current
 
     Box(
         modifier = Modifier
@@ -142,11 +148,22 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 4) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 5) { SectionHeader(text = "Data") } }
+                if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
+                    item {
+                        StaggeredItem(index = 4) {
+                        Box(Modifier.fillMaxWidth()) {
+                            NotificationEnableRow()
+                        }
+                        }
+                    }
+                    item { StaggeredItem(index = 5) { Spacer(modifier = Modifier.height(4.dp)) } }
+                }
+
+                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 7) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 6) {
+                    StaggeredItem(index = 8) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
@@ -158,12 +175,19 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 7) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 8) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 10) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 9) {
+                    StaggeredItem(index = 11) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    }
+                }
+                if (reducedMotion) {
+                    item {
+                        StaggeredItem(index = 12) {
+                        ReducedMotionRow()
+                        }
                     }
                 }
             } else {
@@ -190,27 +214,42 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 5) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 6) { SectionHeader(text = "Data") } }
+                if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
+                    item {
+                        StaggeredItem(index = 5) {
+                        NotificationEnableRow()
+                        }
+                    }
+                }
+
+                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 7) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 7) {
+                    StaggeredItem(index = 8) {
                     SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 8) {
+                    StaggeredItem(index = 9) {
                     SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                     }
                 }
 
-                item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 10) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 11) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 11) {
+                    StaggeredItem(index = 12) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    }
+                }
+                if (reducedMotion) {
+                    item {
+                        StaggeredItem(index = 13) {
+                        ReducedMotionRow()
+                        }
                     }
                 }
             }
@@ -389,6 +428,91 @@ private fun HapticToggleRow(
                 uncheckedTrackColor = Color(0xFF2C2C2C)
             )
         )
+    }
+}
+
+@Composable
+private fun ReducedMotionRow() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = Color(0xFFEF5350),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Reduced motion active", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = "Power saving mode", color = Color(0xFFEF5350), fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun NotificationEnableRow() {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { openAppNotificationSettings(context) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = Color(0xFFFFA726),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Enable notifications", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = "Notifications are disabled", color = Color(0xFFFFA726), fontSize = 13.sp)
+            }
+        }
+    }
+}
+
+private fun isNotificationPermissionGranted(context: android.content.Context): Boolean {
+    return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        android.content.pm.PackageManager.PERMISSION_GRANTED ==
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                context, android.Manifest.permission.POST_NOTIFICATIONS
+            )
+    } else {
+        true
     }
 }
 

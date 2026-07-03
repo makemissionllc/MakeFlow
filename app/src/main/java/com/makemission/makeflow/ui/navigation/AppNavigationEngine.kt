@@ -3,19 +3,28 @@ package com.makemission.makeflow.ui.navigation
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import com.makemission.makeflow.core.device.InterruptionFilterProvider
+import com.makemission.makeflow.core.device.LocalReducedMotion
+import com.makemission.makeflow.core.device.rememberPowerState
+import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.notifications.NotificationChannels
+import com.makemission.makeflow.core.notifications.NotificationGate
+import com.makemission.makeflow.core.notifications.NotificationSenderImpl
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
-import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
@@ -39,7 +48,54 @@ fun AppNavigationEngine() {
     val currency by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
     val selectedTheme by userPrefDataStore.selectedTheme.collectAsState(initial = "forest")
     val hapticManager = rememberHapticManager()
+    val powerState by rememberPowerState()
 
+    LaunchedEffect(Unit) {
+        NotificationChannels.createChannels(context)
+    }
+
+    val interruptionFilterProvider = remember { InterruptionFilterProvider(context) }
+    val notificationSender = remember { NotificationSenderImpl(context.applicationContext) }
+    val notificationGate = remember {
+        NotificationGate(
+            interruptionFilterProvider = interruptionFilterProvider,
+            queuedNotificationDao = db.queuedNotificationDao(),
+            notificationSender = notificationSender
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        interruptionFilterProvider.observeState().collect { state ->
+            if (state == com.makemission.makeflow.core.device.InterruptionState.NORMAL) {
+                notificationGate.flushQueueIfClear()
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        try {
+            val patterns = db.recurringPatternDao().getAllOnce()
+            val now = System.currentTimeMillis()
+            val oneDay = 24L * 60 * 60 * 1000
+            for (pattern in patterns) {
+                if (pattern.nextExpectedDate in (now - oneDay)..(now + oneDay)) {
+                    if (pattern.nextExpectedDate != pattern.lastNotifiedNextDate) {
+                        notificationGate.dispatchOrQueue(
+                            type = "bill_reminder",
+                            title = "Upcoming bill",
+                            body = "${pattern.normalizedDescription} is due soon"
+                        )
+                        db.recurringPatternDao().updateLastNotifiedNextDate(
+                            pattern.id, pattern.nextExpectedDate
+                        )
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+    }
+
+    CompositionLocalProvider(LocalReducedMotion provides powerState.shouldReduceMotion) {
     MakeFlowTheme(themePalette = selectedTheme) {
         Crossfade(
             targetState = isProfiled,
@@ -54,7 +110,8 @@ fun AppNavigationEngine() {
                             userPrefDataStore.saveName("")
                             userPrefDataStore.clearProfile()
                         }
-                    }
+                    },
+                    notificationGate = notificationGate
                 )
             } else {
                 OnboardingScreen(
@@ -74,5 +131,6 @@ fun AppNavigationEngine() {
                 )
             }
         }
+    }
     }
 }

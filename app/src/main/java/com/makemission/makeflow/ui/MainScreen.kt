@@ -63,8 +63,10 @@ import com.makemission.makeflow.ui.components.AdaptiveConfig
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -98,7 +100,8 @@ enum class MakeFlowTab {
 @Composable
 fun MainScreen(
     username: String,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    notificationGate: NotificationGate? = null
 ) {
     var activeTab by remember { mutableStateOf(MakeFlowTab.HOME) }
 
@@ -156,6 +159,7 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
 
     val config = rememberAdaptiveConfig()
+    val reducedMotion = LocalReducedMotion.current
 
     CompositionLocalProvider(LocalAdaptiveConfig provides config) {
     Box(
@@ -185,18 +189,16 @@ fun MainScreen(
                     transitionSpec = {
                         val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
                         previousTabIndex.value = tabIndex
-                        (fadeIn(tween(220)) + slideInHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
+                        val slideSpec = if (reducedMotion) tween<androidx.compose.ui.unit.IntOffset>(200) else spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                        (fadeIn(if (reducedMotion) tween(150) else tween(220)) + slideInHorizontally(
+                            animationSpec = slideSpec,
                             initialOffsetX = { it / 6 * direction }
                         )) togetherWith
-                        (fadeOut(tween(180)) + slideOutHorizontally(
-                            animationSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessLow
-                            ),
+                        (fadeOut(if (reducedMotion) tween(120) else tween(180)) + slideOutHorizontally(
+                            animationSpec = slideSpec,
                             targetOffsetX = { -it / 6 * direction }
                         ))
                     },
@@ -208,7 +210,8 @@ fun MainScreen(
                                 viewModel = homeViewModel,
                                 onOpenAccounts = { showAccountsScreen = true },
                                 onOpenSettings = { showSettingsScreen = true },
-                                hapticManager = hapticManager
+                                hapticManager = hapticManager,
+                                notificationGate = notificationGate
                             )
                         }
                         MakeFlowTab.INSIGHTS -> {
@@ -216,7 +219,8 @@ fun MainScreen(
                             InsightsScreen(
                                 viewModel = insightsViewModel,
                                 onOpenBudgets = { showBudgetScreen = true },
-                                hapticManager = hapticManager
+                                hapticManager = hapticManager,
+                                notificationGate = notificationGate
                             )
                         }
                         MakeFlowTab.HISTORY -> {
@@ -244,18 +248,18 @@ fun MainScreen(
                 AnimatedVisibility(
                     visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
                     enter = scaleIn(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(150) else spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
                         )
                     ) + fadeIn(tween(150)),
                     exit = scaleOut(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(100) else spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessMedium
                         )
                     ) + fadeOut(tween(100)) + slideOutVertically(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(100) else spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessMedium
                         ),
@@ -295,14 +299,14 @@ fun MainScreen(
             AnimatedVisibility(
                 visible = showBudgetScreen,
                 enter = slideInVertically(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(200) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
                     initialOffsetY = { it }
                 ) + fadeIn(tween(200)),
                 exit = slideOutVertically(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(150) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
@@ -314,7 +318,8 @@ fun MainScreen(
                     BudgetScreen(
                         onBack = { showBudgetScreen = false },
                         viewModel = budgetViewModel,
-                        hapticManager = hapticManager
+                        hapticManager = hapticManager,
+                        notificationGate = notificationGate
                     )
                 }
             }
@@ -322,14 +327,14 @@ fun MainScreen(
             AnimatedVisibility(
                 visible = showAccountsScreen,
                 enter = slideInHorizontally(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(200) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
                     initialOffsetX = { it }
                 ) + fadeIn(tween(200)),
                 exit = slideOutHorizontally(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(150) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
@@ -352,14 +357,14 @@ fun MainScreen(
             AnimatedVisibility(
                 visible = showSettingsScreen,
                 enter = slideInHorizontally(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(200) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
                     initialOffsetX = { it }
                 ) + fadeIn(tween(200)),
                 exit = slideOutHorizontally(
-                    animationSpec = spring(
+                    animationSpec = if (reducedMotion) tween(150) else spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessLow
                     ),
@@ -375,7 +380,8 @@ fun MainScreen(
                     SettingsScreen(
                         onBack = { showSettingsScreen = false },
                         viewModel = settingsViewModel,
-                        hapticManager = hapticManager
+                        hapticManager = hapticManager,
+                        notificationGate = notificationGate
                     )
                 }
             }
@@ -416,6 +422,7 @@ fun FloatingCapsuleNavBar(
     config: AdaptiveConfig = AdaptiveConfig()
 ) {
     val tabs = MakeFlowTab.values()
+    val reducedMotion = LocalReducedMotion.current
 
     Row(
         modifier = Modifier
@@ -460,21 +467,21 @@ fun FloatingCapsuleNavBar(
                 AnimatedVisibility(
                     visible = isSelected,
                     enter = fadeIn(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(100) else spring(
                             dampingRatio = Spring.DampingRatioMediumBouncy,
                             stiffness = Spring.StiffnessMedium
                         )
                     ) + slideInVertically(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(100) else spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessMedium
                         ),
                         initialOffsetY = { it }
                     ),
                     exit = fadeOut(
-                        animationSpec = spring(stiffness = Spring.StiffnessHigh)
+                        animationSpec = if (reducedMotion) tween(80) else spring(stiffness = Spring.StiffnessHigh)
                     ) + slideOutVertically(
-                        animationSpec = spring(
+                        animationSpec = if (reducedMotion) tween(80) else spring(
                             dampingRatio = Spring.DampingRatioNoBouncy,
                             stiffness = Spring.StiffnessHigh
                         ),

@@ -33,6 +33,9 @@ class SettingsViewModel(
     val hapticsEnabled: StateFlow<Boolean> = userPreferencesDataStore.hapticsEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val hasPromptedNotificationPermission: StateFlow<Boolean> = userPreferencesDataStore.hasPromptedNotificationPermission
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         when (code) {
             "USD" -> "$"

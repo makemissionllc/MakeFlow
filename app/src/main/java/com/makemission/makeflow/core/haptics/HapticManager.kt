@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import com.makemission.makeflow.core.device.PowerStateProvider
 
 enum class HapticEvent(val effect: VibrationEffect) {
     TAB_SWITCH(VibrationEffect.createOneShot(10, 40)),
@@ -20,10 +21,20 @@ enum class HapticEvent(val effect: VibrationEffect) {
     TOGGLE(VibrationEffect.createOneShot(6, 25)),
 }
 
+private val SIMPLE_SHORT_PULSE = VibrationEffect.createOneShot(10, 40)
+
+fun isLowPriorityEvent(event: HapticEvent): Boolean = when (event) {
+    HapticEvent.TAB_SWITCH,
+    HapticEvent.NAV_SELECT,
+    HapticEvent.TOGGLE -> true
+    else -> false
+}
+
 class HapticManager(context: Context) {
     @Volatile
     var isEnabled: Boolean = true
 
+    private val powerStateProvider = PowerStateProvider(context)
     private val vibrator: Vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
         vm.defaultVibrator
@@ -33,7 +44,13 @@ class HapticManager(context: Context) {
     }
 
     fun fire(event: HapticEvent) {
-        if (isEnabled) {
+        if (!isEnabled) return
+
+        val powerState = powerStateProvider.getCurrentState()
+        if (powerState.shouldReduceMotion) {
+            if (isLowPriorityEvent(event)) return
+            vibrator.vibrate(SIMPLE_SHORT_PULSE)
+        } else {
             vibrator.vibrate(event.effect)
         }
     }

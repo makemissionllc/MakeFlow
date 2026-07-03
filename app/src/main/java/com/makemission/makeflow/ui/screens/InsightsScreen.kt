@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -69,7 +70,8 @@ import com.patrykandpatrick.vico.core.common.component.LineComponent
 fun InsightsScreen(
     viewModel: InsightsViewModel,
     onOpenBudgets: () -> Unit = {},
-    hapticManager: HapticManager? = null
+    hapticManager: HapticManager? = null,
+    notificationGate: NotificationGate? = null
 ) {
     val selectedMonth by viewModel.selectedMonth.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()
@@ -92,7 +94,14 @@ fun InsightsScreen(
             if (prevZone != null && prevZone != currentZone) {
                 when (currentZone) {
                     "orange" -> hapticManager?.fire(HapticEvent.BUDGET_WARNING)
-                    "red" -> hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                    "red" -> {
+                        hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                        notificationGate?.dispatchOrQueue(
+                            type = "budget_alert",
+                            title = "Budget exceeded",
+                            body = "${budget.categoryName} has exceeded its limit"
+                        )
+                    }
                 }
             }
             previousBudgetZones[budget.id] = currentZone

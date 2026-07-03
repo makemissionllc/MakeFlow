@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.domain.CashFlowProjection
@@ -86,7 +87,8 @@ fun HomeDashboard(
     viewModel: HomeDashboardViewModel,
     onOpenAccounts: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
-    hapticManager: HapticManager? = null
+    hapticManager: HapticManager? = null,
+    notificationGate: NotificationGate? = null
 ) {
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -180,7 +182,7 @@ fun HomeDashboard(
                                     viewModel.logCardInteraction(DashboardCardType.BUDGET_PROGRESS)
                                 }
                             ) {
-                                BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager)
+                                BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager, notificationGate = notificationGate)
                             }
                         }
                     }
@@ -622,7 +624,8 @@ fun CategoriesCard(
 fun BudgetsCard(
     budgets: List<BudgetEntity> = emptyList(),
     currencySymbol: String = "KES",
-    hapticManager: HapticManager? = null
+    hapticManager: HapticManager? = null,
+    notificationGate: NotificationGate? = null
 ) {
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -637,7 +640,14 @@ fun BudgetsCard(
             if (prevZone != null && prevZone != currentZone) {
                 when (currentZone) {
                     "orange" -> hapticManager?.fire(HapticEvent.BUDGET_WARNING)
-                    "red" -> hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                    "red" -> {
+                        hapticManager?.fire(HapticEvent.BUDGET_EXCEEDED)
+                        notificationGate?.dispatchOrQueue(
+                            type = "budget_alert",
+                            title = "Budget exceeded",
+                            body = "${budget.categoryName} has exceeded its limit"
+                        )
+                    }
                 }
             }
             previousBudgetZones[budget.id] = currentZone

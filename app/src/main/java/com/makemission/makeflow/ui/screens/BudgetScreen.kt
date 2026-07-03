@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -67,7 +68,8 @@ import kotlinx.coroutines.launch
 fun BudgetScreen(
     onBack: () -> Unit,
     viewModel: BudgetViewModel,
-    hapticManager: HapticManager
+    hapticManager: HapticManager,
+    notificationGate: NotificationGate? = null
 ) {
     val budgets by viewModel.budgets.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -91,7 +93,14 @@ fun BudgetScreen(
             if (prevZone != null && prevZone != currentZone) {
                 when (currentZone) {
                     "orange" -> hapticManager.fire(HapticEvent.BUDGET_WARNING)
-                    "red" -> hapticManager.fire(HapticEvent.BUDGET_EXCEEDED)
+                    "red" -> {
+                        hapticManager.fire(HapticEvent.BUDGET_EXCEEDED)
+                        notificationGate?.dispatchOrQueue(
+                            type = "budget_alert",
+                            title = "Budget exceeded",
+                            body = "${budget.categoryName} has exceeded its limit"
+                        )
+                    }
                 }
             }
             previousBudgetZones[budget.id] = currentZone

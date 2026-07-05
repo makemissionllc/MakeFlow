@@ -57,6 +57,7 @@ import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -99,6 +100,7 @@ fun HomeDashboard(
     val budgets by viewModel.budgets.collectAsState()
     val recurringPatterns by viewModel.recurringPatterns.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val cardOrder by viewModel.cardOrder.collectAsState()
     val cashFlowProjection by viewModel.cashFlowProjection.collectAsState()
 
@@ -106,10 +108,10 @@ fun HomeDashboard(
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val config = LocalAdaptiveConfig.current
-    val formattedBalance = "$currencySymbol ${String.format("%,.2f", totalBalance)}"
-    val formattedIncome = "$currencySymbol ${String.format("%,.2f", monthlyIncome)}"
-    val formattedExpenses = "$currencySymbol ${String.format("%,.2f", monthlyExpenses)}"
-    val formattedNet = "$currencySymbol ${String.format("%,.2f", monthlyIncome - monthlyExpenses)}"
+    val formattedBalance = CurrencyFormatter.format(totalBalance, selectedCurrency)
+    val formattedIncome = CurrencyFormatter.format(monthlyIncome, selectedCurrency)
+    val formattedExpenses = CurrencyFormatter.format(monthlyExpenses, selectedCurrency)
+    val formattedNet = CurrencyFormatter.format(monthlyIncome - monthlyExpenses, selectedCurrency)
 
     val accountChips = accounts.map { entity ->
         val color = try {
@@ -117,7 +119,7 @@ fun HomeDashboard(
         } catch (_: Exception) {
             Color(0xFF007AFF)
         }
-        AccountChip(entity.name, "$currencySymbol ${String.format("%,.2f", entity.balance)}", color)
+        AccountChip(entity.name, CurrencyFormatter.format(entity.balance, selectedCurrency), color)
     }
 
     val categoryLegends = parentCategorySpending.map { pcs ->
@@ -126,7 +128,7 @@ fun HomeDashboard(
         } catch (_: Exception) {
             Color(0xFFFF3B30)
         }
-        CategoryLegend(pcs.categoryName, "$currencySymbol ${String.format("%,.2f", pcs.amount)}", color)
+        CategoryLegend(pcs.categoryName, CurrencyFormatter.format(pcs.amount, selectedCurrency), color)
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -182,7 +184,7 @@ fun HomeDashboard(
                                     viewModel.logCardInteraction(DashboardCardType.BUDGET_PROGRESS)
                                 }
                             ) {
-                                BudgetsCard(budgets = budgets, currencySymbol = currencySymbol, hapticManager = hapticManager, notificationGate = notificationGate)
+                                BudgetsCard(budgets = budgets, currencyCode = selectedCurrency, hapticManager = hapticManager, notificationGate = notificationGate)
                             }
                         }
                     }
@@ -193,7 +195,7 @@ fun HomeDashboard(
                                     viewModel.logCardInteraction(DashboardCardType.RECURRING)
                                 }
                             ) {
-                                RecurringCard(patterns = recurringPatterns, currencySymbol = currencySymbol)
+                                RecurringCard(patterns = recurringPatterns, currencyCode = selectedCurrency)
                             }
                         }
                     }
@@ -205,7 +207,7 @@ fun HomeDashboard(
             }
             cashFlowProjection?.let { projection ->
                 item {
-                    ProjectionCard(projection = projection, currencySymbol = currencySymbol)
+                    ProjectionCard(projection = projection, currencyCode = selectedCurrency)
                 }
             }
             item {
@@ -623,7 +625,7 @@ fun CategoriesCard(
 @Composable
 fun BudgetsCard(
     budgets: List<BudgetEntity> = emptyList(),
-    currencySymbol: String = "KES",
+    currencyCode: String = "KES",
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
@@ -722,7 +724,7 @@ fun BudgetsCard(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = "$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}",
+                            text = "${CurrencyFormatter.format(budget.spentAmount, currencyCode)} / ${CurrencyFormatter.format(budget.amount, currencyCode)}",
                             color = Color.White.copy(alpha = 0.5f),
                             fontSize = 12.sp
                         )
@@ -749,7 +751,7 @@ fun BudgetsCard(
 @Composable
 fun RecurringCard(
     patterns: List<RecurringPattern>,
-    currencySymbol: String
+    currencyCode: String
 ) {
     CardContainer {
         Text(
@@ -790,7 +792,7 @@ fun RecurringCard(
                         }
                     }
                     Text(
-                        text = "$currencySymbol ${String.format("%,.2f", pattern.avgAmount)}",
+                        text = CurrencyFormatter.format(pattern.avgAmount, currencyCode),
                         color = Color.White.copy(alpha = 0.6f),
                         fontSize = 13.sp
                     )
@@ -842,7 +844,7 @@ fun CardContainer(content: @Composable () -> Unit) {
 @Composable
 private fun ProjectionCard(
     projection: CashFlowProjection,
-    currencySymbol: String
+    currencyCode: String
 ) {
     val dateFormat = remember { SimpleDateFormat("d MMMM", Locale.getDefault()) }
     val endOfMonth = remember {
@@ -851,7 +853,7 @@ private fun ProjectionCard(
         dateFormat.format(cal.time)
     }
     val isNegative = projection.projectedEndOfMonthBalance < 0
-    val formattedProjected = "$currencySymbol ${String.format("%,.2f", projection.projectedEndOfMonthBalance)}"
+    val formattedProjected = CurrencyFormatter.format(projection.projectedEndOfMonthBalance, currencyCode)
 
     CardContainer {
         Row(

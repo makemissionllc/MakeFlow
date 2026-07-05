@@ -2,6 +2,9 @@ package com.makemission.makeflow.ui.navigation
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.activity.ComponentActivity
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -14,6 +17,8 @@ import com.makemission.makeflow.core.device.InterruptionFilterProvider
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.device.rememberPowerState
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
+import com.makemission.makeflow.core.layout.rememberDeviceLayoutMode
 import com.makemission.makeflow.core.notifications.NotificationChannels
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.core.notifications.NotificationSenderImpl
@@ -95,7 +100,14 @@ fun AppNavigationEngine() {
         }
     }
 
-    CompositionLocalProvider(LocalReducedMotion provides powerState.shouldReduceMotion) {
+    @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+    val windowSizeClass = calculateWindowSizeClass(context as ComponentActivity)
+    val deviceLayoutMode = rememberDeviceLayoutMode(windowSizeClass)
+
+    CompositionLocalProvider(
+        LocalReducedMotion provides powerState.shouldReduceMotion,
+        LocalDeviceLayoutMode provides deviceLayoutMode
+    ) {
     MakeFlowTheme(themePalette = selectedTheme) {
         Crossfade(
             targetState = isProfiled,

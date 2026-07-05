@@ -26,10 +26,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -41,6 +43,8 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.SpaceDashboard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -59,6 +63,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.AdaptiveConfig
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
@@ -71,6 +77,7 @@ import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
 import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
+import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.userPrefDataStore
@@ -164,6 +171,11 @@ fun MainScreen(
 
     val config = rememberAdaptiveConfig()
     val reducedMotion = LocalReducedMotion.current
+    val layoutMode = LocalDeviceLayoutMode.current
+    val isNavRail = layoutMode != DeviceLayoutMode.COMPACT
+
+    val maxWidthModifier = if (layoutMode == DeviceLayoutMode.MEDIUM && !config.isLandscape)
+        Modifier.widthIn(max = config.contentMaxWidth) else Modifier
 
     CompositionLocalProvider(LocalAdaptiveConfig provides config) {
     Box(
@@ -171,223 +183,167 @@ fun MainScreen(
             .fillMaxSize()
             .background(Color(0xFF121315))
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(
-                    if (config.isTablet && !config.isLandscape) Modifier.widthIn(max = config.contentMaxWidth)
-                    else Modifier
-                )
-                .align(Alignment.Center)
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                val tabIndex = when (activeTab) {
-                    MakeFlowTab.HOME -> 0
-                    MakeFlowTab.INSIGHTS -> 1
-                    MakeFlowTab.HISTORY -> 2
-                }
-                val previousTabIndex = remember { mutableStateOf(0) }
-
-                AnimatedContent(
-                    targetState = activeTab,
-                    transitionSpec = {
-                        val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
-                        previousTabIndex.value = tabIndex
-                        val slideSpec = if (reducedMotion) tween<androidx.compose.ui.unit.IntOffset>(200) else spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                        (fadeIn(if (reducedMotion) tween(150) else tween(220)) + slideInHorizontally(
-                            animationSpec = slideSpec,
-                            initialOffsetX = { it / 6 * direction }
-                        )) togetherWith
-                        (fadeOut(if (reducedMotion) tween(120) else tween(180)) + slideOutHorizontally(
-                            animationSpec = slideSpec,
-                            targetOffsetX = { -it / 6 * direction }
-                        ))
-                    },
-                    label = "TabContent"
-                ) { tab ->
-                    when (tab) {
-                        MakeFlowTab.HOME -> {
-                            HomeDashboard(
-                                viewModel = homeViewModel,
-                                onOpenAccounts = { showAccountsScreen = true },
-                                onOpenSettings = { showSettingsScreen = true },
-                                hapticManager = hapticManager,
-                                notificationGate = notificationGate
-                            )
-                        }
-                        MakeFlowTab.INSIGHTS -> {
-                            BackHandler { activeTab = MakeFlowTab.HOME }
-                            InsightsScreen(
-                                viewModel = insightsViewModel,
-                                onOpenBudgets = { showBudgetScreen = true },
-                                hapticManager = hapticManager,
-                                notificationGate = notificationGate
-                            )
-                        }
-                        MakeFlowTab.HISTORY -> {
-                            BackHandler { activeTab = MakeFlowTab.HOME }
-                            HistoryScreen(
-                                viewModel = historyViewModel,
-                                hapticManager = hapticManager
-                            )
-                        }
-                    }
-                }
-            }
-
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 24.dp)
-                    .padding(
-                        top = 24.dp,
-                        bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
-            ) {
-                AnimatedVisibility(
-                    visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
-                    enter = scaleIn(
-                        animationSpec = if (reducedMotion) tween(150) else spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    ) + fadeIn(tween(150)),
-                    exit = scaleOut(
-                        animationSpec = if (reducedMotion) tween(100) else spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    ) + fadeOut(tween(100)) + slideOutVertically(
-                        animationSpec = if (reducedMotion) tween(100) else spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
-                        targetOffsetY = { -it / 3 }
-                    )
-                ) {
-                    FloatingActionButton(
-                        onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF121315),
-                        shape = CircleShape,
-                        modifier = Modifier.size(config.fabSize)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Add transaction",
-                            tint = Color(0xFF121315),
-                            modifier = Modifier.size(if (config.isTablet) 28.dp else 24.dp)
-                        )
-                    }
-                }
-                AnimatedVisibility(
-                    visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
-                    enter = fadeIn(tween(150)),
-                    exit = fadeOut(tween(100))
-                ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                FloatingCapsuleNavBar(
+        if (isNavRail) {
+            Row(Modifier.fillMaxSize()) {
+                MakeFlowNavRail(
                     selectedTab = activeTab,
                     onTabSelected = { activeTab = it },
-                    config = config
+                    layoutMode = layoutMode
                 )
-            }
 
-            AnimatedVisibility(
-                visible = showBudgetScreen,
-                enter = slideInVertically(
-                    animationSpec = if (reducedMotion) tween(200) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    initialOffsetY = { it }
-                ) + fadeIn(tween(200)),
-                exit = slideOutVertically(
-                    animationSpec = if (reducedMotion) tween(150) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    targetOffsetY = { it }
-                ) + fadeOut(tween(150))
-            ) {
-                Box(Modifier.fillMaxSize()) {
-                    BackHandler { showBudgetScreen = false }
-                    BudgetScreen(
-                        onBack = { showBudgetScreen = false },
-                        viewModel = budgetViewModel,
+                Box(Modifier.weight(1f).fillMaxHeight()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .then(maxWidthModifier)
+                            .align(Alignment.Center)
+                    ) {
+                        TabContentAnimated(
+                            activeTab = activeTab,
+                            reducedMotion = reducedMotion,
+                            homeViewModel = homeViewModel,
+                            insightsViewModel = insightsViewModel,
+                            historyViewModel = historyViewModel,
+                            hapticManager = hapticManager,
+                            notificationGate = notificationGate,
+                            onOpenAccounts = { showAccountsScreen = true },
+                            onOpenSettings = { showSettingsScreen = true },
+                            onOpenBudgets = { showBudgetScreen = true },
+                            onNavigateToHome = { activeTab = MakeFlowTab.HOME }
+                        )
+                    }
+
+                    Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
+                        androidx.compose.animation.AnimatedVisibility(
+                            visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
+                            enter = scaleIn(
+                                animationSpec = if (reducedMotion) tween(150) else spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) + fadeIn(tween(150)),
+                            exit = scaleOut(
+                                animationSpec = if (reducedMotion) tween(100) else spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) + fadeOut(tween(100)) + slideOutVertically(
+                                animationSpec = if (reducedMotion) tween(100) else spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                ),
+                                targetOffsetY = { -it / 3 }
+                            )
+                        ) {
+                            AddTransactionFloatingActionButton(
+                                onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
+                                fabSize = config.fabSize
+                            )
+                        }
+                    }
+
+                    OverlayPanels(
+                        showBudgetScreen = showBudgetScreen,
+                        onHideBudget = { showBudgetScreen = false },
+                        showAccountsScreen = showAccountsScreen,
+                        onHideAccounts = { showAccountsScreen = false },
+                        showSettingsScreen = showSettingsScreen,
+                        onHideSettings = { showSettingsScreen = false },
+                        budgetViewModel = budgetViewModel,
+                        accountsViewModel = accountsViewModel,
+                        settingsViewModel = settingsViewModel,
                         hapticManager = hapticManager,
-                        notificationGate = notificationGate
+                        notificationGate = notificationGate,
+                        reducedMotion = reducedMotion
                     )
                 }
             }
-
-            AnimatedVisibility(
-                visible = showAccountsScreen,
-                enter = slideInHorizontally(
-                    animationSpec = if (reducedMotion) tween(200) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    initialOffsetX = { it }
-                ) + fadeIn(tween(200)),
-                exit = slideOutHorizontally(
-                    animationSpec = if (reducedMotion) tween(150) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    targetOffsetX = { it }
-                ) + fadeOut(tween(150))
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .align(Alignment.Center)
             ) {
-                Box(
+                TabContentAnimated(
+                    activeTab = activeTab,
+                    reducedMotion = reducedMotion,
+                    homeViewModel = homeViewModel,
+                    insightsViewModel = insightsViewModel,
+                    historyViewModel = historyViewModel,
+                    hapticManager = hapticManager,
+                    notificationGate = notificationGate,
+                    onOpenAccounts = { showAccountsScreen = true },
+                    onOpenSettings = { showSettingsScreen = true },
+                    onOpenBudgets = { showBudgetScreen = true },
+                    onNavigateToHome = { activeTab = MakeFlowTab.HOME }
+                )
+
+                Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF0A0A0A))
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 24.dp)
+                        .padding(
+                            top = 24.dp,
+                            bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
                 ) {
-                    BackHandler { showAccountsScreen = false }
-                    AccountsScreen(
-                        onBack = { showAccountsScreen = false },
-                        viewModel = accountsViewModel
+                    AnimatedVisibility(
+                        visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
+                        enter = scaleIn(
+                            animationSpec = if (reducedMotion) tween(150) else spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ) + fadeIn(tween(150)),
+                        exit = scaleOut(
+                            animationSpec = if (reducedMotion) tween(100) else spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )
+                        ) + fadeOut(tween(100)) + slideOutVertically(
+                            animationSpec = if (reducedMotion) tween(100) else spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            targetOffsetY = { -it / 3 }
+                        )
+                    ) {
+                        AddTransactionFloatingActionButton(
+                            onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
+                            fabSize = config.fabSize
+                        )
+                    }
+                    AnimatedVisibility(
+                        visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
+                        enter = fadeIn(tween(150)),
+                        exit = fadeOut(tween(100))
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+
+                    FloatingCapsuleNavBar(
+                        selectedTab = activeTab,
+                        onTabSelected = { activeTab = it },
+                        config = config
                     )
                 }
-            }
 
-            AnimatedVisibility(
-                visible = showSettingsScreen,
-                enter = slideInHorizontally(
-                    animationSpec = if (reducedMotion) tween(200) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    initialOffsetX = { it }
-                ) + fadeIn(tween(200)),
-                exit = slideOutHorizontally(
-                    animationSpec = if (reducedMotion) tween(150) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessLow
-                    ),
-                    targetOffsetX = { it }
-                ) + fadeOut(tween(150))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF121315))
-                ) {
-                    BackHandler { showSettingsScreen = false }
-                    SettingsScreen(
-                        onBack = { showSettingsScreen = false },
-                        viewModel = settingsViewModel,
-                        hapticManager = hapticManager,
-                        notificationGate = notificationGate
-                    )
-                }
+                OverlayPanels(
+                    showBudgetScreen = showBudgetScreen,
+                    onHideBudget = { showBudgetScreen = false },
+                    showAccountsScreen = showAccountsScreen,
+                    onHideAccounts = { showAccountsScreen = false },
+                    showSettingsScreen = showSettingsScreen,
+                    onHideSettings = { showSettingsScreen = false },
+                    budgetViewModel = budgetViewModel,
+                    accountsViewModel = accountsViewModel,
+                    settingsViewModel = settingsViewModel,
+                    hapticManager = hapticManager,
+                    notificationGate = notificationGate,
+                    reducedMotion = reducedMotion
+                )
             }
         }
     }
@@ -408,12 +364,14 @@ fun MainScreen(
                             timestamp = timestamp
                         )
                     )
+                    WidgetUpdateHelper.updateWidgets(context)
                     showAddTransaction = false
                 }
             },
             accounts = accounts,
             categories = categories,
             currencySymbol = currencySymbol,
+            currencyCode = currencyCode,
             hapticManager = hapticManager,
             onAnomalyCheck = { amount, categoryId ->
                 if (categoryId == null) return@AddTransactionBottomSheet null
@@ -425,6 +383,257 @@ fun MainScreen(
                 pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
             }
         )
+    }
+}
+
+@Composable
+private fun TabContentAnimated(
+    activeTab: MakeFlowTab,
+    reducedMotion: Boolean,
+    homeViewModel: HomeDashboardViewModel,
+    insightsViewModel: InsightsViewModel,
+    historyViewModel: HistoryViewModel,
+    hapticManager: com.makemission.makeflow.core.haptics.HapticManager,
+    notificationGate: NotificationGate?,
+    onOpenAccounts: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenBudgets: () -> Unit,
+    onNavigateToHome: () -> Unit
+) {
+    val tabIndex = when (activeTab) {
+        MakeFlowTab.HOME -> 0
+        MakeFlowTab.INSIGHTS -> 1
+        MakeFlowTab.HISTORY -> 2
+    }
+    val previousTabIndex = remember { mutableStateOf(0) }
+
+    AnimatedContent(
+        targetState = activeTab,
+        transitionSpec = {
+            val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
+            previousTabIndex.value = tabIndex
+            val slideSpec = if (reducedMotion) tween<androidx.compose.ui.unit.IntOffset>(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+            (fadeIn(if (reducedMotion) tween(150) else tween(220)) + slideInHorizontally(
+                animationSpec = slideSpec,
+                initialOffsetX = { it / 6 * direction }
+            )) togetherWith
+            (fadeOut(if (reducedMotion) tween(120) else tween(180)) + slideOutHorizontally(
+                animationSpec = slideSpec,
+                targetOffsetX = { -it / 6 * direction }
+            ))
+        },
+        label = "TabContent"
+    ) { tab ->
+        when (tab) {
+            MakeFlowTab.HOME -> {
+                HomeDashboard(
+                    viewModel = homeViewModel,
+                    onOpenAccounts = onOpenAccounts,
+                    onOpenSettings = onOpenSettings,
+                    hapticManager = hapticManager,
+                    notificationGate = notificationGate
+                )
+            }
+            MakeFlowTab.INSIGHTS -> {
+                BackHandler { onNavigateToHome() }
+                InsightsScreen(
+                    viewModel = insightsViewModel,
+                    onOpenBudgets = onOpenBudgets,
+                    hapticManager = hapticManager,
+                    notificationGate = notificationGate
+                )
+            }
+            MakeFlowTab.HISTORY -> {
+                BackHandler { onNavigateToHome() }
+                HistoryScreen(
+                    viewModel = historyViewModel,
+                    hapticManager = hapticManager
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddTransactionFloatingActionButton(
+    onClick: () -> Unit,
+    fabSize: androidx.compose.ui.unit.Dp
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        containerColor = Color.White,
+        contentColor = Color(0xFF121315),
+        shape = CircleShape,
+        modifier = Modifier.size(fabSize)
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Add transaction",
+            tint = Color(0xFF121315),
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+@Composable
+private fun OverlayPanels(
+    showBudgetScreen: Boolean,
+    onHideBudget: () -> Unit,
+    showAccountsScreen: Boolean,
+    onHideAccounts: () -> Unit,
+    showSettingsScreen: Boolean,
+    onHideSettings: () -> Unit,
+    budgetViewModel: BudgetViewModel,
+    accountsViewModel: AccountsViewModel,
+    settingsViewModel: SettingsViewModel,
+    hapticManager: com.makemission.makeflow.core.haptics.HapticManager,
+    notificationGate: NotificationGate?,
+    reducedMotion: Boolean
+) {
+    AnimatedVisibility(
+        visible = showBudgetScreen,
+        enter = slideInVertically(
+            animationSpec = if (reducedMotion) tween(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetY = { it }
+        ) + fadeIn(tween(200)),
+        exit = slideOutVertically(
+            animationSpec = if (reducedMotion) tween(150) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            targetOffsetY = { it }
+        ) + fadeOut(tween(150))
+    ) {
+        Box(Modifier.fillMaxSize()) {
+            BackHandler { onHideBudget() }
+            BudgetScreen(
+                onBack = onHideBudget,
+                viewModel = budgetViewModel,
+                hapticManager = hapticManager,
+                notificationGate = notificationGate
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = showAccountsScreen,
+        enter = slideInHorizontally(
+            animationSpec = if (reducedMotion) tween(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetX = { it }
+        ) + fadeIn(tween(200)),
+        exit = slideOutHorizontally(
+            animationSpec = if (reducedMotion) tween(150) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            targetOffsetX = { it }
+        ) + fadeOut(tween(150))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0A0A0A))
+        ) {
+            BackHandler { onHideAccounts() }
+            AccountsScreen(
+                onBack = onHideAccounts,
+                viewModel = accountsViewModel
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = showSettingsScreen,
+        enter = slideInHorizontally(
+            animationSpec = if (reducedMotion) tween(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetX = { it }
+        ) + fadeIn(tween(200)),
+        exit = slideOutHorizontally(
+            animationSpec = if (reducedMotion) tween(150) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            targetOffsetX = { it }
+        ) + fadeOut(tween(150))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            BackHandler { onHideSettings() }
+            SettingsScreen(
+                onBack = onHideSettings,
+                viewModel = settingsViewModel,
+                hapticManager = hapticManager,
+                notificationGate = notificationGate
+            )
+        }
+    }
+}
+
+@Composable
+private fun MakeFlowNavRail(
+    selectedTab: MakeFlowTab,
+    onTabSelected: (MakeFlowTab) -> Unit,
+    layoutMode: DeviceLayoutMode
+) {
+    val alwaysShowLabel = layoutMode == DeviceLayoutMode.EXPANDED
+
+    NavigationRail(
+        modifier = Modifier
+            .fillMaxHeight()
+            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + 8.dp),
+        containerColor = Color.Transparent,
+        header = {
+            Text(
+                text = "MakeFlow",
+                color = Color(0xFF8B938A),
+                fontSize = if (alwaysShowLabel) 12.sp else 0.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+    ) {
+        MakeFlowTab.entries.forEach { tab ->
+            NavigationRailItem(
+                selected = tab == selectedTab,
+                onClick = { onTabSelected(tab) },
+                icon = {
+                    Icon(
+                        imageVector = when (tab) {
+                            MakeFlowTab.HOME -> Icons.Rounded.SpaceDashboard
+                            MakeFlowTab.INSIGHTS -> Icons.Rounded.Insights
+                            MakeFlowTab.HISTORY -> Icons.Rounded.History
+                        },
+                        contentDescription = tab.name
+                    )
+                },
+                label = {
+                    Text(
+                        text = when (tab) {
+                            MakeFlowTab.HOME -> "Home"
+                            MakeFlowTab.INSIGHTS -> "Insights"
+                            MakeFlowTab.HISTORY -> "History"
+                        },
+                        fontSize = 12.sp
+                    )
+                },
+                alwaysShowLabel = alwaysShowLabel
+            )
+        }
     }
 }
 

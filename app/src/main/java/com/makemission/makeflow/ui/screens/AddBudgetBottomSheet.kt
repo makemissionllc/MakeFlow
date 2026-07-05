@@ -13,20 +13,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,11 +38,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.CategoryEntity
-import com.makemission.makeflow.ui.theme.SheetTopSlideShape
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddBudgetBottomSheet(
     onDismiss: () -> Unit,
@@ -55,7 +49,6 @@ fun AddBudgetBottomSheet(
     categories: List<CategoryEntity>,
     currencySymbol: String
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
     val expenseParents = remember(categories) {
@@ -80,40 +73,29 @@ fun AddBudgetBottomSheet(
     val parsedAmount = amountInput.toDoubleOrNull()
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 && selectedCategoryId.isNotEmpty()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color(0xFF1B1C1F),
-        shape = SheetTopSlideShape
+    AdaptiveSheetDialog(
+        onDismiss = onDismiss
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "New Budget",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
+            Text(
+                text = "New Budget",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Close",
+                    tint = Color.White
                 )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
-                        tint = Color.White
-                    )
-                }
             }
+        }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
@@ -264,6 +246,5 @@ fun AddBudgetBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
             }
-        }
     }
 }

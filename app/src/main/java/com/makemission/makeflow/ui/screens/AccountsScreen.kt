@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -54,11 +56,14 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.AnimatedCounter
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -70,174 +75,365 @@ fun AccountsScreen(
     val accounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
 
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
     var showAddAccount by remember { mutableStateOf(false) }
     var showEditAccount by remember { mutableStateOf<AccountEntity?>(null) }
     var accountToDelete by remember { mutableStateOf<AccountEntity?>(null) }
+    var selectedAccount by remember { mutableStateOf<AccountEntity?>(null) }
+    val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF121315))
-    ) {
-        if (accounts.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(
+    if (layoutMode == DeviceLayoutMode.EXPANDED && accounts.isNotEmpty()) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            Box(modifier = Modifier.weight(0.4f).fillMaxHeight()) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalFadingEdge(
+                            topFadeHeight = config.fadingEdgeHeight,
+                            bottomFadeHeight = config.fadingEdgeHeight
+                        ),
+                    contentPadding = PaddingValues(
+                        start = config.horizontalPadding, end = config.horizontalPadding,
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                        start = config.horizontalPadding, end = config.horizontalPadding, bottom = 32.dp
+                        bottom = 140.dp
                     ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AccountBalanceWallet,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.4f),
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Text(
-                        text = "No accounts yet",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.5f)
-                    )
-                    Text(
-                        text = "Tap + to add your first account",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalFadingEdge(
-                        topFadeHeight = config.fadingEdgeHeight,
-                        bottomFadeHeight = config.fadingEdgeHeight
-                    ),
-                contentPadding = PaddingValues(
-                    start = config.horizontalPadding, end = config.horizontalPadding,
-                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                    bottom = 140.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
-            ) {
-                item {
-                    LargeTitleItem(title = "Accounts", scrollState = listState)
-                }
-                item {
-                    StaggeredItem(index = 1) {
-                    CardContainer {
-                        Column {
-                            Text(
-                                text = "Total balance",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.6f)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            AnimatedCounter(
-                                targetValue = totalBalance,
-                                prefix = "$currencySymbol ",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.White
-                            )
+                    item {
+                        LargeTitleItem(title = "Accounts", scrollState = listState)
+                    }
+                    item {
+                        StaggeredItem(index = 1) {
+                        CardContainer {
+                            Column {
+                                Text(
+                                    text = "Total balance",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                AnimatedCounter(
+                                    targetValue = totalBalance,
+                                    formatter = { CurrencyFormatter.format(it, selectedCurrency) },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White
+                                )
+                            }
+                        }
                         }
                     }
-                    }
-                }
-
-                if (config.isTablet && config.isLandscape) {
-                    val chunked = accounts.chunked(2)
-                    itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
-                        StaggeredItem(index = index + 2) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
-                        ) {
-                            chunk.forEach { account ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
-                                    CardContainer {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
-                                            Spacer(Modifier.width(14.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                                Text("Initial: $currencySymbol ${String.format("%,.2f", account.initialBalance)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
+                        val chunked = accounts.chunked(2)
+                        itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
+                            StaggeredItem(index = index + 2) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                            ) {
+                                chunk.forEach { account ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                                        CardContainer {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ selectedAccount = account; showEditAccount = null }, onLongClick={ accountToDelete = account }),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                                Spacer(Modifier.width(14.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                }
+                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
                                             }
-                                            Text("$currencySymbol ${String.format("%,.2f", account.balance)}", style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
                                         }
                                     }
                                 }
+                                if (chunk.size == 1) { Spacer(modifier = Modifier.weight(1f)) }
                             }
-                            if (chunk.size == 1) { Spacer(modifier = Modifier.weight(1f)) }
+                            }
                         }
+                    } else {
+                        itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
+                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                            StaggeredItem(index = index + 2) {
+                            CardContainer {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ selectedAccount = account; showEditAccount = null }, onLongClick={ accountToDelete = account }),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                    Spacer(Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    }
+                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                }
+                            }
+                            }
+                        }
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
+                }
+                CollapsingTopBar(
+                    title = "Accounts",
+                    scrollState = listState,
+                    modifier = Modifier.align(Alignment.TopStart),
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showAddAccount = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = "Add account",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+            Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
+                if (selectedAccount != null) {
+                    val acct = selectedAccount!!
+                    val dotColor = try { Color(android.graphics.Color.parseColor(acct.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight + 8.dp,
+                                start = 24.dp, end = 24.dp
+                            )
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            Text(
+                                text = "Account Details",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(dotColor, CircleShape)
+                            )
+                            Text(
+                                text = acct.name,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = CurrencyFormatter.format(acct.balance, selectedCurrency),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Initial balance: ${CurrencyFormatter.format(acct.initialBalance, selectedCurrency)}",
+                                color = Color.White.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
                         }
                     }
                 } else {
-                    itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
-                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
-
-                        StaggeredItem(index = index + 2) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Select an account to see details",
+                            color = Color.White.copy(alpha = 0.4f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            if (accounts.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                            start = config.horizontalPadding, end = config.horizontalPadding, bottom = 32.dp
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.AccountBalanceWallet,
+                            contentDescription = null,
+                            tint = Color.White.copy(alpha = 0.4f),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Text(
+                            text = "No accounts yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.5f)
+                        )
+                        Text(
+                            text = "Tap + to add your first account",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalFadingEdge(
+                            topFadeHeight = config.fadingEdgeHeight,
+                            bottomFadeHeight = config.fadingEdgeHeight
+                        ),
+                    contentPadding = PaddingValues(
+                        start = config.horizontalPadding, end = config.horizontalPadding,
+                        top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                        bottom = 140.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                ) {
+                    item {
+                        LargeTitleItem(title = "Accounts", scrollState = listState)
+                    }
+                    item {
+                        StaggeredItem(index = 1) {
                         CardContainer {
-                            Row(
-                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
-                                Spacer(Modifier.width(14.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                    Text("Initial: $currencySymbol ${String.format("%,.2f", account.initialBalance)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
-                                }
-                                Text("$currencySymbol ${String.format("%,.2f", account.balance)}", style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                            Column {
+                                Text(
+                                    text = "Total balance",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White.copy(alpha = 0.6f)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                AnimatedCounter(
+                                    targetValue = totalBalance,
+                                    formatter = { CurrencyFormatter.format(it, selectedCurrency) },
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color.White
+                                )
                             }
                         }
                         }
                     }
-                }
 
-                item {
-                    Spacer(modifier = Modifier.height(80.dp))
+                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
+                        val chunked = accounts.chunked(2)
+                        itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
+                            StaggeredItem(index = index + 2) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                            ) {
+                                chunk.forEach { account ->
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                                        CardContainer {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                                Spacer(Modifier.width(14.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                }
+                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                            }
+                                        }
+                                    }
+                                }
+                                if (chunk.size == 1) { Spacer(modifier = Modifier.weight(1f)) }
+                            }
+                            }
+                        }
+                    } else {
+                        itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
+                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+
+                            StaggeredItem(index = index + 2) {
+                            CardContainer {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
+                                    Spacer(Modifier.width(14.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    }
+                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                }
+                            }
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(80.dp))
+                    }
                 }
             }
+
+            CollapsingTopBar(
+                title = "Accounts",
+                scrollState = listState,
+                modifier = Modifier.align(Alignment.TopStart),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showAddAccount = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Add account",
+                            tint = Color.White
+                        )
+                    }
+                }
+            )
         }
-
-        CollapsingTopBar(
-            title = "Accounts",
-            scrollState = listState,
-            modifier = Modifier.align(Alignment.TopStart),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = { showAddAccount = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add account",
-                        tint = Color.White
-                    )
-                }
-            }
-        )
     }
 
     if (showAddAccount) {

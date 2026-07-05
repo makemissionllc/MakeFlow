@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MakeFlow</string>
+    <string name="widget_description">Your financial snapshot at a glance</string>
 </resources>

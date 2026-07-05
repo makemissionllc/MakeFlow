@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -45,7 +47,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
@@ -64,6 +70,7 @@ import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -78,8 +85,12 @@ fun HistoryScreen(
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val recentlyDeleted by viewModel.recentlyDeleted.collectAsState()
+
+    val layoutMode = LocalDeviceLayoutMode.current
+    var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -108,6 +119,163 @@ fun HistoryScreen(
     }
 
     val config = LocalAdaptiveConfig.current
+
+    if (layoutMode == DeviceLayoutMode.EXPANDED) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.weight(0.4f).fillMaxHeight()) {
+                HistoryListContent(
+                    viewModel = viewModel,
+                    hapticManager = hapticManager,
+                    config = config,
+                    transactions = transactions,
+                    accounts = accounts,
+                    categories = categories,
+                    currencySymbol = currencySymbol,
+                    selectedCurrency = selectedCurrency,
+                    selectedFilter = selectedFilter,
+                    selectedTransaction = selectedTransaction,
+                    groupedTransactions = groupedTransactions,
+                    listState = listState,
+                    snackbarHostState = snackbarHostState,
+                    todayCal = todayCal,
+                    yesterdayCal = yesterdayCal,
+                    onTransactionClick = { tx -> selectedTransaction = tx }
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .background(Color.White.copy(alpha = 0.1f))
+            )
+            Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
+                if (selectedTransaction != null) {
+                    val tx = selectedTransaction!!
+                    val category = categories.find { it.id == tx.categoryId }
+                    val categoryName = category?.name ?: "Uncategorized"
+                    val categoryColor = try {
+                        Color(android.graphics.Color.parseColor(category?.colorHex ?: "#9E9E9E"))
+                    } catch (_: Exception) { Color(0xFF9E9E9E) }
+                    val account = accounts.find { it.id == tx.accountId }
+                    val accountName = account?.name ?: ""
+                    val prefix = if (tx.type == "INCOME") "+" else "-"
+                    val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else Color(0xFFFF3B30)
+                    val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(
+                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight + 8.dp,
+                                start = 24.dp, end = 24.dp
+                            )
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                            Text(
+                                text = "Transaction Details",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Color.White
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(categoryColor, CircleShape)
+                            )
+                            Text(
+                                text = categoryName,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "$prefix$formattedAmount",
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = amountColor
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = tx.type,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                                Spacer(Modifier.width(16.dp))
+                                Text(
+                                    text = android.text.format.DateFormat.format("dd MMM yyyy", Date(tx.timestamp)).toString(),
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                            Text(
+                                text = accountName,
+                                color = Color.White.copy(alpha = 0.7f),
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            if (tx.note.isNotBlank()) {
+                                Text(
+                                    text = tx.note,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Select a transaction to see details",
+                            color = Color.White.copy(alpha = 0.4f),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+        }
+    } else {
+        HistoryListContent(
+            viewModel = viewModel,
+            hapticManager = hapticManager,
+            config = config,
+            transactions = transactions,
+            accounts = accounts,
+            categories = categories,
+            currencySymbol = currencySymbol,
+            selectedCurrency = selectedCurrency,
+            selectedFilter = selectedFilter,
+            selectedTransaction = selectedTransaction,
+            groupedTransactions = groupedTransactions,
+            listState = listState,
+            snackbarHostState = snackbarHostState,
+            todayCal = todayCal,
+            yesterdayCal = yesterdayCal,
+            onTransactionClick = null
+        )
+    }
+}
+
+@Composable
+private fun HistoryListContent(
+    viewModel: HistoryViewModel,
+    hapticManager: HapticManager,
+    config: com.makemission.makeflow.ui.components.AdaptiveConfig,
+    transactions: List<TransactionEntity>,
+    accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
+    categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
+    currencySymbol: String,
+    selectedCurrency: String,
+    selectedFilter: String,
+    selectedTransaction: TransactionEntity?,
+    groupedTransactions: Map<String, List<TransactionEntity>>,
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    snackbarHostState: SnackbarHostState,
+    todayCal: Calendar,
+    yesterdayCal: Calendar,
+    onTransactionClick: ((TransactionEntity) -> Unit)?
+) {
+    val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -249,7 +417,7 @@ fun HistoryScreen(
                         val accountName = account?.name ?: ""
                         val prefix = if (tx.type == "INCOME") "+" else "-"
                         val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else Color(0xFFFF3B30)
-                        val formattedAmount = "$currencySymbol ${String.format("%,.2f", tx.amount)}"
+                        val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
 
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
@@ -297,7 +465,13 @@ fun HistoryScreen(
                             }
                         ) {
                             Column(
-                                modifier = Modifier.clip(MaterialTheme.shapes.medium)
+                                modifier = Modifier
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .then(
+                                        if (onTransactionClick != null) {
+                                            Modifier.clickable { onTransactionClick(tx) }
+                                        } else Modifier
+                                    )
                             ) {
                                 if (config.isTablet && config.isLandscape) {
                                     Row(

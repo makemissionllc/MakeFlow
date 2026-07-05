@@ -53,6 +53,7 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.components.StaggeredItem
@@ -61,6 +62,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
 import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -74,6 +76,7 @@ fun BudgetScreen(
     val budgets by viewModel.budgets.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val budgetSuggestions by viewModel.budgetSuggestions.collectAsState()
 
     val suggestionsByCategory = remember(budgetSuggestions) {
@@ -169,8 +172,9 @@ fun BudgetScreen(
                     item {
                         LargeTitleItem(title = "Budgets", scrollState = listState)
                     }
-                    if (config.isTablet && config.isLandscape) {
-                        val chunked = budgets.chunked(2)
+                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
+                        val columns = if (config.layoutMode == DeviceLayoutMode.EXPANDED) 3 else 2
+                        val chunked = budgets.chunked(columns)
                         itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
                             StaggeredItem(index = index + 1) {
                             Row(
@@ -182,7 +186,7 @@ fun BudgetScreen(
                                     if (suggestion != null) {
                                         SuggestionCard(
                                             suggestion = suggestion,
-                                            currencySymbol = currencySymbol,
+                                            currencyCode = selectedCurrency,
                                             onApply = { viewModel.applySuggestion(suggestion) },
                                             onDismiss = { viewModel.dismissSuggestion(suggestion) }
                                         )
@@ -209,7 +213,7 @@ fun BudgetScreen(
                                                         modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
                                                     )
                                                 }
-                                                Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} of $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
+                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
                                                 AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
                                             }
                                         }
@@ -228,7 +232,7 @@ fun BudgetScreen(
                             if (suggestion != null) {
                                 SuggestionCard(
                                     suggestion = suggestion,
-                                    currencySymbol = currencySymbol,
+                                    currencyCode = selectedCurrency,
                                     onApply = { viewModel.applySuggestion(suggestion) },
                                     onDismiss = { viewModel.dismissSuggestion(suggestion) }
                                 )
@@ -254,7 +258,7 @@ fun BudgetScreen(
                                             modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
                                         )
                                     }
-                                    Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} of $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
+                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
                                     AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
                                 }
                             }
@@ -342,16 +346,17 @@ fun BudgetScreen(
 @Composable
 fun SuggestionCard(
     suggestion: BudgetSuggestion,
-    currencySymbol: String,
+    currencyCode: String,
     onApply: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val lowConfidence = suggestion.confidence < 0.5f
     val alpha = if (lowConfidence) 0.6f else 1f
+    val formattedAmount = CurrencyFormatter.format(suggestion.suggestedAmount, currencyCode)
     val message = when (suggestion.reason) {
-        SuggestionReason.NO_BUDGET_SET -> "Based on your last 3 months, try a budget of $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)}"
-        SuggestionReason.CONSISTENTLY_OVER -> "You've gone over this budget 2 months running — adjust to $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)}?"
-        SuggestionReason.CONSISTENTLY_UNDER -> "You're consistently under this budget — lower it to $currencySymbol ${String.format("%,.2f", suggestion.suggestedAmount)} and free up room elsewhere?"
+        SuggestionReason.NO_BUDGET_SET -> "Based on your last 3 months, try a budget of $formattedAmount"
+        SuggestionReason.CONSISTENTLY_OVER -> "You've gone over this budget 2 months running — adjust to $formattedAmount?"
+        SuggestionReason.CONSISTENTLY_UNDER -> "You're consistently under this budget — lower it to $formattedAmount and free up room elsewhere?"
     }
 
     CardContainer {

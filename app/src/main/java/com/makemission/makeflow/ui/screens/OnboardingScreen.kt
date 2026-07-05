@@ -68,6 +68,7 @@ import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -125,6 +126,7 @@ fun OnboardingScreen(
                         showNameError = showNameError
                     )
                     1 -> AccountSetupStageView(
+                        selectedCurrency = selectedCurrency,
                         transientAccounts = transientAccounts,
                         accountName = accountName,
                         accountBalance = accountBalance,
@@ -252,9 +254,9 @@ fun WelcomeStageView(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy((-12).dp)
             ) {
-                OnboardingVisualCard("Cash", "KES 3,600.00", Icons.Rounded.Wallet, Modifier.align(Alignment.Start))
-                OnboardingVisualCard("Savings", "KES 10,000.00", Icons.Rounded.Savings, Modifier.align(Alignment.End))
-                OnboardingVisualCard("Credit card", "KES 1,450.00", Icons.Rounded.AccountBalanceWallet, Modifier.align(Alignment.Start))
+                OnboardingVisualCard("Cash", CurrencyFormatter.format(3600.0, selectedCurrency), Icons.Rounded.Wallet, Modifier.align(Alignment.Start))
+                OnboardingVisualCard("Savings", CurrencyFormatter.format(10000.0, selectedCurrency), Icons.Rounded.Savings, Modifier.align(Alignment.End))
+                OnboardingVisualCard("Credit card", CurrencyFormatter.format(1450.0, selectedCurrency), Icons.Rounded.AccountBalanceWallet, Modifier.align(Alignment.Start))
             }
         }
 
@@ -331,6 +333,7 @@ fun WelcomeStageView(
 
 @Composable
 fun AccountSetupStageView(
+    selectedCurrency: String = "KES",
     transientAccounts: List<AccountEntity>,
     accountName: String,
     accountBalance: String,
@@ -377,7 +380,7 @@ fun AccountSetupStageView(
             OutlinedTextField(
                 value = accountBalance,
                 onValueChange = onBalanceChange,
-                label = { Text("Bal (KES)") },
+                label = { Text("Bal ($selectedCurrency)") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -456,7 +459,7 @@ fun AccountSetupStageView(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = String.format("KES %,.2f", item.balance), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(text = CurrencyFormatter.format(item.balance, selectedCurrency), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = "Discard",

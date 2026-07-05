@@ -71,7 +71,8 @@ fun AnimatedCounter(
     animationSpec: AnimationSpec<Float> = spring(
         dampingRatio = Spring.DampingRatioNoBouncy,
         stiffness = Spring.StiffnessMediumLow
-    )
+    ),
+    formatter: (Double) -> String = { String.format("%,.2f", it) }
 ) {
     val animatedValue by animateFloatAsState(
         targetValue = targetValue.toFloat(),
@@ -79,7 +80,7 @@ fun AnimatedCounter(
         label = "counter"
     )
     Text(
-        text = "$prefix${String.format("%,.2f", animatedValue.toDouble())}$suffix",
+        text = "$prefix${formatter(animatedValue.toDouble())}$suffix",
         modifier = modifier,
         color = color,
         style = style

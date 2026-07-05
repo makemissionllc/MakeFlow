@@ -8,6 +8,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 
 data class AdaptiveConfig(
     val horizontalPadding: Dp = 20.dp,
@@ -21,18 +23,19 @@ data class AdaptiveConfig(
     val navCapsulePadding: Dp = 24.dp,
     val fadingEdgeHeight: Dp = 80.dp,
     val isTablet: Boolean = false,
-    val isLandscape: Boolean = false
+    val isLandscape: Boolean = false,
+    val layoutMode: DeviceLayoutMode = DeviceLayoutMode.COMPACT
 )
 
 val LocalAdaptiveConfig = staticCompositionLocalOf { AdaptiveConfig() }
 
 @Composable
 fun rememberAdaptiveConfig(): AdaptiveConfig {
+    val layoutMode = LocalDeviceLayoutMode.current
     val config = LocalConfiguration.current
-    val widthDp = config.screenWidthDp
     val isLandscape = config.orientation == Configuration.ORIENTATION_LANDSCAPE
-    return if (widthDp >= 600 && isLandscape) {
-        AdaptiveConfig(
+    return when (layoutMode) {
+        DeviceLayoutMode.EXPANDED -> AdaptiveConfig(
             horizontalPadding = 48.dp,
             cardSpacing = 24.dp,
             contentMaxWidth = Dp.Unspecified,
@@ -44,10 +47,10 @@ fun rememberAdaptiveConfig(): AdaptiveConfig {
             navCapsulePadding = 48.dp,
             fadingEdgeHeight = 120.dp,
             isTablet = true,
-            isLandscape = true
+            isLandscape = isLandscape,
+            layoutMode = layoutMode
         )
-    } else if (widthDp >= 600) {
-        AdaptiveConfig(
+        DeviceLayoutMode.MEDIUM -> AdaptiveConfig(
             horizontalPadding = 32.dp,
             cardSpacing = 20.dp,
             contentMaxWidth = 640.dp,
@@ -58,9 +61,12 @@ fun rememberAdaptiveConfig(): AdaptiveConfig {
             navIconSize = 22.dp,
             navCapsulePadding = 48.dp,
             isTablet = true,
-            isLandscape = false
+            isLandscape = isLandscape,
+            layoutMode = layoutMode
         )
-    } else {
-        AdaptiveConfig()
+        DeviceLayoutMode.COMPACT -> AdaptiveConfig(
+            isLandscape = isLandscape,
+            layoutMode = layoutMode
+        )
     }
 }

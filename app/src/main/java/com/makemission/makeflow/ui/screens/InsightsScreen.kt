@@ -53,11 +53,14 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
@@ -80,6 +83,7 @@ fun InsightsScreen(
     val totalIncome by viewModel.totalIncome.collectAsState()
     val totalExpenses by viewModel.totalExpenses.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val selectedCurrency by viewModel.selectedCurrency.collectAsState()
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -184,7 +188,7 @@ fun InsightsScreen(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                         Text(
-                            text = "$currencySymbol ${String.format("%,.2f", totalIncome)}",
+                            text = CurrencyFormatter.format(totalIncome, selectedCurrency),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFF4CAF50)
                         )
@@ -203,7 +207,7 @@ fun InsightsScreen(
                             color = Color.White.copy(alpha = 0.6f)
                         )
                         Text(
-                            text = "$currencySymbol ${String.format("%,.2f", totalExpenses)}",
+                            text = CurrencyFormatter.format(totalExpenses, selectedCurrency),
                             style = MaterialTheme.typography.titleMedium,
                             color = Color(0xFFEF5350)
                         )
@@ -225,7 +229,7 @@ fun InsightsScreen(
                 categorySpending
             }
 
-            if (config.isTablet && config.isLandscape) {
+            if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
@@ -276,7 +280,7 @@ fun InsightsScreen(
                                     }
                                 }
                                 Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                                    Text("$currencySymbol ${String.format("%,.2f", totalExpenses)}", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                                    Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
                                     Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
                                 }
                             }
@@ -302,7 +306,7 @@ fun InsightsScreen(
                                     Box(Modifier.size(10.dp).background(dotColor, CircleShape))
                                     Spacer(Modifier.width(10.dp))
                                     Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
-                                    Text("$currencySymbol ${String.format("%,.2f", item.amount)}", style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
+                                    Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
                                     Spacer(Modifier.width(10.dp))
                                     Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
                                 }
@@ -360,7 +364,7 @@ fun InsightsScreen(
                             }
                         }
                         Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                            Text("$currencySymbol ${String.format("%,.2f", totalExpenses)}", color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
+                            Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
                             Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
                         }
                     }
@@ -373,7 +377,7 @@ fun InsightsScreen(
                             Box(Modifier.size(8.dp).background(dotColor, CircleShape))
                             Spacer(Modifier.width(8.dp))
                             Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
-                            Text("$currencySymbol ${String.format("%,.2f", item.amount)}", style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
+                            Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
                             Spacer(Modifier.width(8.dp))
                             Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
                         }
@@ -512,7 +516,7 @@ fun InsightsScreen(
                         )
                     }
                 } else {
-                    if (config.isTablet && config.isLandscape) {
+                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
                         val chunked = budgets.chunked(2)
                         chunked.forEachIndexed { _, chunk ->
                             Row(
@@ -534,7 +538,7 @@ fun InsightsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
-                                                Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
                                             }
                                             AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
                                         }
@@ -562,7 +566,7 @@ fun InsightsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
-                                    Text("$currencySymbol ${String.format("%,.2f", budget.spentAmount)} / $currencySymbol ${String.format("%,.2f", budget.amount)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
                                 }
 
                                 AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))

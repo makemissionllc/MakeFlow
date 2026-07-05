@@ -15,22 +15,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,8 +43,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
-import com.makemission.makeflow.ui.theme.SheetTopSlideShape
 import kotlinx.coroutines.launch
 
 private val accountColors = listOf(
@@ -57,7 +52,6 @@ private val accountColors = listOf(
     "#9C27B0", "#00BCD4", "#FF5722", "#607D8B"
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddEditAccountBottomSheet(
     onDismiss: () -> Unit,
@@ -66,7 +60,6 @@ fun AddEditAccountBottomSheet(
     currencySymbol: String
 ) {
     val isEdit = account != null
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf(account?.name ?: "") }
@@ -76,40 +69,29 @@ fun AddEditAccountBottomSheet(
     val parsedBalance = balanceInput.toDoubleOrNull()
     val isSaveEnabled = name.isNotBlank()
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color(0xFF1B1C1F),
-        shape = SheetTopSlideShape
+    AdaptiveSheetDialog(
+        onDismiss = onDismiss
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (isEdit) "Edit Account" else "New Account",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
+            Text(
+                text = if (isEdit) "Edit Account" else "New Account",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
+            )
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.Rounded.Close,
+                    contentDescription = "Close",
+                    tint = Color.White
                 )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
-                        tint = Color.White
-                    )
-                }
             }
+        }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -252,6 +234,5 @@ fun AddEditAccountBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
             }
-        }
     }
 }

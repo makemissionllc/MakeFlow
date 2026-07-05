@@ -25,6 +25,9 @@ object CurrencyFormatter {
             if (currencyCode in zeroDecimalCurrencies) {
                 format.maximumFractionDigits = 0
                 format.minimumFractionDigits = 0
+            } else {
+                format.maximumFractionDigits = 2
+                format.minimumFractionDigits = 2
             }
             format.format(amount)
         } catch (e: Exception) {
@@ -57,5 +60,12 @@ object CurrencyFormatter {
         "UGX" -> "UGX"
         "TZS" -> "TZS"
         else -> "KES"
+    }
+
+    fun formatNumber(value: Double, decimalPlaces: Int = 0): String {
+        return NumberFormat.getNumberInstance(Locale.getDefault()).apply {
+            maximumFractionDigits = decimalPlaces
+            minimumFractionDigits = decimalPlaces
+        }.format(value)
     }
 }

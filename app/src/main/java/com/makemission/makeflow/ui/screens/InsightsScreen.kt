@@ -76,6 +76,9 @@ fun InsightsScreen(
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
+    // AnomalyDetector is intentionally save-time-only per original spec
+    // (in-the-moment callout in AddTransactionBottomSheet via MainScreen:380).
+    // Insights is a retrospective monthly summary and does not need it.
     val selectedMonth by viewModel.selectedMonth.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()
     val monthlyBarData by viewModel.monthlyBarData.collectAsState()

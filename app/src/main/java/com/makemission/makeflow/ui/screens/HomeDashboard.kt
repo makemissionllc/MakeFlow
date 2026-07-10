@@ -199,7 +199,6 @@ fun HomeDashboard(
                             }
                         }
                     }
-                    DashboardCardType.QUICK_ADD -> { }
                 }
             }
             item {

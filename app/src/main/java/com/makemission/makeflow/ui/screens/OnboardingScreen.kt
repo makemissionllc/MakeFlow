@@ -460,14 +460,19 @@ fun AccountSetupStageView(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(text = CurrencyFormatter.format(item.balance, selectedCurrency), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = "Discard",
-                                tint = Color.White.copy(alpha = 0.3f),
+                            Box(
                                 modifier = Modifier
-                                    .size(20.dp)
-                                    .clickable { onRemoveAccount(item) }
-                            )
+                                    .size(48.dp)
+                                    .clickable { onRemoveAccount(item) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Discard",
+                                    tint = Color.White.copy(alpha = 0.3f),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }

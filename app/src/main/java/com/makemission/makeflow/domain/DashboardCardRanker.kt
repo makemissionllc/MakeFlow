@@ -2,7 +2,7 @@ package com.makemission.makeflow.domain
 
 import com.makemission.makeflow.data.local.dao.CardHourCount
 
-enum class DashboardCardType { QUICK_ADD, INSIGHTS_SUMMARY, RECURRING, BUDGET_PROGRESS, ACCOUNTS }
+enum class DashboardCardType { INSIGHTS_SUMMARY, RECURRING, BUDGET_PROGRESS, ACCOUNTS }
 
 object DashboardCardRanker {
     private const val MIN_INTERACTIONS_FOR_PERSONALIZATION = 15

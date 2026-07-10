@@ -422,6 +422,7 @@ private fun HistoryListContent(
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
                                 if (value == SwipeToDismissBoxValue.EndToStart) {
+                                    hapticManager.fire(HapticEvent.SWIPE_ACTION_ARMED)
                                     viewModel.deleteTransaction(tx)
                                     hapticManager.fire(HapticEvent.TRANSACTION_DELETED)
                                     true
@@ -466,7 +467,8 @@ private fun HistoryListContent(
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .clip(MaterialTheme.shapes.medium)
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF121315), MaterialTheme.shapes.medium)
                                     .then(
                                         if (onTransactionClick != null) {
                                             Modifier.clickable { onTransactionClick(tx) }
@@ -526,7 +528,7 @@ private fun HistoryListContent(
                                                 Text(subtitle, style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.5f))
                                             }
                                         }
-                                        Text("$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End)
+                                        Text("$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))
                                     }
                                 }
                                 HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 0.5.dp)

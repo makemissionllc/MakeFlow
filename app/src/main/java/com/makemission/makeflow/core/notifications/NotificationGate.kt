@@ -4,6 +4,8 @@ import com.makemission.makeflow.core.device.InterruptionFilterProvider
 import com.makemission.makeflow.core.device.InterruptionState
 import com.makemission.makeflow.data.local.dao.QueuedNotificationDao
 import com.makemission.makeflow.data.local.entity.QueuedNotificationEntity
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val MAX_QUEUED = 20
 
@@ -16,12 +18,13 @@ class NotificationGate(
     private val queuedNotificationDao: QueuedNotificationDao,
     private val notificationSender: NotificationSender
 ) {
+    private val mutex = Mutex()
     suspend fun dispatchOrQueue(
         type: String,
         title: String,
         body: String,
         payload: String? = null
-    ) {
+    ) = mutex.withLock {
         val state = try {
             interruptionFilterProvider.getCurrentState()
         } catch (_: Exception) {
@@ -43,15 +46,15 @@ class NotificationGate(
         }
     }
 
-    suspend fun flushQueueIfClear() {
+    suspend fun flushQueueIfClear() = mutex.withLock {
         val state = try {
             interruptionFilterProvider.getCurrentState()
         } catch (_: Exception) {
             InterruptionState.NORMAL
         }
-        if (state != InterruptionState.NORMAL) return
+        if (state != InterruptionState.NORMAL) return@withLock
         val queued = queuedNotificationDao.getAll()
-        if (queued.isEmpty()) return
+        if (queued.isEmpty()) return@withLock
         if (queued.size > 1) {
             notificationSender.send(
                 title = "You have ${queued.size} updates",

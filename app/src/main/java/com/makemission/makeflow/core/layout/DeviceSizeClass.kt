@@ -11,14 +11,18 @@ enum class DeviceLayoutMode {
     EXPANDED
 }
 
+fun mapWidthToLayoutMode(widthSizeClass: WindowWidthSizeClass): DeviceLayoutMode {
+    return when (widthSizeClass) {
+        WindowWidthSizeClass.Compact -> DeviceLayoutMode.COMPACT
+        WindowWidthSizeClass.Medium -> DeviceLayoutMode.MEDIUM
+        WindowWidthSizeClass.Expanded -> DeviceLayoutMode.EXPANDED
+        else -> DeviceLayoutMode.COMPACT
+    }
+}
+
 @Composable
 fun rememberDeviceLayoutMode(windowSizeClass: WindowSizeClass): DeviceLayoutMode {
     return remember(windowSizeClass) {
-        when (windowSizeClass.widthSizeClass) {
-            WindowWidthSizeClass.Compact -> DeviceLayoutMode.COMPACT
-            WindowWidthSizeClass.Medium -> DeviceLayoutMode.MEDIUM
-            WindowWidthSizeClass.Expanded -> DeviceLayoutMode.EXPANDED
-            else -> DeviceLayoutMode.COMPACT
-        }
+        mapWidthToLayoutMode(windowSizeClass.widthSizeClass)
     }
 }

@@ -19,10 +19,12 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
 import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.domain.BudgetSuggestionEngine
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 class FinanceRepositoryImpl(
@@ -154,7 +156,9 @@ class FinanceRepositoryImpl(
 
     override suspend fun refreshRecurringPatterns() {
         val allTransactions = transactionDao.getAllTransactions().first()
-        val patterns = RecurringDetector.detect(allTransactions)
+        val patterns = withContext(Dispatchers.Default) {
+            RecurringDetector.detect(allTransactions)
+        }
         recurringPatternDao?.let { dao ->
             dao.deleteAll()
             if (patterns.isNotEmpty()) {

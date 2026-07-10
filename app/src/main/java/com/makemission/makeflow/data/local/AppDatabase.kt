@@ -99,6 +99,20 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS accounts (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        balance REAL NOT NULL,
+                        initialBalance REAL NOT NULL,
+                        colorHex TEXT NOT NULL DEFAULT '#4CAF50'
+                    )"""
+                )
+            }
+        }
+
         private val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN accountId TEXT NOT NULL DEFAULT ''")
@@ -165,8 +179,8 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                    .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance
                     CoroutineScope(Dispatchers.IO).launch {

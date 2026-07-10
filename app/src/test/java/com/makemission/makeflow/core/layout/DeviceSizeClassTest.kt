@@ -23,13 +23,4 @@ class DeviceSizeClassTest {
         val mode = mapWidthToLayoutMode(WindowWidthSizeClass.Expanded)
         assertEquals(DeviceLayoutMode.EXPANDED, mode)
     }
-
-    private fun mapWidthToLayoutMode(widthSizeClass: WindowWidthSizeClass): DeviceLayoutMode {
-        return when (widthSizeClass) {
-            WindowWidthSizeClass.Compact -> DeviceLayoutMode.COMPACT
-            WindowWidthSizeClass.Medium -> DeviceLayoutMode.MEDIUM
-            WindowWidthSizeClass.Expanded -> DeviceLayoutMode.EXPANDED
-            else -> DeviceLayoutMode.COMPACT
-        }
-    }
 }

@@ -75,7 +75,6 @@ import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
-import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
@@ -101,6 +100,7 @@ import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 enum class MakeFlowTab {
@@ -353,7 +353,7 @@ fun MainScreen(
         AddTransactionBottomSheet(
             onDismiss = { showAddTransaction = false },
             onSave = { amount, type, categoryId, accountId, note, timestamp ->
-                scope.launch {
+                scope.launch(Dispatchers.IO) {
                     repository.insertTransaction(
                         TransactionEntity(
                             amount = amount,

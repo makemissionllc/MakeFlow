@@ -74,7 +74,7 @@ import java.util.Locale
 @Composable
 fun AddTransactionBottomSheet(
     onDismiss: () -> Unit,
-    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long) -> Unit,
+    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long, fromAccountId: String?, toAccountId: String?) -> Unit,
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
     currencySymbol: String,
@@ -88,6 +88,8 @@ fun AddTransactionBottomSheet(
     var selectedType by remember { mutableStateOf("INCOME") }
     var amountInput by remember { mutableStateOf("") }
     var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferFromId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferToId by remember { mutableStateOf(accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
     var note by remember { mutableStateOf("") }
     var selectedDate by remember { mutableStateOf(Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -98,7 +100,8 @@ fun AddTransactionBottomSheet(
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
 
     val parentCategories = remember(categories, selectedType) {
-        categories.filter { it.type == selectedType && it.parentCategoryId == null }
+        if (selectedType == "TRANSFER") emptyList()
+        else categories.filter { it.type == selectedType && it.parentCategoryId == null }
     }
 
     var selectedParentCategory by remember { mutableStateOf<CategoryEntity?>(null) }
@@ -111,7 +114,7 @@ fun AddTransactionBottomSheet(
     }
 
     LaunchedEffect(note) {
-        if (note.length < 2) {
+        if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
         }
@@ -141,21 +144,29 @@ fun AddTransactionBottomSheet(
     }
 
     val childCategories = remember(categories, selectedParentCategory) {
-        selectedParentCategory?.let { parent ->
+        if (selectedType == "TRANSFER") emptyList()
+        else selectedParentCategory?.let { parent ->
             categories.filter { it.parentCategoryId == parent.id }
         } ?: emptyList()
     }
 
-    val resolvedCategoryId = selectedChildCategory?.id ?: selectedParentCategory?.id
+    val resolvedCategoryId = if (selectedType == "TRANSFER") null
+        else selectedChildCategory?.id ?: selectedParentCategory?.id
 
     LaunchedEffect(selectedType, categories) {
-        val parents = categories.filter { it.type == selectedType && it.parentCategoryId == null }
-        selectedParentCategory = parents.firstOrNull()
-        selectedChildCategory = null
+        if (selectedType != "TRANSFER") {
+            val parents = categories.filter { it.type == selectedType && it.parentCategoryId == null }
+            selectedParentCategory = parents.firstOrNull()
+            selectedChildCategory = null
+        } else {
+            selectedParentCategory = null
+            selectedChildCategory = null
+        }
     }
 
     val parsedAmount = amountInput.toDoubleOrNull()
-    val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0
+    val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 &&
+        (selectedType != "TRANSFER" || selectedTransferFromId != selectedTransferToId)
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
 
@@ -233,7 +244,7 @@ fun AddTransactionBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                listOf("Income" to "INCOME", "Expense" to "EXPENSE").forEach { (label, value) ->
+                listOf("Income" to "INCOME", "Expense" to "EXPENSE", "Transfer" to "TRANSFER").forEach { (label, value) ->
                     val isSelected = selectedType == value
                     Text(
                         text = label,
@@ -300,32 +311,86 @@ fun AddTransactionBottomSheet(
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "From account",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(accounts) { account ->
-                        val isSelected = account.id == selectedAccountId
-                        Text(
-                            text = account.name,
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            modifier = Modifier
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { selectedAccountId = account.id }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        )
+            if (selectedType == "TRANSFER") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "From account",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(accounts) { account ->
+                            val isSelected = account.id == selectedTransferFromId
+                            Text(
+                                text = account.name,
+                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(
+                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { selectedTransferFromId = account.id }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "To account",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(accounts) { account ->
+                            val isSelected = account.id == selectedTransferToId
+                            Text(
+                                text = account.name,
+                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(
+                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { selectedTransferToId = account.id }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "Account",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(accounts) { account ->
+                            val isSelected = account.id == selectedAccountId
+                            Text(
+                                text = account.name,
+                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(
+                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                        RoundedCornerShape(14.dp)
+                                    )
+                                    .clickable { selectedAccountId = account.id }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
                     }
                 }
             }
 
+            if (selectedType != "TRANSFER") {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Category",
@@ -411,6 +476,7 @@ fun AddTransactionBottomSheet(
                     }
                 }
             }
+            }
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 BasicTextField(
@@ -464,7 +530,9 @@ fun AddTransactionBottomSheet(
                 onClick = {
                     val amount = parsedAmount ?: return@Button
                     scope.launch {
-                        onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate)
+                        val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
+                        val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
+                        onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
                         hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                         if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
                             val result = onAnomalyCheck(amount, resolvedCategoryId)

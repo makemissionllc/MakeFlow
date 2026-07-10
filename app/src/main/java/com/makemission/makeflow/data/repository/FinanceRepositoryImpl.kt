@@ -86,45 +86,85 @@ class FinanceRepositoryImpl(
 
     override suspend fun insertTransaction(transaction: TransactionEntity) {
         transactionDao.insertTransaction(transaction)
-        accountDao?.getAccountById(transaction.accountId)?.let { account ->
-            val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
-            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        if (transaction.type == "TRANSFER" && transaction.fromAccountId != null && transaction.toAccountId != null) {
+            accountDao?.getAccountById(transaction.fromAccountId!!)?.let { from ->
+                accountDao?.updateAccount(from.copy(balance = from.balance - transaction.amount))
+            }
+            accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
+                accountDao?.updateAccount(to.copy(balance = to.balance + transaction.amount))
+            }
+        } else {
+            accountDao?.getAccountById(transaction.accountId)?.let { account ->
+                val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
+                accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+            }
+            if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+                budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+            }
         }
-        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
-            budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+        if (transaction.type != "TRANSFER") {
+            refreshRecurringPatterns()
         }
-        refreshRecurringPatterns()
     }
 
     override suspend fun updateTransaction(transaction: TransactionEntity) {
         transactionDao.getTransactionById(transaction.id)?.let { old ->
-            accountDao?.getAccountById(old.accountId)?.let { account ->
-                val reverseDelta = if (old.type == "INCOME") -old.amount else old.amount
-                accountDao?.updateAccount(account.copy(balance = account.balance + reverseDelta))
-            }
-            if (old.categoryId != null && old.type == "EXPENSE") {
-                budgetDao?.decrementBudgetSpending(old.categoryId, old.amount)
+            if (old.type == "TRANSFER" && old.fromAccountId != null && old.toAccountId != null) {
+                accountDao?.getAccountById(old.fromAccountId!!)?.let { from ->
+                    accountDao?.updateAccount(from.copy(balance = from.balance + old.amount))
+                }
+                accountDao?.getAccountById(old.toAccountId!!)?.let { to ->
+                    accountDao?.updateAccount(to.copy(balance = to.balance - old.amount))
+                }
+            } else {
+                accountDao?.getAccountById(old.accountId)?.let { account ->
+                    val reverseDelta = if (old.type == "INCOME") -old.amount else old.amount
+                    accountDao?.updateAccount(account.copy(balance = account.balance + reverseDelta))
+                }
+                if (old.categoryId != null && old.type == "EXPENSE") {
+                    budgetDao?.decrementBudgetSpending(old.categoryId, old.amount)
+                }
             }
         }
         transactionDao.updateTransaction(transaction)
-        accountDao?.getAccountById(transaction.accountId)?.let { account ->
-            val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
-            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+        if (transaction.type == "TRANSFER" && transaction.fromAccountId != null && transaction.toAccountId != null) {
+            accountDao?.getAccountById(transaction.fromAccountId!!)?.let { from ->
+                accountDao?.updateAccount(from.copy(balance = from.balance - transaction.amount))
+            }
+            accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
+                accountDao?.updateAccount(to.copy(balance = to.balance + transaction.amount))
+            }
+        } else {
+            accountDao?.getAccountById(transaction.accountId)?.let { account ->
+                val delta = if (transaction.type == "INCOME") transaction.amount else -transaction.amount
+                accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+            }
+            if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+                budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+            }
         }
-        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
-            budgetDao?.updateBudgetSpending(transaction.categoryId, transaction.amount)
+        if (transaction.type != "TRANSFER") {
+            refreshRecurringPatterns()
         }
-        refreshRecurringPatterns()
     }
 
     override suspend fun deleteTransaction(transaction: TransactionEntity) {
         transactionDao.deleteTransaction(transaction)
-        accountDao?.getAccountById(transaction.accountId)?.let { account ->
-            val delta = if (transaction.type == "INCOME") -transaction.amount else transaction.amount
-            accountDao?.updateAccount(account.copy(balance = account.balance + delta))
-        }
-        if (transaction.categoryId != null && transaction.type == "EXPENSE") {
-            budgetDao?.decrementBudgetSpending(transaction.categoryId, transaction.amount)
+        if (transaction.type == "TRANSFER" && transaction.fromAccountId != null && transaction.toAccountId != null) {
+            accountDao?.getAccountById(transaction.fromAccountId!!)?.let { from ->
+                accountDao?.updateAccount(from.copy(balance = from.balance + transaction.amount))
+            }
+            accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
+                accountDao?.updateAccount(to.copy(balance = to.balance - transaction.amount))
+            }
+        } else {
+            accountDao?.getAccountById(transaction.accountId)?.let { account ->
+                val delta = if (transaction.type == "INCOME") -transaction.amount else transaction.amount
+                accountDao?.updateAccount(account.copy(balance = account.balance + delta))
+            }
+            if (transaction.categoryId != null && transaction.type == "EXPENSE") {
+                budgetDao?.decrementBudgetSpending(transaction.categoryId, transaction.amount)
+            }
         }
     }
 
@@ -156,8 +196,9 @@ class FinanceRepositoryImpl(
 
     override suspend fun refreshRecurringPatterns() {
         val allTransactions = transactionDao.getAllTransactions().first()
+        val incomeExpenseOnly = allTransactions.filter { it.type != "TRANSFER" }
         val patterns = withContext(Dispatchers.Default) {
-            RecurringDetector.detect(allTransactions)
+            RecurringDetector.detect(incomeExpenseOnly)
         }
         recurringPatternDao?.let { dao ->
             dao.deleteAll()

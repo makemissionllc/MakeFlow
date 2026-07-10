@@ -199,6 +199,127 @@ class FinanceRepositorySideEffectsTest {
     }
 
     @Test
+    fun transfer_insert_correctly_updates_both_accounts() {
+        runBlocking {
+            val txDao = FakeTransactionDao()
+            val acctDao = FakeAccountDao()
+            acctDao.insertAccount(AccountEntity(id = "from1", name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+            acctDao.insertAccount(AccountEntity(id = "to1", name = "Bank", balance = 500.0, initialBalance = 0.0))
+            val repo = FinanceRepositoryImpl(
+                categoryDao = FakeCategoryDao(),
+                transactionDao = txDao,
+                taskDao = FakeTaskDao(),
+                accountDao = acctDao,
+                budgetDao = FakeBudgetDao(),
+                recurringPatternDao = FakeRecurringPatternDao()
+            )
+
+            repo.insertTransaction(
+                TransactionEntity(
+                    id = "tx1", amount = 200.0, type = "TRANSFER",
+                    fromAccountId = "from1", toAccountId = "to1", note = "transfer", timestamp = 1000
+                )
+            )
+
+            assertEquals(800.0, acctDao.getAccountById("from1")!!.balance, 0.001)
+            assertEquals(700.0, acctDao.getAccountById("to1")!!.balance, 0.001)
+            assertEquals(0, txDao.deleteCount)
+        }
+    }
+
+    @Test
+    fun transfer_delete_reverses_both_accounts() {
+        runBlocking {
+            val txDao = FakeTransactionDao()
+            val acctDao = FakeAccountDao()
+            acctDao.insertAccount(AccountEntity(id = "from1", name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+            acctDao.insertAccount(AccountEntity(id = "to1", name = "Bank", balance = 500.0, initialBalance = 0.0))
+            val repo = FinanceRepositoryImpl(
+                categoryDao = FakeCategoryDao(),
+                transactionDao = txDao,
+                taskDao = FakeTaskDao(),
+                accountDao = acctDao,
+                budgetDao = FakeBudgetDao(),
+                recurringPatternDao = FakeRecurringPatternDao()
+            )
+
+            val tx = TransactionEntity(
+                id = "tx1", amount = 200.0, type = "TRANSFER",
+                fromAccountId = "from1", toAccountId = "to1", note = "transfer", timestamp = 1000
+            )
+            repo.insertTransaction(tx)
+            assertEquals(800.0, acctDao.getAccountById("from1")!!.balance, 0.001)
+            assertEquals(700.0, acctDao.getAccountById("to1")!!.balance, 0.001)
+
+            repo.deleteTransaction(tx)
+            assertEquals(1000.0, acctDao.getAccountById("from1")!!.balance, 0.001)
+            assertEquals(500.0, acctDao.getAccountById("to1")!!.balance, 0.001)
+        }
+    }
+
+    @Test
+    fun transfer_update_reverses_old_and_applies_new() {
+        runBlocking {
+            val txDao = FakeTransactionDao()
+            val acctDao = FakeAccountDao()
+            val fromId = "from1"
+            val toIdOld = "to1"
+            val toIdNew = "to2"
+            acctDao.insertAccount(AccountEntity(id = fromId, name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+            acctDao.insertAccount(AccountEntity(id = toIdOld, name = "Bank A", balance = 500.0, initialBalance = 0.0))
+            acctDao.insertAccount(AccountEntity(id = toIdNew, name = "Bank B", balance = 300.0, initialBalance = 0.0))
+            val repo = FinanceRepositoryImpl(
+                categoryDao = FakeCategoryDao(),
+                transactionDao = txDao,
+                taskDao = FakeTaskDao(),
+                accountDao = acctDao,
+                budgetDao = FakeBudgetDao(),
+                recurringPatternDao = FakeRecurringPatternDao()
+            )
+
+            val oldTx = TransactionEntity(
+                id = "tx1", amount = 200.0, type = "TRANSFER",
+                fromAccountId = fromId, toAccountId = toIdOld, note = "transfer", timestamp = 1000
+            )
+            repo.insertTransaction(oldTx)
+            assertEquals(800.0, acctDao.getAccountById(fromId)!!.balance, 0.001)
+            assertEquals(700.0, acctDao.getAccountById(toIdOld)!!.balance, 0.001)
+
+            val updatedTx = oldTx.copy(toAccountId = toIdNew, amount = 150.0)
+            repo.updateTransaction(updatedTx)
+            assertEquals(850.0, acctDao.getAccountById(fromId)!!.balance, 0.001)
+            assertEquals(500.0, acctDao.getAccountById(toIdOld)!!.balance, 0.001)
+            assertEquals(450.0, acctDao.getAccountById(toIdNew)!!.balance, 0.001)
+        }
+    }
+
+    @Test
+    fun transfer_does_not_trigger_recurring_detection() {
+        runBlocking {
+            val txDao = FakeTransactionDao()
+            val patternDao = FakeRecurringPatternDao()
+            val repo = FinanceRepositoryImpl(
+                categoryDao = FakeCategoryDao(),
+                transactionDao = txDao,
+                taskDao = FakeTaskDao(),
+                accountDao = FakeAccountDao(),
+                budgetDao = FakeBudgetDao(),
+                recurringPatternDao = patternDao
+            )
+
+            repo.insertTransaction(
+                TransactionEntity(
+                    id = "tx1", amount = 100.0, type = "TRANSFER",
+                    fromAccountId = "a1", toAccountId = "a2", note = "transfer", timestamp = 1000
+                )
+            )
+
+            assertEquals(1, txDao.insertCount)
+            assertEquals(0, patternDao.deleteAllCount)
+        }
+    }
+
+    @Test
     fun insertTransaction_triggers_refreshRecurringPatterns_deleteAll() {
         runBlocking {
             val txDao = FakeTransactionDao()

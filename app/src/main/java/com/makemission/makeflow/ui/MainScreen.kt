@@ -352,7 +352,7 @@ fun MainScreen(
     if (showAddTransaction) {
         AddTransactionBottomSheet(
             onDismiss = { showAddTransaction = false },
-            onSave = { amount, type, categoryId, accountId, note, timestamp ->
+            onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
                 scope.launch(Dispatchers.IO) {
                     repository.insertTransaction(
                         TransactionEntity(
@@ -360,6 +360,8 @@ fun MainScreen(
                             type = type,
                             categoryId = categoryId,
                             accountId = accountId,
+                            fromAccountId = fromAccountId,
+                            toAccountId = toAccountId,
                             note = note,
                             timestamp = timestamp
                         )

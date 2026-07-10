@@ -31,6 +31,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -415,8 +416,12 @@ private fun HistoryListContent(
                         }
                         val account = accounts.find { it.id == tx.accountId }
                         val accountName = account?.name ?: ""
-                        val prefix = if (tx.type == "INCOME") "+" else "-"
-                        val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else Color(0xFFFF3B30)
+                        val fromAccount = if (tx.type == "TRANSFER") accounts.find { it.id == tx.fromAccountId } else null
+                        val toAccount = if (tx.type == "TRANSFER") accounts.find { it.id == tx.toAccountId } else null
+                        val fromAccountName = fromAccount?.name ?: ""
+                        val toAccountName = toAccount?.name ?: ""
+                        val prefix = if (tx.type == "INCOME") "+" else if (tx.type == "TRANSFER") "" else "-"
+                        val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else if (tx.type == "TRANSFER") Color(0xFF6DD881) else Color(0xFFFF3B30)
                         val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
 
                         val dismissState = rememberSwipeToDismissBoxState(
@@ -480,13 +485,32 @@ private fun HistoryListContent(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Box(Modifier.size(10.dp).background(categoryColor, CircleShape))
+                                        if (tx.type == "TRANSFER") {
+                                            Icon(
+                                                imageVector = Icons.Rounded.SwapHoriz,
+                                                contentDescription = "Transfer",
+                                                tint = Color(0xFF6DD881),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        } else {
+                                            Box(Modifier.size(10.dp).background(categoryColor, CircleShape))
+                                        }
                                         Spacer(Modifier.width(14.dp))
                                         Column(modifier = Modifier.weight(0.3f)) {
-                                            Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            if (tx.type == "TRANSFER") {
+                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            } else {
+                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            }
                                         }
                                         val subtitle = buildString {
-                                            if (accountName.isNotEmpty()) append(accountName)
+                                            if (tx.type == "TRANSFER") {
+                                                if (fromAccountName.isNotEmpty() && toAccountName.isNotEmpty()) {
+                                                    append("From $fromAccountName to $toAccountName")
+                                                }
+                                            } else {
+                                                if (accountName.isNotEmpty()) append(accountName)
+                                            }
                                             if (tx.note.isNotBlank()) {
                                                 if (isNotEmpty()) append(" - ")
                                                 append(tx.note)
@@ -513,12 +537,31 @@ private fun HistoryListContent(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Box(Modifier.size(8.dp).background(categoryColor, CircleShape))
+                                        if (tx.type == "TRANSFER") {
+                                            Icon(
+                                                imageVector = Icons.Rounded.SwapHoriz,
+                                                contentDescription = "Transfer",
+                                                tint = Color(0xFF6DD881),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        } else {
+                                            Box(Modifier.size(8.dp).background(categoryColor, CircleShape))
+                                        }
                                         Spacer(Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            if (tx.type == "TRANSFER") {
+                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            } else {
+                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            }
                                             val subtitle = buildString {
-                                                if (accountName.isNotEmpty()) append(accountName)
+                                                if (tx.type == "TRANSFER") {
+                                                    if (fromAccountName.isNotEmpty() && toAccountName.isNotEmpty()) {
+                                                        append("From $fromAccountName to $toAccountName")
+                                                    }
+                                                } else {
+                                                    if (accountName.isNotEmpty()) append(accountName)
+                                                }
                                                 if (tx.note.isNotBlank()) {
                                                     if (isNotEmpty()) append(" - ")
                                                     append(tx.note)

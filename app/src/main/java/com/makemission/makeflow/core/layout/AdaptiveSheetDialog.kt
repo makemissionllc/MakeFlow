@@ -2,7 +2,6 @@ package com.makemission.makeflow.core.layout
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -25,7 +24,8 @@ import com.makemission.makeflow.ui.theme.SheetTopSlideShape
 @Composable
 fun AdaptiveSheetDialog(
     onDismiss: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+    scrollable: Boolean = true,
+    content: @Composable () -> Unit
 ) {
     val layoutMode = LocalDeviceLayoutMode.current
 
@@ -37,15 +37,20 @@ fun AdaptiveSheetDialog(
             containerColor = Color(0xFF1B1C1F),
             shape = SheetTopSlideShape
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-                content = content
-            )
+            if (scrollable) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    content()
+                }
+            } else {
+                content()
+            }
         }
     } else {
         Dialog(
@@ -57,15 +62,20 @@ fun AdaptiveSheetDialog(
                 color = Color(0xFF1B1C1F),
                 modifier = Modifier.widthIn(max = 480.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                        .verticalScroll(rememberScrollState())
-                        .padding(bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                    content = content
-                )
+                if (scrollable) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .verticalScroll(rememberScrollState())
+                            .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
+                    ) {
+                        content()
+                    }
+                } else {
+                    content()
+                }
             }
         }
     }

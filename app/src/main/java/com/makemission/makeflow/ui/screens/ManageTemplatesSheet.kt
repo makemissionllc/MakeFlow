@@ -54,38 +54,46 @@ fun ManageTemplatesSheet(
     var editName by remember { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<TransactionTemplateEntity?>(null) }
 
-    AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    AdaptiveSheetDialog(onDismiss = onDismiss, scrollable = false) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(
-                text = "Templates",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close",
-                    tint = Color.White
-                )
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Templates",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
             }
-        }
 
-        if (templates.isEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                text = "No templates yet",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 14.sp,
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        } else {
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
+            if (templates.isEmpty()) {
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "No templates yet",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+            } else {
                 items(templates) { template ->
                     if (editingId == template.id) {
                         Row(

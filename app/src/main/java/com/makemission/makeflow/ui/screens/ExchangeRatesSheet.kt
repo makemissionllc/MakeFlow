@@ -55,34 +55,44 @@ fun ExchangeRatesSheet(
 
     val rateMap = rates.associateBy { it.currencyCode }
 
-    AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    AdaptiveSheetDialog(onDismiss = onDismiss, scrollable = false) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = "Exchange Rates",
-                style = MaterialTheme.typography.titleLarge,
-                color = Color.White
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close",
-                    tint = Color.White
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Exchange Rates",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Close",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "1 $selectedBase = ? (enter rate to convert to $selectedBase)",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
-        }
 
-        Text(
-            text = "1 $selectedBase = ? (enter rate to convert to $selectedBase)",
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 13.sp,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(ALL_CURRENCIES) { currency ->
                 if (currency != selectedBase) {
                     val currentRate = rateMap[currency]

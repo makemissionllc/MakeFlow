@@ -10,6 +10,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
@@ -43,7 +45,8 @@ fun AppNavigationEngine() {
             categoryDao = db.categoryDao(),
             transactionDao = db.transactionDao(),
             taskDao = db.taskDao(),
-            accountDao = db.accountDao()
+            accountDao = db.accountDao(),
+            recurringTransactionDao = db.recurringTransactionDao()
         )
     }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
@@ -100,15 +103,39 @@ fun AppNavigationEngine() {
         }
     }
 
+    LaunchedEffect(Unit) {
+        try {
+            repository.processDueRecurringTransactions()
+        } catch (_: Exception) {
+        }
+    }
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     val windowSizeClass = calculateWindowSizeClass(context as ComponentActivity)
     val deviceLayoutMode = rememberDeviceLayoutMode(windowSizeClass)
+
+    val shortcutType = remember {
+        (context as ComponentActivity).intent?.getStringExtra("shortcut_type")
+            ?.takeIf { it == "EXPENSE" || it == "INCOME" }
+    }
+
+    val appLockEnabled by userPrefDataStore.appLockEnabled.collectAsState(initial = true)
+    var isUnlocked by remember { mutableStateOf(false) }
+
+    LaunchedEffect(appLockEnabled) {
+        if (!appLockEnabled) isUnlocked = true
+    }
 
     CompositionLocalProvider(
         LocalReducedMotion provides powerState.shouldReduceMotion,
         LocalDeviceLayoutMode provides deviceLayoutMode
     ) {
     MakeFlowTheme(themePalette = selectedTheme) {
+        if (!isUnlocked) {
+            com.makemission.makeflow.core.lock.LockScreen(
+                onUnlocked = { isUnlocked = true }
+            )
+        } else {
         Crossfade(
             targetState = isProfiled,
             animationSpec = tween(durationMillis = 400),
@@ -123,7 +150,8 @@ fun AppNavigationEngine() {
                             userPrefDataStore.clearProfile()
                         }
                     },
-                    notificationGate = notificationGate
+                    notificationGate = notificationGate,
+                    initialTransactionType = shortcutType
                 )
             } else {
                 OnboardingScreen(
@@ -141,8 +169,9 @@ fun AppNavigationEngine() {
                     },
                     hapticManager = hapticManager
                 )
-            }
         }
+    }
+    }
     }
     }
 }

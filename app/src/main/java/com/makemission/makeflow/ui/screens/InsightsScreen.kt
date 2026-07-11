@@ -87,6 +87,9 @@ fun InsightsScreen(
     val totalExpenses by viewModel.totalExpenses.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
+    val momItems by viewModel.momItems.collectAsState()
+    val budgetForecasts by viewModel.budgetForecasts.collectAsState()
+    val dailyAverageSpends by viewModel.dailyAverageSpends.collectAsState()
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -222,6 +225,55 @@ fun InsightsScreen(
 
         item {
             StaggeredItem(index = 3) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text("vs previous month", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                if (momItems.isEmpty()) {
+                    Text("No data for comparison", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
+                } else {
+                    momItems.forEach { item ->
+                        val changeColor = when {
+                            item.label == "Income" && item.percentChange >= 0 -> Color(0xFF4CAF50)
+                            item.label == "Income" -> Color(0xFFEF5350)
+                            item.label == "Expenses" && item.percentChange <= 0 -> Color(0xFF4CAF50)
+                            item.label == "Expenses" -> Color(0xFFEF5350)
+                            item.percentChange >= 0 -> Color(0xFFEF5350)
+                            else -> Color(0xFF4CAF50)
+                        }
+                        val arrow = if (item.percentChange >= 0) "\u25B2" else "\u25BC"
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(item.label, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "$arrow ${String.format("%+.1f", item.percentChange)}%",
+                                    color = changeColor,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    text = "vs ${String.format("%.0f", item.priorAmount)}",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            }
+        }
+
+        item {
+            StaggeredItem(index = 5) {
             val displayItems = if (categorySpending.size > 5) {
                 val top4 = categorySpending.take(4)
                 val others = categorySpending.drop(4)
@@ -309,8 +361,16 @@ fun InsightsScreen(
                                     Box(Modifier.size(10.dp).background(dotColor, CircleShape))
                                     Spacer(Modifier.width(10.dp))
                                     Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                                    val dailyAvg = dailyAverageSpends.find { it.categoryName == item.categoryName }?.dailyAverage ?: 0.0
+                                    Text(
+                                        text = "${CurrencyFormatter.format(dailyAvg, selectedCurrency)}/day",
+                                        style=MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        textAlign=TextAlign.End
+                                    )
+                                    Spacer(Modifier.width(8.dp))
                                     Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
-                                    Spacer(Modifier.width(10.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
                                 }
                             }
@@ -380,8 +440,16 @@ fun InsightsScreen(
                             Box(Modifier.size(8.dp).background(dotColor, CircleShape))
                             Spacer(Modifier.width(8.dp))
                             Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                            val dailyAvg = dailyAverageSpends.find { it.categoryName == item.categoryName }?.dailyAverage ?: 0.0
+                            Text(
+                                text = "${CurrencyFormatter.format(dailyAvg, selectedCurrency)}/day",
+                                style=MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.5f),
+                                textAlign=TextAlign.End
+                            )
+                            Spacer(Modifier.width(6.dp))
                             Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
-                            Spacer(Modifier.width(8.dp))
+                            Spacer(Modifier.width(6.dp))
                             Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
                         }
                     }
@@ -458,7 +526,7 @@ fun InsightsScreen(
         }
 
         item {
-            StaggeredItem(index = 5) {
+            StaggeredItem(index = 6) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -541,7 +609,19 @@ fun InsightsScreen(
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
-                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    val forecast = budgetForecasts.find { it.budgetId == budget.id }
+                                                    if (forecast != null) {
+                                                        val (statusColor, statusText) = when (forecast.status) {
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> Color(0xFF4CAF50) to "On track"
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> Color(0xFFFFA726) to "Off track"
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> Color(0xFFEF5350) to "Overspent"
+                                                        }
+                                                        Text(statusText, color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                                        Spacer(Modifier.width(6.dp))
+                                                    }
+                                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                }
                                             }
                                             AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
                                         }
@@ -569,7 +649,19 @@ fun InsightsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
-                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val forecast = budgetForecasts.find { it.budgetId == budget.id }
+                                        if (forecast != null) {
+                                            val (statusColor, statusText) = when (forecast.status) {
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> Color(0xFF4CAF50) to "On track"
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> Color(0xFFFFA726) to "Off track"
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> Color(0xFFEF5350) to "Overspent"
+                                            }
+                                            Text(statusText, color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                            Spacer(Modifier.width(6.dp))
+                                        }
+                                        Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    }
                                 }
 
                                 AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))

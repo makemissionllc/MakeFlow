@@ -58,6 +58,7 @@ import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.domain.CategorySuggester
@@ -80,12 +81,15 @@ fun AddTransactionBottomSheet(
     currencySymbol: String,
     currencyCode: String,
     hapticManager: HapticManager,
+    templates: List<TransactionTemplateEntity> = emptyList(),
+    onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
     onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
-    onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null
+    onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
+    initialType: String = "INCOME"
 ) {
     val scope = rememberCoroutineScope()
 
-    var selectedType by remember { mutableStateOf("INCOME") }
+    var selectedType by remember { mutableStateOf(initialType) }
     var amountInput by remember { mutableStateOf("") }
     var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
     var selectedTransferFromId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
@@ -95,6 +99,8 @@ fun AddTransactionBottomSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
+    var showSaveTemplateDialog by remember { mutableStateOf(false) }
+    var templateNameInput by remember { mutableStateOf("") }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
 
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy", Locale.getDefault()) }
@@ -237,6 +243,37 @@ fun AddTransactionBottomSheet(
                         contentDescription = "Close",
                         tint = Color.White
                     )
+                }
+            }
+
+            if (templates.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Templates",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(templates) { template ->
+                            Text(
+                                text = template.name,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(Color(0xFF2C2C1E), RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        amountInput = if (template.amount == template.amount.toLong().toDouble())
+                                            template.amount.toLong().toString() else template.amount.toString()
+                                        selectedType = template.type
+                                        selectedAccountId = if (accounts.any { it.id == template.accountId })
+                                            template.accountId else selectedAccountId
+                                        note = template.note
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -523,6 +560,92 @@ fun AddTransactionBottomSheet(
                     color = Color.White,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
+                )
+            }
+
+            if (onSaveAsTemplate != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showSaveTemplateDialog = true },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        text = "Save as template",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
+            if (showSaveTemplateDialog) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = {
+                        showSaveTemplateDialog = false
+                        templateNameInput = ""
+                    },
+                    containerColor = Color(0xFF1B1C1F),
+                    title = {
+                        Text("Save as template", color = Color.White, fontWeight = FontWeight.Bold)
+                    },
+                    text = {
+                        Column {
+                            Text(
+                                text = "Name",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.5f)
+                            )
+                            BasicTextField(
+                                value = templateNameInput,
+                                onValueChange = { templateNameInput = it },
+                                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                singleLine = true,
+                                cursorBrush = SolidColor(Color.White),
+                                decorationBox = { innerTextField ->
+                                    Box {
+                                        if (templateNameInput.isEmpty()) {
+                                            Text(
+                                                text = "e.g. Monthly Rent",
+                                                color = Color.White.copy(alpha = 0.3f),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF2C2C2C), RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                            )
+                        }
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                if (templateNameInput.isNotBlank()) {
+                                    onSaveAsTemplate?.invoke(templateNameInput.trim(), parsedAmount ?: 0.0, selectedType, resolvedCategoryId, selectedAccountId, note)
+                                    showSaveTemplateDialog = false
+                                    templateNameInput = ""
+                                }
+                            },
+                            enabled = templateNameInput.isNotBlank()
+                        ) {
+                            Text("Save", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                showSaveTemplateDialog = false
+                                templateNameInput = ""
+                            }
+                        ) {
+                            Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                        }
+                    }
                 )
             }
 

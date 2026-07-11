@@ -75,6 +75,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val appLockEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[APP_LOCK_ENABLED_KEY] ?: false
+    }
+
+    suspend fun saveAppLockEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[APP_LOCK_ENABLED_KEY] = enabled
+        }
+    }
+
     val hasPromptedNotificationPermission: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[HAS_PROMPTED_NOTIFICATION_PERMISSION] ?: false
     }
@@ -100,5 +110,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
         private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")
+        private val APP_LOCK_ENABLED_KEY = booleanPreferencesKey("app_lock_enabled")
     }
 }

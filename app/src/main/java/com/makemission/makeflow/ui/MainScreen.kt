@@ -1,6 +1,9 @@
 package com.makemission.makeflow.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -45,7 +48,9 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -79,14 +84,23 @@ import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.data.backup.BackupManager
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
+import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
+import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
 import com.makemission.makeflow.ui.screens.AccountsScreen
 import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.BudgetScreen
+import com.makemission.makeflow.ui.screens.CategoryManagementScreen
+import com.makemission.makeflow.ui.screens.ExchangeRatesSheet
 import com.makemission.makeflow.ui.screens.HistoryScreen
 import com.makemission.makeflow.ui.screens.HomeDashboard
 import com.makemission.makeflow.ui.screens.InsightsScreen
+import com.makemission.makeflow.ui.screens.ManageTemplatesSheet
+import com.makemission.makeflow.ui.screens.RecurringTransactionsScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
@@ -98,10 +112,13 @@ import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModelFactory
+import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModel
+import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 enum class MakeFlowTab {
     HOME, INSIGHTS, HISTORY
@@ -111,7 +128,8 @@ enum class MakeFlowTab {
 fun MainScreen(
     username: String,
     onLogout: () -> Unit,
-    notificationGate: NotificationGate? = null
+    notificationGate: NotificationGate? = null,
+    initialTransactionType: String? = null
 ) {
     var activeTab by remember { mutableStateOf(MakeFlowTab.HOME) }
 
@@ -124,12 +142,30 @@ fun MainScreen(
             taskDao = db.taskDao(),
             accountDao = db.accountDao(),
             budgetDao = db.budgetDao(),
-            recurringPatternDao = db.recurringPatternDao()
+            recurringPatternDao = db.recurringPatternDao(),
+            recurringTransactionDao = db.recurringTransactionDao()
         )
     }
+    val exchangeRateRepository = remember { ExchangeRateRepositoryImpl(db.exchangeRateDao()) }
+    val backupManager = remember {
+        BackupManager(
+            accountDao = db.accountDao(),
+            categoryDao = db.categoryDao(),
+            transactionDao = db.transactionDao(),
+            budgetDao = db.budgetDao(),
+            taskDao = db.taskDao(),
+            recurringPatternDao = db.recurringPatternDao(),
+            recurringTransactionDao = db.recurringTransactionDao(),
+            transactionTemplateDao = db.transactionTemplateDao(),
+            exchangeRateDao = db.exchangeRateDao(),
+            database = db
+        )
+    }
+    val templateRepository = remember { TransactionTemplateRepositoryImpl(db.transactionTemplateDao()) }
+    val templates by templateRepository.getAllTemplates().collectAsState(initial = emptyList())
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val homeViewModel: HomeDashboardViewModel = viewModel(
-        factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao())
+        factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao(), exchangeRateRepository)
     )
     val historyViewModel: HistoryViewModel = viewModel(
         factory = HistoryViewModelFactory(repository, userPrefDataStore)
@@ -141,10 +177,13 @@ fun MainScreen(
         factory = BudgetViewModelFactory(repository, userPrefDataStore)
     )
     val accountsViewModel: AccountsViewModel = viewModel(
-        factory = AccountsViewModelFactory(repository, userPrefDataStore)
+        factory = AccountsViewModelFactory(repository, userPrefDataStore, exchangeRateRepository)
     )
     val settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(repository, userPrefDataStore)
+        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager)
+    )
+    val recurringTransactionsViewModel: RecurringTransactionsViewModel = viewModel(
+        factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)
     )
     val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
 
@@ -157,9 +196,23 @@ fun MainScreen(
     val currencyCode by homeViewModel.selectedCurrency.collectAsState()
 
     var showAddTransaction by remember { mutableStateOf(false) }
+    val shortcutPendingType = remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(initialTransactionType) {
+        if (initialTransactionType != null) {
+            shortcutPendingType.value = initialTransactionType
+            showAddTransaction = true
+        }
+    }
+
     var showBudgetScreen by remember { mutableStateOf(false) }
     var showAccountsScreen by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
+    var showRecurringTransactionsScreen by remember { mutableStateOf(false) }
+    var showManageTemplates by remember { mutableStateOf(false) }
+    var showManageCategories by remember { mutableStateOf(false) }
+    var showExchangeRates by remember { mutableStateOf(false) }
+    val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val previousTab = remember { mutableStateOf(activeTab) }
     LaunchedEffect(activeTab) {
         if (previousTab.value != activeTab) {
@@ -168,6 +221,73 @@ fun MainScreen(
         }
     }
     val scope = rememberCoroutineScope()
+
+    var backupJson by remember { mutableStateOf<String?>(null) }
+    var showRestoreConfirm by remember { mutableStateOf(false) }
+    var restoreError by remember { mutableStateOf<String?>(null) }
+
+    val backupLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    settingsViewModel.exportBackup { json ->
+                        backupJson = json
+                    }
+                    // wait briefly for the json to be ready
+                    val json = backupJson
+                    if (json != null) {
+                        context.contentResolver.openOutputStream(uri)?.use { out ->
+                            out.write(json.toByteArray())
+                        }
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Backup saved successfully", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val json = context.contentResolver.openInputStream(uri)?.use { it.reader().readText() } ?: ""
+                    val validation = backupManager.validateBackup(json)
+                    if (!validation.valid) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Restore failed: ${validation.error}", Toast.LENGTH_LONG).show()
+                        }
+                        return@launch
+                    }
+                    withContext(Dispatchers.Main) {
+                        showRestoreConfirm = true
+                        backupJson = json
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Failed to read backup: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        }
+    }
+
+    fun performBackup() {
+        backupLauncher.launch("MakeFlow_Backup_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())}.json")
+    }
+
+    fun pickRestoreFile() {
+        restoreLauncher.launch(arrayOf("application/json", "*/*"))
+    }
 
     val config = rememberAdaptiveConfig()
     val reducedMotion = LocalReducedMotion.current
@@ -206,14 +326,15 @@ fun MainScreen(
                             historyViewModel = historyViewModel,
                             hapticManager = hapticManager,
                             notificationGate = notificationGate,
-                            onOpenAccounts = { showAccountsScreen = true },
-                            onOpenSettings = { showSettingsScreen = true },
-                            onOpenBudgets = { showBudgetScreen = true },
-                            onNavigateToHome = { activeTab = MakeFlowTab.HOME }
-                        )
-                    }
+                    onOpenAccounts = { showAccountsScreen = true },
+                    onOpenSettings = { showSettingsScreen = true },
+                    onOpenBudgets = { showBudgetScreen = true },
+                    onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
+                    onNavigateToHome = { activeTab = MakeFlowTab.HOME }
+                )
+            }
 
-                    Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
+            Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
                         androidx.compose.animation.AnimatedVisibility(
                             visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
                             enter = scaleIn(
@@ -249,12 +370,20 @@ fun MainScreen(
                         onHideAccounts = { showAccountsScreen = false },
                         showSettingsScreen = showSettingsScreen,
                         onHideSettings = { showSettingsScreen = false },
+                        showRecurringTransactionsScreen = showRecurringTransactionsScreen,
+                        onHideRecurringTransactions = { showRecurringTransactionsScreen = false },
                         budgetViewModel = budgetViewModel,
                         accountsViewModel = accountsViewModel,
                         settingsViewModel = settingsViewModel,
+                        recurringTransactionsViewModel = recurringTransactionsViewModel,
                         hapticManager = hapticManager,
                         notificationGate = notificationGate,
-                        reducedMotion = reducedMotion
+                        reducedMotion = reducedMotion,
+                        onOpenManageTemplates = { showManageTemplates = true },
+                        onOpenManageCategories = { showManageCategories = true },
+                        onOpenExchangeRates = { showExchangeRates = true },
+                        onBackup = { performBackup() },
+                        onRestore = { pickRestoreFile() }
                     )
                 }
             }
@@ -275,6 +404,7 @@ fun MainScreen(
                     onOpenAccounts = { showAccountsScreen = true },
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
+                    onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
                     onNavigateToHome = { activeTab = MakeFlowTab.HOME }
                 )
 
@@ -337,21 +467,103 @@ fun MainScreen(
                     onHideAccounts = { showAccountsScreen = false },
                     showSettingsScreen = showSettingsScreen,
                     onHideSettings = { showSettingsScreen = false },
+                    showRecurringTransactionsScreen = showRecurringTransactionsScreen,
+                    onHideRecurringTransactions = { showRecurringTransactionsScreen = false },
                     budgetViewModel = budgetViewModel,
                     accountsViewModel = accountsViewModel,
                     settingsViewModel = settingsViewModel,
+                    recurringTransactionsViewModel = recurringTransactionsViewModel,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate,
-                    reducedMotion = reducedMotion
+                    reducedMotion = reducedMotion,
+                    onOpenManageTemplates = { showManageTemplates = true },
+                    onOpenManageCategories = { showManageCategories = true },
+                    onOpenExchangeRates = { showExchangeRates = true },
+                    onBackup = { performBackup() },
+                    onRestore = { pickRestoreFile() }
                 )
             }
         }
     }
+
+    if (showExchangeRates) {
+        ExchangeRatesSheet(
+            rates = exchangeRates,
+            displayCurrency = currencyCode,
+            onDismiss = { showExchangeRates = false },
+            onSaveRate = { rate ->
+                scope.launch(Dispatchers.IO) {
+                    exchangeRateRepository.upsertRate(rate)
+                }
+            }
+        )
+    }
+
+    if (showRestoreConfirm && backupJson != null) {
+        AlertDialog(
+            onDismissRequest = { showRestoreConfirm = false; backupJson = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Restore Backup?", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("This will replace ALL current data (accounts, transactions, categories, budgets, etc.) with the data from the backup file. This action cannot be undone.", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val json = backupJson
+                    showRestoreConfirm = false
+                    backupJson = null
+                    if (json != null) {
+                        scope.launch(Dispatchers.IO) {
+                            settingsViewModel.importBackup(json) { error ->
+                                scope.launch {
+                                    if (error != null) {
+                                        restoreError = error
+                                    } else {
+                                        Toast.makeText(context, "Restore completed successfully", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }) {
+                    Text("Restore", color = Color(0xFFEF5350))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestoreConfirm = false; backupJson = null }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (restoreError != null) {
+        AlertDialog(
+            onDismissRequest = { restoreError = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Restore Failed", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(restoreError ?: "Unknown error", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = { restoreError = null }) {
+                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
     }
 
     if (showAddTransaction) {
         AddTransactionBottomSheet(
-            onDismiss = { showAddTransaction = false },
+            initialType = shortcutPendingType.value ?: "INCOME",
+            onDismiss = {
+                shortcutPendingType.value = null
+                showAddTransaction = false
+            },
             onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
                 scope.launch(Dispatchers.IO) {
                     repository.insertTransaction(
@@ -375,6 +587,21 @@ fun MainScreen(
             currencySymbol = currencySymbol,
             currencyCode = currencyCode,
             hapticManager = hapticManager,
+            templates = templates,
+            onSaveAsTemplate = { name, amount, type, categoryId, accountId, note ->
+                scope.launch(Dispatchers.IO) {
+                    templateRepository.insertTemplate(
+                        TransactionTemplateEntity(
+                            name = name,
+                            amount = amount,
+                            type = type,
+                            categoryId = categoryId,
+                            accountId = accountId,
+                            note = note
+                        )
+                    )
+                }
+            },
             onAnomalyCheck = { amount, categoryId ->
                 if (categoryId == null) return@AddTransactionBottomSheet null
                 val history = repository.getRecentAmountsForCategory(categoryId)
@@ -386,6 +613,27 @@ fun MainScreen(
             }
         )
     }
+
+    if (showManageTemplates) {
+        ManageTemplatesSheet(
+            templates = templates,
+            onDismiss = { showManageTemplates = false },
+            onRename = { id, newName ->
+                scope.launch(Dispatchers.IO) {
+                    templateRepository.getTemplateById(id)?.let {
+                        templateRepository.updateTemplate(it.copy(name = newName))
+                    }
+                }
+            },
+            onDelete = { template ->
+                scope.launch(Dispatchers.IO) {
+                    templateRepository.deleteTemplate(template)
+                }
+            }
+        )
+    }
+}
+
 }
 
 @Composable
@@ -400,6 +648,7 @@ private fun TabContentAnimated(
     onOpenAccounts: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenBudgets: () -> Unit,
+    onOpenRecurringTransactions: () -> Unit,
     onNavigateToHome: () -> Unit
 ) {
     val tabIndex = when (activeTab) {
@@ -488,12 +737,20 @@ private fun OverlayPanels(
     onHideAccounts: () -> Unit,
     showSettingsScreen: Boolean,
     onHideSettings: () -> Unit,
+    showRecurringTransactionsScreen: Boolean,
+    onHideRecurringTransactions: () -> Unit,
     budgetViewModel: BudgetViewModel,
     accountsViewModel: AccountsViewModel,
     settingsViewModel: SettingsViewModel,
+    recurringTransactionsViewModel: RecurringTransactionsViewModel,
     hapticManager: com.makemission.makeflow.core.haptics.HapticManager,
     notificationGate: NotificationGate?,
-    reducedMotion: Boolean
+    reducedMotion: Boolean,
+    onOpenManageTemplates: () -> Unit = {},
+    onOpenManageCategories: () -> Unit = {},
+    onOpenExchangeRates: () -> Unit = {},
+    onBackup: () -> Unit = {},
+    onRestore: () -> Unit = {}
 ) {
     AnimatedVisibility(
         visible = showBudgetScreen,
@@ -580,7 +837,43 @@ private fun OverlayPanels(
                 onBack = onHideSettings,
                 viewModel = settingsViewModel,
                 hapticManager = hapticManager,
-                notificationGate = notificationGate
+                notificationGate = notificationGate,
+                onOpenRecurringTransactions = onHideRecurringTransactions,
+                onOpenManageTemplates = onOpenManageTemplates,
+                onOpenManageCategories = onOpenManageCategories,
+                onOpenExchangeRates = onOpenExchangeRates,
+                onBackup = onBackup,
+                onRestore = onRestore
+            )
+        }
+    }
+
+    AnimatedVisibility(
+        visible = showRecurringTransactionsScreen,
+        enter = slideInHorizontally(
+            animationSpec = if (reducedMotion) tween(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetX = { it }
+        ) + fadeIn(tween(200)),
+        exit = slideOutHorizontally(
+            animationSpec = if (reducedMotion) tween(150) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            targetOffsetX = { it }
+        ) + fadeOut(tween(150))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            BackHandler { onHideRecurringTransactions() }
+            RecurringTransactionsScreen(
+                onBack = onHideRecurringTransactions,
+                viewModel = recurringTransactionsViewModel
             )
         }
     }

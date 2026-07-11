@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.data.local.dao.CardHourCount
 import com.makemission.makeflow.data.local.dao.CardInteractionDao
 import com.makemission.makeflow.data.local.dao.CategorySpending
@@ -15,6 +16,9 @@ import com.makemission.makeflow.data.local.entity.CardInteractionEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.data.repository.ExchangeRateRepository
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.CashFlowProjector
 import com.makemission.makeflow.domain.DashboardCardRanker
@@ -40,21 +44,31 @@ data class ParentCategorySpending(
 class HomeDashboardViewModel(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
-    private val cardInteractionDao: CardInteractionDao
+    private val cardInteractionDao: CardInteractionDao,
+    private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModel() {
 
-    val totalBalance: StateFlow<Double> = financeRepository.getAllAccounts()
-        .map { accounts -> accounts.sumOf { it.balance } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+    val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
+
+    val totalBalance: StateFlow<Double> = combine(
+        financeRepository.getAllAccounts(),
+        selectedCurrency,
+        exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
+    ) { accts, displayCurrency, rates ->
+        val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
+        accts.sumOf { account ->
+            val acctCurrency = account.currencyCode ?: displayCurrency
+            if (acctCurrency == displayCurrency) account.balance
+            else rateMap[acctCurrency]?.let { account.balance * it } ?: account.balance
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val categories: StateFlow<List<CategoryEntity>> = financeRepository.getAllCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         CurrencyFormatter.symbolFor(code)
@@ -111,6 +125,11 @@ class HomeDashboardViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val pendingRecurringTransactions: StateFlow<List<RecurringTransactionEntity>> = financeRepository
+        .getDueRecurringTransactions(System.currentTimeMillis())
+        .map { items -> items.filter { !it.autoConfirm && it.isActive } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val defaultCardOrder = listOf(
         DashboardCardType.INSIGHTS_SUMMARY,
         DashboardCardType.ACCOUNTS,
@@ -139,6 +158,28 @@ class HomeDashboardViewModel(
             today = today
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun confirmRecurringTransaction(entity: RecurringTransactionEntity) {
+        viewModelScope.launch {
+            if (entity.autoConfirm) return@launch
+            val tx = TransactionEntity(
+                amount = entity.amount,
+                type = entity.type,
+                categoryId = entity.categoryId,
+                accountId = entity.accountId,
+                note = entity.description,
+                timestamp = System.currentTimeMillis()
+            )
+            financeRepository.insertTransaction(tx)
+            financeRepository.skipRecurringTransaction(entity.id)
+        }
+    }
+
+    fun skipRecurringTransaction(entity: RecurringTransactionEntity) {
+        viewModelScope.launch {
+            financeRepository.skipRecurringTransaction(entity.id)
+        }
+    }
 
     fun logCardInteraction(cardType: DashboardCardType) {
         viewModelScope.launch {
@@ -183,10 +224,11 @@ class HomeDashboardViewModel(
 class HomeDashboardViewModelFactory(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
-    private val cardInteractionDao: CardInteractionDao
+    private val cardInteractionDao: CardInteractionDao,
+    private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return HomeDashboardViewModel(financeRepository, userPreferencesDataStore, cardInteractionDao) as T
+        return HomeDashboardViewModel(financeRepository, userPreferencesDataStore, cardInteractionDao, exchangeRateRepository) as T
     }
 }

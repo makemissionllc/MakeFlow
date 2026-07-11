@@ -8,6 +8,7 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.RecurringPattern
+import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +24,8 @@ interface FinanceRepository {
     fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
     fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
     fun getMonthlyTotalIncome(monthStartMillis: Long, monthEndMillis: Long): Flow<Double>
+    suspend fun getMonthlyTotalExpenseOnce(monthStartMillis: Long, monthEndMillis: Long): Double
+    suspend fun getMonthlyTotalIncomeOnce(monthStartMillis: Long, monthEndMillis: Long): Double
     suspend fun insertCategory(category: CategoryEntity)
     suspend fun updateCategory(category: CategoryEntity)
     suspend fun deleteCategory(category: CategoryEntity)
@@ -56,4 +59,19 @@ interface FinanceRepository {
     suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String? = null, limit: Int = 30): List<Double>
 
     suspend fun getRecentDescriptionsAndCategories(limit: Int = 100): List<DescriptionCategoryPair>
+
+    suspend fun mergeCategories(sourceId: String, targetId: String): String?
+
+    suspend fun convertCategoryType(categoryId: String, newType: String): String?
+
+    suspend fun getConvertedTotalBalance(displayCurrency: String): Double
+
+    suspend fun createRecurringTransaction(entity: RecurringTransactionEntity)
+    suspend fun updateRecurringTransaction(entity: RecurringTransactionEntity)
+    suspend fun deleteRecurringTransaction(entity: RecurringTransactionEntity)
+    suspend fun toggleRecurringTransactionActive(id: String)
+    suspend fun skipRecurringTransaction(id: String)
+    suspend fun processDueRecurringTransactions()
+    fun getAllActiveRecurringTransactions(): Flow<List<RecurringTransactionEntity>>
+    fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>>
 }

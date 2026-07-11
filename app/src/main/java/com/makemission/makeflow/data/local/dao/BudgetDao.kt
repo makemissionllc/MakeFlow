@@ -9,6 +9,9 @@ interface BudgetDao {
     @Query("SELECT * FROM budgets ORDER BY createdAt DESC")
     fun getAllBudgetsFlow(): Flow<List<BudgetEntity>>
 
+    @Query("SELECT * FROM budgets ORDER BY createdAt DESC")
+    suspend fun getAllBudgetsOnce(): List<BudgetEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBudget(budget: BudgetEntity)
 

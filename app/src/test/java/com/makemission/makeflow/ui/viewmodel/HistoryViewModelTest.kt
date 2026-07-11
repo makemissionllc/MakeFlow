@@ -215,6 +215,10 @@ class HistoryViewModelTest {
         override fun getMonthlyTotalIncome(monthStartMillis: Long, monthEndMillis: Long): Flow<Double> =
             MutableStateFlow(0.0)
 
+        override suspend fun getMonthlyTotalExpenseOnce(monthStartMillis: Long, monthEndMillis: Long): Double = 0.0
+
+        override suspend fun getMonthlyTotalIncomeOnce(monthStartMillis: Long, monthEndMillis: Long): Double = 0.0
+
         override suspend fun insertCategory(category: com.makemission.makeflow.data.local.entity.CategoryEntity) {}
         override suspend fun updateCategory(category: com.makemission.makeflow.data.local.entity.CategoryEntity) {}
         override suspend fun deleteCategory(category: com.makemission.makeflow.data.local.entity.CategoryEntity) {}
@@ -248,6 +252,17 @@ class HistoryViewModelTest {
         override suspend fun getBudgetByCategory(categoryId: String): com.makemission.makeflow.data.local.entity.BudgetEntity? = null
         override suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String?, limit: Int): List<Double> = emptyList()
         override suspend fun getRecentDescriptionsAndCategories(limit: Int): List<com.makemission.makeflow.data.local.dao.DescriptionCategoryPair> = emptyList()
+        override suspend fun createRecurringTransaction(entity: com.makemission.makeflow.data.local.entity.RecurringTransactionEntity) {}
+        override suspend fun updateRecurringTransaction(entity: com.makemission.makeflow.data.local.entity.RecurringTransactionEntity) {}
+        override suspend fun deleteRecurringTransaction(entity: com.makemission.makeflow.data.local.entity.RecurringTransactionEntity) {}
+        override suspend fun toggleRecurringTransactionActive(id: String) {}
+        override suspend fun skipRecurringTransaction(id: String) {}
+        override suspend fun processDueRecurringTransactions() {}
+        override fun getAllActiveRecurringTransactions(): Flow<List<com.makemission.makeflow.data.local.entity.RecurringTransactionEntity>> = MutableStateFlow(emptyList())
+        override fun getDueRecurringTransactions(now: Long): Flow<List<com.makemission.makeflow.data.local.entity.RecurringTransactionEntity>> = MutableStateFlow(emptyList())
+        override suspend fun mergeCategories(sourceId: String, targetId: String): String? = null
+        override suspend fun convertCategoryType(categoryId: String, newType: String): String? = null
+        override suspend fun getConvertedTotalBalance(displayCurrency: String): Double = 0.0
     }
 
     private fun createTestUserPrefs(): UserPreferencesDataStore {

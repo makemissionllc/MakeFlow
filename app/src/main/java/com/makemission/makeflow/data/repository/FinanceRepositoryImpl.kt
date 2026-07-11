@@ -7,6 +7,7 @@ import com.makemission.makeflow.data.local.dao.CategorySpending
 import com.makemission.makeflow.data.local.dao.DescriptionCategoryPair
 import com.makemission.makeflow.data.local.dao.MonthlyCategorySpend
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
+import com.makemission.makeflow.data.local.dao.RecurringTransactionDao
 import com.makemission.makeflow.data.local.dao.TaskDao
 import com.makemission.makeflow.data.local.dao.TransactionDao
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -14,6 +15,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.CategoryWithTasks
 import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
+import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
@@ -33,7 +35,9 @@ class FinanceRepositoryImpl(
     private val taskDao: TaskDao,
     private val accountDao: com.makemission.makeflow.data.local.dao.AccountDao? = null,
     private val budgetDao: com.makemission.makeflow.data.local.dao.BudgetDao? = null,
-    private val recurringPatternDao: RecurringPatternDao? = null
+    private val recurringPatternDao: RecurringPatternDao? = null,
+    private val recurringTransactionDao: RecurringTransactionDao? = null,
+    private val exchangeRateDao: com.makemission.makeflow.data.local.dao.ExchangeRateDao? = null
 ) : FinanceRepository {
 
     override suspend fun insertAccount(account: AccountEntity) {
@@ -75,6 +79,16 @@ class FinanceRepositoryImpl(
         monthStartMillis: Long,
         monthEndMillis: Long
     ): Flow<Double> = transactionDao.getMonthlyTotalIncome(monthStartMillis, monthEndMillis)
+
+    override suspend fun getMonthlyTotalExpenseOnce(
+        monthStartMillis: Long,
+        monthEndMillis: Long
+    ): Double = transactionDao.getMonthlyTotalExpenseOnce(monthStartMillis, monthEndMillis)
+
+    override suspend fun getMonthlyTotalIncomeOnce(
+        monthStartMillis: Long,
+        monthEndMillis: Long
+    ): Double = transactionDao.getMonthlyTotalIncomeOnce(monthStartMillis, monthEndMillis)
 
     override suspend fun insertCategory(category: CategoryEntity) = categoryDao.insertCategory(category)
 
@@ -295,6 +309,110 @@ class FinanceRepositoryImpl(
     override suspend fun getRecentDescriptionsAndCategories(limit: Int): List<DescriptionCategoryPair> {
         return transactionDao.getRecentDescriptionsAndCategories(limit)
     }
+
+    override suspend fun createRecurringTransaction(entity: RecurringTransactionEntity) {
+        recurringTransactionDao?.insert(entity)
+    }
+
+    override suspend fun updateRecurringTransaction(entity: RecurringTransactionEntity) {
+        recurringTransactionDao?.update(entity)
+    }
+
+    override suspend fun deleteRecurringTransaction(entity: RecurringTransactionEntity) {
+        recurringTransactionDao?.delete(entity)
+    }
+
+    override suspend fun toggleRecurringTransactionActive(id: String) {
+        recurringTransactionDao?.getById(id)?.let { entity ->
+            recurringTransactionDao?.update(entity.copy(isActive = !entity.isActive))
+        }
+    }
+
+    override suspend fun skipRecurringTransaction(id: String) {
+        recurringTransactionDao?.getById(id)?.let { entity ->
+            val nextDue = advanceDate(entity.nextDueDate, entity.intervalDays)
+            recurringTransactionDao?.update(entity.copy(nextDueDate = nextDue))
+        }
+    }
+
+    override suspend fun processDueRecurringTransactions() {
+        val now = System.currentTimeMillis()
+        val dueItems = recurringTransactionDao?.getDueTodayOrOverdueOnce(now) ?: return
+        for (item in dueItems) {
+            if (item.endDate != null && item.nextDueDate > item.endDate) {
+                recurringTransactionDao?.update(item.copy(isActive = false))
+                continue
+            }
+            if (item.autoConfirm) {
+                val tx = TransactionEntity(
+                    amount = item.amount,
+                    type = item.type,
+                    categoryId = item.categoryId,
+                    accountId = item.accountId,
+                    note = item.description,
+                    timestamp = System.currentTimeMillis()
+                )
+                insertTransaction(tx)
+            }
+            val nextDue = advanceDate(item.nextDueDate, item.intervalDays)
+            val updated = item.copy(nextDueDate = nextDue)
+            if (updated.endDate != null && nextDue > updated.endDate) {
+                recurringTransactionDao?.update(updated.copy(isActive = false))
+            } else {
+                recurringTransactionDao?.update(updated)
+            }
+        }
+    }
+
+    override fun getAllActiveRecurringTransactions(): Flow<List<RecurringTransactionEntity>> =
+        recurringTransactionDao?.getAllActive() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>> =
+        recurringTransactionDao?.getDueTodayOrOverdue(now) ?: kotlinx.coroutines.flow.flowOf(emptyList())
+
+    override suspend fun mergeCategories(sourceId: String, targetId: String): String? {
+        val source = categoryDao.getCategoryById(sourceId) ?: return "Source category not found."
+        val target = categoryDao.getCategoryById(targetId) ?: return "Target category not found."
+        if (source.type != target.type) return "Cannot merge categories of different types."
+        if (source.id == target.id) return "Cannot merge a category into itself."
+        val childCount = categoryDao.getChildCategoryCount(sourceId)
+        if (childCount > 0) return "Cannot merge \"${source.name}\" because it has $childCount subcategories. Remove or reassign them first."
+        categoryDao.mergeCategoryAtomic(sourceId, targetId, target.name)
+        return null
+    }
+
+    override suspend fun convertCategoryType(categoryId: String, newType: String): String? {
+        val category = categoryDao.getCategoryById(categoryId) ?: return "Category not found."
+        if (category.type == newType) return null
+        val txCount = categoryDao.getTransactionCountForCategory(categoryId)
+        if (txCount > 0) return "Cannot convert \"${category.name}\" because it has $txCount transaction(s). Remove or reassign them first."
+        categoryDao.updateCategory(category.copy(type = newType))
+        return null
+    }
+
+    override suspend fun getConvertedTotalBalance(displayCurrency: String): Double {
+        val accounts = accountDao?.let {
+            it.getAllAccounts().first()
+        } ?: return 0.0
+        val rates = exchangeRateDao?.getAllRatesOnce() ?: emptyList()
+        val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
+        return accounts.sumOf { account ->
+            val acctCurrency = account.currencyCode ?: displayCurrency
+            if (acctCurrency == displayCurrency) {
+                account.balance
+            } else {
+                val rate = rateMap[acctCurrency] ?: return@sumOf account.balance
+                account.balance * rate
+            }
+        }
+    }
+}
+
+private fun advanceDate(fromDate: Long, intervalDays: Int): Long {
+    val cal = java.util.Calendar.getInstance()
+    cal.timeInMillis = fromDate
+    cal.add(java.util.Calendar.DAY_OF_YEAR, intervalDays)
+    return cal.timeInMillis
 }
 
 private fun RecurringPatternEntity.toDomain() = RecurringPattern(

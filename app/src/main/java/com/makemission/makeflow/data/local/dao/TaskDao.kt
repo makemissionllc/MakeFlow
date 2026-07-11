@@ -26,4 +26,10 @@ interface TaskDao {
 
     @Query("UPDATE tasks SET categoryId = :categoryId WHERE id = :taskId")
     suspend fun updateTaskCategory(taskId: String, categoryId: String?)
+
+    @Query("SELECT * FROM tasks")
+    suspend fun getAllOnce(): List<TaskEntity>
+
+    @Query("DELETE FROM tasks")
+    suspend fun clearAll()
 }

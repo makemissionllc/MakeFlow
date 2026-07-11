@@ -55,6 +55,7 @@ import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.core.format.CurrencyFormatter
@@ -99,6 +100,7 @@ fun HomeDashboard(
     val parentCategorySpending by viewModel.parentCategorySpending.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
     val recurringPatterns by viewModel.recurringPatterns.collectAsState()
+    val pendingRecurringTransactions by viewModel.pendingRecurringTransactions.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val cardOrder by viewModel.cardOrder.collectAsState()
@@ -188,14 +190,28 @@ fun HomeDashboard(
                             }
                         }
                     }
-                    DashboardCardType.RECURRING -> if (recurringPatterns.isNotEmpty()) {
-                        item {
-                            Box(
-                                modifier = Modifier.animateItem().clickable {
-                                    viewModel.logCardInteraction(DashboardCardType.RECURRING)
+                    DashboardCardType.RECURRING -> {
+                        if (pendingRecurringTransactions.isNotEmpty()) {
+                            item {
+                                Box(modifier = Modifier.animateItem()) {
+                                    PendingRecurringCard(
+                                        items = pendingRecurringTransactions,
+                                        currencyCode = selectedCurrency,
+                                        onConfirm = { viewModel.confirmRecurringTransaction(it) },
+                                        onSkip = { viewModel.skipRecurringTransaction(it) }
+                                    )
                                 }
-                            ) {
-                                RecurringCard(patterns = recurringPatterns, currencyCode = selectedCurrency)
+                            }
+                        }
+                        if (recurringPatterns.isNotEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.animateItem().clickable {
+                                        viewModel.logCardInteraction(DashboardCardType.RECURRING)
+                                    }
+                                ) {
+                                    RecurringCard(patterns = recurringPatterns, currencyCode = selectedCurrency)
+                                }
                             }
                         }
                     }
@@ -824,6 +840,73 @@ private fun getRelativeDateLabel(nextExpectedDate: Long): String {
         else -> {
             val sdf = java.text.SimpleDateFormat("dd MMM", java.util.Locale.getDefault())
             sdf.format(java.util.Date(nextExpectedDate))
+        }
+    }
+}
+
+@Composable
+fun PendingRecurringCard(
+    items: List<RecurringTransactionEntity>,
+    currencyCode: String,
+    onConfirm: (RecurringTransactionEntity) -> Unit,
+    onSkip: (RecurringTransactionEntity) -> Unit
+) {
+    val dateFormat = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
+    CardContainer {
+        Text(
+            text = "Pending transactions",
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        items.take(3).forEach { item ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.description,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "${CurrencyFormatter.format(item.amount, currencyCode)} \u00B7 Due ${dateFormat.format(Date(item.nextDueDate))}",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "Confirm",
+                        color = Color(0xFF4CAF50),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1B1C1F))
+                            .clickable { onConfirm(item) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                    Text(
+                        text = "Skip",
+                        color = Color(0xFFFFA726),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF1B1C1F))
+                            .clickable { onSkip(item) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
+                }
+            }
+            if (item != items.take(3).last()) {
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+            }
         }
     }
 }

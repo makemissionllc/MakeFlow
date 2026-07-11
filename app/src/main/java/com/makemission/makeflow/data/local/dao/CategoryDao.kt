@@ -26,6 +26,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY name ASC")
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
 
+    @Query("SELECT * FROM categories ORDER BY name ASC")
+    suspend fun getAllCategoriesOnce(): List<CategoryEntity>
+
     @Query("""
         SELECT t.categoryId AS categoryId, SUM(t.amount) AS totalSpent
         FROM transactions t
@@ -69,4 +72,23 @@ interface CategoryDao {
 
     @Query("DELETE FROM categories")
     suspend fun clearAll()
+
+    @Query("UPDATE transactions SET categoryId = :targetId WHERE categoryId = :sourceId")
+    suspend fun reassignTransactionCategory(sourceId: String, targetId: String)
+
+    @Query("UPDATE budgets SET categoryId = :targetId, categoryName = :targetName WHERE categoryId = :sourceId")
+    suspend fun reassignBudgetCategory(sourceId: String, targetId: String, targetName: String)
+
+    @Query("SELECT COUNT(*) FROM categories WHERE parentCategoryId = :categoryId")
+    suspend fun getChildCategoryCount(categoryId: String): Int
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE categoryId = :categoryId")
+    suspend fun getTransactionCountForCategory(categoryId: String): Int
+
+    @Transaction
+    suspend fun mergeCategoryAtomic(sourceId: String, targetId: String, targetName: String) {
+        reassignTransactionCategory(sourceId, targetId)
+        reassignBudgetCategory(sourceId, targetId, targetName)
+        deleteCategoryById(sourceId)
+    }
 }

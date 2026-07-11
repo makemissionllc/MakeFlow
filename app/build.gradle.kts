@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.vico.compose)
     implementation(libs.vico.compose.m3)
+    implementation(libs.gson)
     implementation(libs.androidx.glance)
     implementation(libs.androidx.material3.window.size)
     implementation(libs.androidx.compose.material3.adaptive)

@@ -9,5 +9,6 @@ data class AccountEntity(
     val name: String,
     val balance: Double,
     val initialBalance: Double,
-    val colorHex: String = "#4CAF50"
+    val colorHex: String = "#4CAF50",
+    val currencyCode: String? = null
 )

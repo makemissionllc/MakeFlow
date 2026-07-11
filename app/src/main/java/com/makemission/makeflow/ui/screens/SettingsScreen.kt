@@ -2,6 +2,8 @@ package com.makemission.makeflow.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import java.util.Calendar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,7 +29,10 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.RestorePage
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -63,6 +68,7 @@ import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
+import com.makemission.makeflow.core.format.CurrencyFormatter
 
 data class ThemeOption(val key: String, val label: String)
 data class CurrencyOption(val code: String, val symbol: String)
@@ -89,16 +95,24 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: SettingsViewModel,
     hapticManager: HapticManager? = null,
-    notificationGate: NotificationGate? = null
+    notificationGate: NotificationGate? = null,
+    onOpenRecurringTransactions: () -> Unit = {},
+    onOpenManageTemplates: () -> Unit = {},
+    onOpenManageCategories: () -> Unit = {},
+    onOpenExchangeRates: () -> Unit = {},
+    onBackup: () -> Unit = {},
+    onRestore: () -> Unit = {}
 ) {
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+    val appLockEnabled by viewModel.appLockEnabled.collectAsState()
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    var showPdfExportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val config = LocalAdaptiveConfig.current
     val reducedMotion = LocalReducedMotion.current
@@ -141,6 +155,30 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 3) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Recurring Transactions", subtitle="Manage scheduled bills & income", onClick={ onOpenRecurringTransactions() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 4) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Manage Templates", subtitle="Create, edit & delete templates", onClick={ onOpenManageTemplates() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 5) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Manage Categories", subtitle="Merge or convert categories", onClick={ onOpenManageCategories() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 6) {
+                    SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Exchange Rates", subtitle="Set conversion rates for multi-currency", onClick={ onOpenExchangeRates() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 7) {
                     HapticToggleRow(
                         enabled = hapticsEnabled,
                         onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
@@ -148,26 +186,63 @@ fun SettingsScreen(
                     }
                 }
 
+                item {
+                    StaggeredItem(index = 8) {
+                    AppLockToggleRow(
+                        enabled = appLockEnabled,
+                        onToggle = { viewModel.saveAppLockEnabled(it) }
+                    )
+                    }
+                }
+
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
-                        StaggeredItem(index = 4) {
+                        StaggeredItem(index = 8) {
                         Box(Modifier.fillMaxWidth()) {
                             NotificationEnableRow()
                         }
                         }
                     }
-                    item { StaggeredItem(index = 5) { Spacer(modifier = Modifier.height(4.dp)) } }
+                    item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(4.dp)) } }
                 }
 
-                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 7) { SectionHeader(text = "Data") } }
+                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 11) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 8) {
+                    StaggeredItem(index = 12) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
                         }
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.FileDownload, title="Export PDF", subtitle="Statement with date range", onClick={ showPdfExportDialog = true })
+                        }
+                    }
+                    }
+                }
+
+                item { StaggeredItem(index = 100) { Spacer(modifier = Modifier.height(4.dp)) } }
+
+                item {
+                    StaggeredItem(index = 101) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup })
+                        }
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore", subtitle="Replace from a file", onClick={ onRestore })
+                        }
+                    }
+                    }
+                }
+
+                item { StaggeredItem(index = 102) { Spacer(modifier = Modifier.height(4.dp)) } }
+
+                item {
+                    StaggeredItem(index = 103) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
+                        Box(Modifier.weight(1f)) { }
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                         }
@@ -175,17 +250,17 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 10) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 13) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 14) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 11) {
+                    StaggeredItem(index = 15) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 12) {
+                        StaggeredItem(index = 16) {
                         ReducedMotionRow()
                         }
                     }
@@ -207,6 +282,30 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 4) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Recurring Transactions", subtitle="Manage scheduled bills & income", onClick={ onOpenRecurringTransactions() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 5) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Manage Templates", subtitle="Create, edit & delete templates", onClick={ onOpenManageTemplates() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 6) {
+                    SettingsRow(icon=Icons.Outlined.Info, title="Manage Categories", subtitle="Merge or convert categories", onClick={ onOpenManageCategories() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 7) {
+                    SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Exchange Rates", subtitle="Set conversion rates for multi-currency", onClick={ onOpenExchangeRates() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 8) {
                     HapticToggleRow(
                         enabled = hapticsEnabled,
                         onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
@@ -214,40 +313,67 @@ fun SettingsScreen(
                     }
                 }
 
+                item {
+                    StaggeredItem(index = 9) {
+                    AppLockToggleRow(
+                        enabled = appLockEnabled,
+                        onToggle = { viewModel.saveAppLockEnabled(it) }
+                    )
+                    }
+                }
+
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
-                        StaggeredItem(index = 5) {
+                        StaggeredItem(index = 9) {
                         NotificationEnableRow()
                         }
                     }
                 }
 
-                item { StaggeredItem(index = 6) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 7) { SectionHeader(text = "Data") } }
+                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 11) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 8) {
+                    StaggeredItem(index = 12) {
                     SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 9) {
+                    StaggeredItem(index = 13) {
+                    SettingsRow(icon=Icons.Outlined.FileDownload, title="Export PDF", subtitle="Statement with date range", onClick={ showPdfExportDialog = true })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 14) {
+                    SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 15) {
+                    SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore from Backup", subtitle="Replace all data from a file", onClick={ onRestore })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 16) {
                     SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                     }
                 }
 
-                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 11) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 17) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 18) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 12) {
+                    StaggeredItem(index = 19) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 13) {
+                        StaggeredItem(index = 20) {
                         ReducedMotionRow()
                         }
                     }
@@ -319,6 +445,47 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (showPdfExportDialog) {
+        AlertDialog(
+            onDismissRequest = { showPdfExportDialog = false },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Export PDF Statement", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column {
+                    Text("Select date range:", color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 12.dp))
+                    PdfRangeOption("This Month", onClick = {
+                        showPdfExportDialog = false
+                        val cal = Calendar.getInstance()
+                        cal.set(Calendar.DAY_OF_MONTH, 1)
+                        cal.set(Calendar.HOUR_OF_DAY, 0)
+                        cal.set(Calendar.MINUTE, 0)
+                        cal.set(Calendar.SECOND, 0)
+                        cal.set(Calendar.MILLISECOND, 0)
+                        val start = cal.timeInMillis
+                        cal.add(Calendar.MONTH, 1)
+                        val end = cal.timeInMillis
+                        viewModel.exportPdf(context, start, end) { fileName ->
+                            Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                    PdfRangeOption("All Time", onClick = {
+                        showPdfExportDialog = false
+                        viewModel.exportPdf(context, 0L, Long.MAX_VALUE) { fileName ->
+                            Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPdfExportDialog = false }) {
                     Text("Cancel", color = Color.White.copy(alpha = 0.5f))
                 }
             }
@@ -432,6 +599,57 @@ private fun HapticToggleRow(
 }
 
 @Composable
+private fun AppLockToggleRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onToggle(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "App Lock", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color(0xFF4CAF50),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                uncheckedTrackColor = Color(0xFF2C2C2C)
+            )
+        )
+    }
+}
+
+@Composable
 private fun ReducedMotionRow() {
     Row(
         modifier = Modifier
@@ -502,6 +720,21 @@ private fun NotificationEnableRow() {
                 Text(text = "Notifications are disabled", color = Color(0xFFFFA726), fontSize = 13.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun PdfRangeOption(label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = label, color = Color.White, fontSize = 15.sp)
     }
 }
 

@@ -7,6 +7,8 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.domain.BudgetForecast
+import com.makemission.makeflow.domain.BudgetForecaster
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +35,19 @@ data class MonthlyBarItem(
     val expense: Double
 )
 
+data class MomComparisonItem(
+    val label: String,
+    val currentAmount: Double,
+    val priorAmount: Double,
+    val percentChange: Double
+)
+
+data class DailyAverageSpend(
+    val categoryName: String,
+    val color: String,
+    val dailyAverage: Double
+)
+
 class InsightsViewModel(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore
@@ -56,9 +71,11 @@ class InsightsViewModel(
         return start to end
     }
 
-    val categorySpending: StateFlow<List<CategorySpendingItem>> = combine(
-        allTransactions, allCategories, selectedMonth.asStateFlow()
-    ) { txs, cats, month ->
+    private fun computeCategorySpending(
+        txs: List<com.makemission.makeflow.data.local.entity.TransactionEntity>,
+        cats: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
+        month: YearMonth
+    ): List<CategorySpendingItem> {
         val (monthStart, monthEnd) = getMonthRangeMillis(month)
         val expenseTxs = txs.filter {
             it.type == "EXPENSE" && it.timestamp in monthStart..monthEnd
@@ -81,7 +98,13 @@ class InsightsViewModel(
                 percentage = if (totalExpenses > 0) (amount / totalExpenses * 100).toFloat() else 0f
             )
         }
-        items.sortedByDescending { it.amount }
+        return items.sortedByDescending { it.amount }
+    }
+
+    val categorySpending: StateFlow<List<CategorySpendingItem>> = combine(
+        allTransactions, allCategories, selectedMonth.asStateFlow()
+    ) { txs, cats, month ->
+        computeCategorySpending(txs, cats, month)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val monthlyBarData: StateFlow<List<MonthlyBarItem>> = combine(
@@ -121,6 +144,76 @@ class InsightsViewModel(
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
+
+    val momItems: StateFlow<List<MomComparisonItem>> = combine(
+        allTransactions, allCategories, selectedMonth.asStateFlow()
+    ) { txs, cats, month ->
+        val priorMonth = month.minusMonths(1)
+
+        val currentIncome = txs.filter {
+            it.type == "INCOME" && it.timestamp in getMonthRangeMillis(month).let { it.first..it.second }
+        }.sumOf { it.amount }
+        val priorIncome = txs.filter {
+            it.type == "INCOME" && it.timestamp in getMonthRangeMillis(priorMonth).let { it.first..it.second }
+        }.sumOf { it.amount }
+
+        val currentExpense = txs.filter {
+            it.type == "EXPENSE" && it.timestamp in getMonthRangeMillis(month).let { it.first..it.second }
+        }.sumOf { it.amount }
+        val priorExpense = txs.filter {
+            it.type == "EXPENSE" && it.timestamp in getMonthRangeMillis(priorMonth).let { it.first..it.second }
+        }.sumOf { it.amount }
+
+        fun pctChange(current: Double, prior: Double): Double =
+            if (prior != 0.0) ((current - prior) / prior * 100.0) else if (current != 0.0) 100.0 else 0.0
+
+        val topCategories = computeCategorySpending(txs, cats, month).take(3)
+
+        val categoryComparisons = topCategories.map { item ->
+            val priorRange = getMonthRangeMillis(priorMonth)
+            val childToParent = cats.filter { it.parentCategoryId != null }
+                .associate { it.id to it.parentCategoryId!! }
+            val priorAmount = txs.filter { tx ->
+                val effectiveCat = childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+                tx.type == "EXPENSE" && effectiveCat == item.categoryId
+                        && tx.timestamp in priorRange.first..priorRange.second
+            }.sumOf { it.amount }
+            MomComparisonItem(
+                label = item.categoryName,
+                currentAmount = item.amount,
+                priorAmount = priorAmount,
+                percentChange = pctChange(item.amount, priorAmount)
+            )
+        }
+
+        listOfNotNull(
+            MomComparisonItem("Income", currentIncome, priorIncome, pctChange(currentIncome, priorIncome)),
+            MomComparisonItem("Expenses", currentExpense, priorExpense, pctChange(currentExpense, priorExpense))
+        ) + categoryComparisons
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val budgetForecasts: StateFlow<List<BudgetForecast>> = combine(
+        budgets, selectedMonth.asStateFlow()
+    ) { budgetList, month ->
+        val (start, end) = getMonthRangeMillis(month)
+        val now = System.currentTimeMillis()
+        budgetList.map { budget ->
+            BudgetForecaster.forecast(budget, start, end, now)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val dailyAverageSpends: StateFlow<List<DailyAverageSpend>> = combine(
+        categorySpending, selectedMonth.asStateFlow()
+    ) { items, month ->
+        val daysInMonth = month.lengthOfMonth()
+        items.map { item ->
+            DailyAverageSpend(
+                categoryName = item.categoryName,
+                color = item.color,
+                dailyAverage = if (daysInMonth > 0) item.amount / daysInMonth else 0.0
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun previousMonth() {
         selectedMonth.value = selectedMonth.value.minusMonths(1)

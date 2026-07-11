@@ -24,4 +24,7 @@ data class BackupData(
     val recurringTransactions: List<RecurringTransactionEntity> = emptyList(),
     val transactionTemplates: List<TransactionTemplateEntity> = emptyList(),
     val exchangeRates: List<ExchangeRateEntity> = emptyList()
+    // card_interactions and queued_notifications are intentionally absent:
+    // both are transient device-local state (dashboard personalization and
+    // DND notification queue) that should not survive backup/restore.
 )

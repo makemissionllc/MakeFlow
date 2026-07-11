@@ -32,6 +32,7 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 @Database(
     entities = [
@@ -76,6 +77,12 @@ abstract class AppDatabase : RoomDatabase() {
         transactionTemplates: List<TransactionTemplateEntity>,
         exchangeRates: List<ExchangeRateEntity>
     ) {
+        // NOTE: card_interactions and queued_notifications are deliberately NOT
+        // backed up or restored. card_interactions is device-local clickstream
+        // data used to personalize dashboard card ordering (DashboardCardRanker);
+        // restoring it would transplant stale usage patterns. queued_notifications
+        // is a bounded DND notification queue whose entries are time-sensitive;
+        // restoring stale notifications would fire outdated alerts.
         accountDao().clearAll()
         categoryDao().clearAll()
         transactionDao().clearAll()
@@ -118,10 +125,15 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("DROP TABLE IF EXISTS transactions")
-                db.execSQL("DROP TABLE IF EXISTS categories")
+                db.execSQL("PRAGMA foreign_keys = OFF")
+
                 db.execSQL(
-                    """CREATE TABLE IF NOT EXISTS categories (
+                    """CREATE TEMPORARY TABLE category_id_map AS
+                        SELECT id AS old_id, hex(randomblob(16)) AS new_id FROM categories"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS categories_new (
                         id TEXT PRIMARY KEY NOT NULL,
                         name TEXT NOT NULL,
                         iconName TEXT NOT NULL DEFAULT '',
@@ -129,8 +141,16 @@ abstract class AppDatabase : RoomDatabase() {
                         monthlyBudget REAL NOT NULL DEFAULT 0.0
                     )"""
                 )
+
                 db.execSQL(
-                    """CREATE TABLE IF NOT EXISTS transactions (
+                    """INSERT INTO categories_new (id, name, iconName, colorHex, monthlyBudget)
+                        SELECT m.new_id, c.name, '', '', c.budgetLimit
+                        FROM categories c
+                        INNER JOIN category_id_map m ON c.id = m.old_id"""
+                )
+
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS transactions_new (
                         id TEXT PRIMARY KEY NOT NULL,
                         amount REAL NOT NULL,
                         type TEXT NOT NULL,
@@ -140,7 +160,22 @@ abstract class AppDatabase : RoomDatabase() {
                         FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
                     )"""
                 )
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_categoryId ON transactions(categoryId)")
+
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_transactions_categoryId ON transactions_new(categoryId)")
+
+                db.execSQL(
+                    """INSERT INTO transactions_new (id, amount, type, categoryId, note, timestamp)
+                        SELECT hex(randomblob(16)), t.amount, t.type, m.new_id, COALESCE(t.note, ''), t.timestamp
+                        FROM transactions t
+                        LEFT JOIN category_id_map m ON t.categoryId = m.old_id"""
+                )
+
+                db.execSQL("DROP TABLE categories")
+                db.execSQL("DROP TABLE transactions")
+                db.execSQL("ALTER TABLE categories_new RENAME TO categories")
+                db.execSQL("ALTER TABLE transactions_new RENAME TO transactions")
+
+                db.execSQL("PRAGMA foreign_keys = ON")
             }
         }
 
@@ -289,8 +324,10 @@ abstract class AppDatabase : RoomDatabase() {
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance
-                    CoroutineScope(Dispatchers.IO).launch {
+                    runBlocking(Dispatchers.IO) {
                         DatabaseInitializer.populate(instance)
+                    }
+                    CoroutineScope(Dispatchers.IO).launch {
                         val cutoff = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
                         instance.cardInteractionDao().deleteOlderThan(cutoff)
                     }

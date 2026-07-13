@@ -20,12 +20,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -303,60 +304,57 @@ private fun HistoryListContent(
             }
 
             item {
-                LazyRow(
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(if (config.isTablet && config.isLandscape) 12.dp else 8.dp)
                 ) {
-                    item {
-                        val isSelected = selectedFilter == "ALL"
-                        Text(
-                            text = "All",
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                            modifier = Modifier
-                                .pressScale()
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
-                                )
-                                .clickable { viewModel.selectedFilter.value = "ALL" }
-                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
-                        )
-                    }
-                    item {
-                        val isSelected = selectedFilter == "INCOME"
-                        Text(
-                            text = "Income",
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                            modifier = Modifier
-                                .pressScale()
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
-                                )
-                                .clickable { viewModel.selectedFilter.value = "INCOME" }
-                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
-                        )
-                    }
-                    item {
-                        val isSelected = selectedFilter == "EXPENSE"
-                        Text(
-                            text = "Expense",
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                            modifier = Modifier
-                                .pressScale()
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
-                                )
-                                .clickable { viewModel.selectedFilter.value = "EXPENSE" }
-                                .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
-                        )
-                    }
+                    val isSelectedAll = selectedFilter == "ALL"
+                    Text(
+                        text = "All",
+                        color = if (isSelectedAll) Color(0xFF121315) else Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
+                        modifier = Modifier
+                            .pressScale()
+                            .background(
+                                if (isSelectedAll) Color.White else Color(0xFF1B1C1F),
+                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
+                            )
+                            .clickable { viewModel.selectedFilter.value = "ALL" }
+                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
+                    )
+                    val isSelectedIncome = selectedFilter == "INCOME"
+                    Text(
+                        text = "Income",
+                        color = if (isSelectedIncome) Color(0xFF121315) else Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
+                        modifier = Modifier
+                            .pressScale()
+                            .background(
+                                if (isSelectedIncome) Color.White else Color(0xFF1B1C1F),
+                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
+                            )
+                            .clickable { viewModel.selectedFilter.value = "INCOME" }
+                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
+                    )
+                    val isSelectedExpense = selectedFilter == "EXPENSE"
+                    Text(
+                        text = "Expense",
+                        color = if (isSelectedExpense) Color(0xFF121315) else Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
+                        modifier = Modifier
+                            .pressScale()
+                            .background(
+                                if (isSelectedExpense) Color.White else Color(0xFF1B1C1F),
+                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
+                            )
+                            .clickable { viewModel.selectedFilter.value = "EXPENSE" }
+                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
+                    )
                 }
             }
 

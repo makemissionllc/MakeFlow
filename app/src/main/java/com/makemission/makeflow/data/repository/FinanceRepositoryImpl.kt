@@ -200,8 +200,8 @@ class FinanceRepositoryImpl(
         budgetDao?.insertBudget(budget)
     }
 
-    override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {
-        budgetDao?.updateBudget(budgetId, amount, period)
+    override suspend fun updateBudget(budgetId: String, amount: Double, period: String, name: String?) {
+        budgetDao?.updateBudget(budgetId, amount, period, name)
     }
 
     override suspend fun deleteBudget(budget: BudgetEntity) {

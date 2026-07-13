@@ -97,17 +97,25 @@ fun AddTransactionBottomSheet(
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
-    initialType: String = "INCOME"
+    initialType: String = "INCOME",
+    editTransaction: TransactionEntity? = null,
+    onUpdate: (suspend (TransactionEntity) -> Unit)? = null
 ) {
     val scope = rememberCoroutineScope()
+    val isEditMode = editTransaction != null
 
-    var selectedType by remember { mutableStateOf(initialType) }
-    var amountInput by remember { mutableStateOf("") }
-    var selectedAccountId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
-    var selectedTransferFromId by remember { mutableStateOf(accounts.firstOrNull()?.id ?: "") }
-    var selectedTransferToId by remember { mutableStateOf(accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
-    var note by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableStateOf(Calendar.getInstance().timeInMillis) }
+    var selectedType by remember { mutableStateOf(editTransaction?.type ?: initialType) }
+    var amountInput by remember {
+        val amt = editTransaction?.amount
+        mutableStateOf(if (amt != null) {
+            if (amt == amt.toLong().toDouble()) amt.toLong().toString() else amt.toString()
+        } else "")
+    }
+    var selectedAccountId by remember { mutableStateOf(editTransaction?.accountId ?: accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
+    var note by remember { mutableStateOf(editTransaction?.note ?: "") }
+    var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
     var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
@@ -124,8 +132,22 @@ fun AddTransactionBottomSheet(
         else categories.filter { it.type == selectedType && it.parentCategoryId == null }
     }
 
-    var selectedParentCategory by remember { mutableStateOf<CategoryEntity?>(null) }
-    var selectedChildCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    val initialParentCat = remember(editTransaction, categories) {
+        if (editTransaction != null && editTransaction.type != "TRANSFER" && editTransaction.categoryId != null) {
+            val cat = categories.find { it.id == editTransaction.categoryId }
+            if (cat?.parentCategoryId != null) categories.find { it.id == cat.parentCategoryId } else cat
+        } else null
+    }
+    val initialChildCat = remember(editTransaction, categories) {
+        if (editTransaction != null && editTransaction.type != "TRANSFER" && editTransaction.categoryId != null) {
+            val cat = categories.find { it.id == editTransaction.categoryId }
+            if (cat?.parentCategoryId != null) cat else null
+        } else null
+    }
+
+    var selectedParentCategory by remember { mutableStateOf(initialParentCat) }
+    var selectedChildCategory by remember { mutableStateOf(initialChildCat) }
+    var categoryResetSkippedForEdit by remember { mutableStateOf(isEditMode) }
 
     LaunchedEffect(Unit) {
         if (onGetPastTransactions != null) {
@@ -204,6 +226,10 @@ fun AddTransactionBottomSheet(
         else selectedChildCategory?.id ?: selectedParentCategory?.id
 
     LaunchedEffect(selectedType, categories) {
+        if (categoryResetSkippedForEdit) {
+            categoryResetSkippedForEdit = false
+            return@LaunchedEffect
+        }
         if (selectedType != "TRANSFER") {
             val parents = categories.filter { it.type == selectedType && it.parentCategoryId == null }
             selectedParentCategory = parents.firstOrNull()
@@ -277,7 +303,7 @@ fun AddTransactionBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Add Transaction",
+                    text = if (isEditMode) "Edit Transaction" else "Add Transaction",
                     style = MaterialTheme.typography.titleLarge,
                     color = Color.White
                 )
@@ -290,7 +316,7 @@ fun AddTransactionBottomSheet(
                 }
             }
 
-            if (templates.isNotEmpty()) {
+            if (!isEditMode && templates.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         text = "Templates",
@@ -607,7 +633,7 @@ fun AddTransactionBottomSheet(
                 )
             }
 
-            if (onSaveAsTemplate != null) {
+            if (!isEditMode && onSaveAsTemplate != null) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -752,36 +778,62 @@ fun AddTransactionBottomSheet(
                     scope.launch {
                         val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
                         val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
-                        val entity = TransactionEntity(
-                            amount = amount,
-                            type = selectedType,
-                            categoryId = resolvedCategoryId,
-                            accountId = selectedAccountId,
-                            fromAccountId = fromId,
-                            toAccountId = toId,
-                            note = note,
-                            timestamp = selectedDate
-                        )
-                        if (onCheckDuplicate != null) {
-                            val result = onCheckDuplicate(entity)
-                            if (result != null) {
-                                duplicateWarning = result
-                                pendingEntity = entity
-                                return@launch
+                        if (isEditMode && onUpdate != null && editTransaction != null) {
+                            val updatedEntity = editTransaction.copy(
+                                amount = amount,
+                                type = selectedType,
+                                categoryId = resolvedCategoryId,
+                                accountId = selectedAccountId,
+                                fromAccountId = fromId,
+                                toAccountId = toId,
+                                note = note,
+                                timestamp = selectedDate
+                            )
+                            onUpdate(updatedEntity)
+                            hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
+                            if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null
+                                && amount != editTransaction.amount) {
+                                val result = onAnomalyCheck(amount, resolvedCategoryId)
+                                if (result != null && result.severity != AnomalySeverity.NONE) {
+                                    anomalyResult = result
+                                    hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
+                                    delay(2500)
+                                }
                             }
-                        }
-                        onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
-                        hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
-                        if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
-                            val result = onAnomalyCheck(amount, resolvedCategoryId)
-                            if (result != null && result.severity != AnomalySeverity.NONE) {
-                                anomalyResult = result
-                                hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
-                                delay(2500)
+                            onDismiss()
+                            anomalyResult = null
+                        } else {
+                            val entity = TransactionEntity(
+                                amount = amount,
+                                type = selectedType,
+                                categoryId = resolvedCategoryId,
+                                accountId = selectedAccountId,
+                                fromAccountId = fromId,
+                                toAccountId = toId,
+                                note = note,
+                                timestamp = selectedDate
+                            )
+                            if (onCheckDuplicate != null) {
+                                val result = onCheckDuplicate(entity)
+                                if (result != null) {
+                                    duplicateWarning = result
+                                    pendingEntity = entity
+                                    return@launch
+                                }
                             }
+                            onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
+                            hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
+                            if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
+                                val result = onAnomalyCheck(amount, resolvedCategoryId)
+                                if (result != null && result.severity != AnomalySeverity.NONE) {
+                                    anomalyResult = result
+                                    hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
+                                    delay(2500)
+                                }
+                            }
+                            onDismiss()
+                            anomalyResult = null
                         }
-                        onDismiss()
-                        anomalyResult = null
                     }
                 },
                 enabled = isSaveEnabled,
@@ -797,7 +849,7 @@ fun AddTransactionBottomSheet(
                     .height(54.dp)
             ) {
                 Text(
-                    text = "Save Transaction",
+                    text = if (isEditMode) "Update Transaction" else "Save Transaction",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )

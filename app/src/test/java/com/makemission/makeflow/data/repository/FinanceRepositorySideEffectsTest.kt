@@ -274,17 +274,29 @@ class FinanceRepositorySideEffectsTest {
             budgetsFlow.value = budgets.toList()
         }
 
-        override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {
+        override suspend fun updateBudget(budgetId: String, amount: Double, period: String, name: String?) {
             val idx = budgets.indexOfFirst { it.id == budgetId }
             if (idx >= 0) {
-                budgets[idx] = budgets[idx].copy(amount = amount, period = period)
+                budgets[idx] = budgets[idx].copy(amount = amount, period = period, name = name)
                 budgetsFlow.value = budgets.toList()
             }
         }
 
-        override suspend fun updateBudgetSpending(categoryId: String, amount: Double) {}
+        override suspend fun updateBudgetSpending(categoryId: String, amount: Double) {
+            val idx = budgets.indexOfFirst { it.categoryId == categoryId }
+            if (idx >= 0) {
+                budgets[idx] = budgets[idx].copy(spentAmount = budgets[idx].spentAmount + amount)
+                budgetsFlow.value = budgets.toList()
+            }
+        }
 
-        override suspend fun decrementBudgetSpending(categoryId: String, amount: Double) {}
+        override suspend fun decrementBudgetSpending(categoryId: String, amount: Double) {
+            val idx = budgets.indexOfFirst { it.categoryId == categoryId }
+            if (idx >= 0) {
+                budgets[idx] = budgets[idx].copy(spentAmount = maxOf(budgets[idx].spentAmount - amount, 0.0))
+                budgetsFlow.value = budgets.toList()
+            }
+        }
 
         override suspend fun updateBudgetAmount(budgetId: String, newAmount: Double) {}
 
@@ -1012,5 +1024,159 @@ class FinanceRepositorySideEffectsTest {
         assertEquals(300.0, unchanged!!.amount, 0.001)
         assertEquals("Monthly", unchanged.period)
         assertEquals(50.0, unchanged.spentAmount, 0.001)
+    }
+
+    @Test
+    fun `updateExpense_reversesOldAmount_and_appliesNewAmount`() = runBlocking {
+        val txDao = FakeTransactionDao()
+        val acctDao = FakeAccountDao()
+        acctDao.insertAccount(AccountEntity(id = "acct1", name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+        val budgetDao = FakeBudgetDao()
+        budgetDao.insertBudget(BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 0.0, period = "Monthly"))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = acctDao,
+            budgetDao = budgetDao,
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val old = TransactionEntity(
+            id = "tx1", amount = 200.0, type = "EXPENSE",
+            categoryId = "cat1", accountId = "acct1", note = "groceries", timestamp = 1000
+        )
+        repo.insertTransaction(old)
+        assertEquals(800.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+        assertEquals(200.0, budgetDao.getBudgetByCategory("cat1")!!.spentAmount, 0.001)
+
+        val updated = old.copy(amount = 350.0)
+        repo.updateTransaction(updated)
+        assertEquals(650.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+        assertEquals(350.0, budgetDao.getBudgetByCategory("cat1")!!.spentAmount, 0.001)
+    }
+
+    @Test
+    fun `updateIncome_reversesOldAmount_and_appliesNewAmount`() = runBlocking {
+        val txDao = FakeTransactionDao()
+        val acctDao = FakeAccountDao()
+        acctDao.insertAccount(AccountEntity(id = "acct1", name = "Wallet", balance = 500.0, initialBalance = 0.0))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = acctDao,
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val old = TransactionEntity(
+            id = "tx1", amount = 1000.0, type = "INCOME",
+            categoryId = null, accountId = "acct1", note = "salary", timestamp = 1000
+        )
+        repo.insertTransaction(old)
+        assertEquals(1500.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+
+        val updated = old.copy(amount = 1200.0)
+        repo.updateTransaction(updated)
+        assertEquals(1700.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+    }
+
+    @Test
+    fun `updateAccount_movesBalanceEffect_fromOldToNew`() = runBlocking {
+        val txDao = FakeTransactionDao()
+        val acctDao = FakeAccountDao()
+        acctDao.insertAccount(AccountEntity(id = "acct1", name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+        acctDao.insertAccount(AccountEntity(id = "acct2", name = "Bank", balance = 500.0, initialBalance = 0.0))
+        val budgetDao = FakeBudgetDao()
+        budgetDao.insertBudget(BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 0.0, period = "Monthly"))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = acctDao,
+            budgetDao = budgetDao,
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val old = TransactionEntity(
+            id = "tx1", amount = 200.0, type = "EXPENSE",
+            categoryId = "cat1", accountId = "acct1", note = "groceries", timestamp = 1000
+        )
+        repo.insertTransaction(old)
+        assertEquals(800.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+        assertEquals(500.0, acctDao.getAccountById("acct2")!!.balance, 0.001)
+
+        val updated = old.copy(accountId = "acct2")
+        repo.updateTransaction(updated)
+        assertEquals(1000.0, acctDao.getAccountById("acct1")!!.balance, 0.001)
+        assertEquals(300.0, acctDao.getAccountById("acct2")!!.balance, 0.001)
+        assertEquals(200.0, budgetDao.getBudgetByCategory("cat1")!!.spentAmount, 0.001)
+    }
+
+    @Test
+    fun `updateCategory_decrementsOldBudget_and_incrementsNewBudget`() = runBlocking {
+        val txDao = FakeTransactionDao()
+        val acctDao = FakeAccountDao()
+        acctDao.insertAccount(AccountEntity(id = "acct1", name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+        val budgetDao = FakeBudgetDao()
+        budgetDao.insertBudget(BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 0.0, period = "Monthly"))
+        budgetDao.insertBudget(BudgetEntity(id = "b2", categoryId = "cat2", categoryName = "Transport", amount = 300.0, spentAmount = 0.0, period = "Monthly"))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = acctDao,
+            budgetDao = budgetDao,
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val old = TransactionEntity(
+            id = "tx1", amount = 150.0, type = "EXPENSE",
+            categoryId = "cat1", accountId = "acct1", note = "lunch", timestamp = 1000
+        )
+        repo.insertTransaction(old)
+        assertEquals(150.0, budgetDao.getBudgetByCategory("cat1")!!.spentAmount, 0.001)
+        assertEquals(0.0, budgetDao.getBudgetByCategory("cat2")!!.spentAmount, 0.001)
+
+        val updated = old.copy(categoryId = "cat2")
+        repo.updateTransaction(updated)
+        assertEquals(0.0, budgetDao.getBudgetByCategory("cat1")!!.spentAmount, 0.001)
+        assertEquals(150.0, budgetDao.getBudgetByCategory("cat2")!!.spentAmount, 0.001)
+    }
+
+    @Test
+    fun `updateTransfer_changesFromAndTo_reversesOld_and_appliesNew`() = runBlocking {
+        val txDao = FakeTransactionDao()
+        val acctDao = FakeAccountDao()
+        val fromId = "from1"
+        val toIdOld = "to1"
+        val toIdNew = "to2"
+        acctDao.insertAccount(AccountEntity(id = fromId, name = "Wallet", balance = 1000.0, initialBalance = 0.0))
+        acctDao.insertAccount(AccountEntity(id = toIdOld, name = "Bank A", balance = 500.0, initialBalance = 0.0))
+        acctDao.insertAccount(AccountEntity(id = toIdNew, name = "Bank B", balance = 300.0, initialBalance = 0.0))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = acctDao,
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val oldTx = TransactionEntity(
+            id = "tx1", amount = 200.0, type = "TRANSFER",
+            fromAccountId = fromId, toAccountId = toIdOld, note = "transfer", timestamp = 1000
+        )
+        repo.insertTransaction(oldTx)
+        assertEquals(800.0, acctDao.getAccountById(fromId)!!.balance, 0.001)
+        assertEquals(700.0, acctDao.getAccountById(toIdOld)!!.balance, 0.001)
+        assertEquals(300.0, acctDao.getAccountById(toIdNew)!!.balance, 0.001)
+
+        val updatedTx = oldTx.copy(toAccountId = toIdNew, amount = 150.0)
+        repo.updateTransaction(updatedTx)
+        assertEquals(850.0, acctDao.getAccountById(fromId)!!.balance, 0.001)
+        assertEquals(500.0, acctDao.getAccountById(toIdOld)!!.balance, 0.001)
+        assertEquals(450.0, acctDao.getAccountById(toIdNew)!!.balance, 0.001)
     }
 }

@@ -180,7 +180,7 @@ class HomeDashboardViewModelTest {
         override suspend fun insertBudget(budget: BudgetEntity) {}
         override suspend fun deleteBudget(budget: BudgetEntity) {}
         override suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String) {}
-        override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {}
+        override suspend fun updateBudget(budgetId: String, amount: Double, period: String, name: String?) {}
         override suspend fun checkDuplicate(candidate: com.makemission.makeflow.data.local.entity.TransactionEntity): com.makemission.makeflow.domain.DuplicateCheckResult? = null
         override suspend fun clearAllTransactions() {}
         override suspend fun clearAllAccounts() {}

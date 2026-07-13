@@ -182,7 +182,7 @@ fun MainScreen(
         factory = AccountsViewModelFactory(repository, userPrefDataStore, exchangeRateRepository)
     )
     val settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager)
+        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager, exchangeRateRepository)
     )
     val recurringTransactionsViewModel: RecurringTransactionsViewModel = viewModel(
         factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)
@@ -206,6 +206,7 @@ fun MainScreen(
 
     var showAddTransaction by remember { mutableStateOf(false) }
     val shortcutPendingType = remember { mutableStateOf<String?>(null) }
+    var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
     LaunchedEffect(initialTransactionType) {
         if (initialTransactionType != null) {
@@ -345,6 +346,10 @@ fun MainScreen(
                     onSetUpRecurringFromInsights = { amount ->
                         recurringSetupAmount = amount
                         showRecurringSetupFromInsights = true
+                    },
+                    onEditTransaction = { tx ->
+                        editingTransaction = tx
+                        showAddTransaction = true
                     }
                 )
             }
@@ -424,6 +429,10 @@ fun MainScreen(
                     onSetUpRecurringFromInsights = { amount ->
                         recurringSetupAmount = amount
                         showRecurringSetupFromInsights = true
+                    },
+                    onEditTransaction = { tx ->
+                        editingTransaction = tx
+                        showAddTransaction = true
                     }
                 )
 
@@ -578,9 +587,10 @@ fun MainScreen(
 
     if (showAddTransaction) {
         AddTransactionBottomSheet(
-            initialType = shortcutPendingType.value ?: "INCOME",
+            initialType = editingTransaction?.type ?: shortcutPendingType.value ?: "INCOME",
             onDismiss = {
                 shortcutPendingType.value = null
+                editingTransaction = null
                 showAddTransaction = false
             },
             onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
@@ -606,8 +616,8 @@ fun MainScreen(
             currencySymbol = currencySymbol,
             currencyCode = currencyCode,
             hapticManager = hapticManager,
-            templates = templates,
-            onSaveAsTemplate = { name, amount, type, categoryId, accountId, note ->
+            templates = if (editingTransaction == null) templates else emptyList(),
+            onSaveAsTemplate = if (editingTransaction == null) ({ name, amount, type, categoryId, accountId, note ->
                 scope.launch(Dispatchers.IO) {
                     templateRepository.insertTemplate(
                         TransactionTemplateEntity(
@@ -620,7 +630,7 @@ fun MainScreen(
                         )
                     )
                 }
-            },
+            }) else null,
             onAnomalyCheck = { amount, categoryId ->
                 if (categoryId == null) return@AddTransactionBottomSheet null
                 val history = repository.getRecentAmountsForCategory(categoryId)
@@ -634,7 +644,16 @@ fun MainScreen(
                 pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
             },
             categoryClassifier = categoryClassifier,
-            smartCategorizationEnabled = smartCategorizationEnabled
+            smartCategorizationEnabled = smartCategorizationEnabled,
+            editTransaction = editingTransaction,
+            onUpdate = { entity ->
+                scope.launch(Dispatchers.IO) {
+                    repository.updateTransaction(entity)
+                    WidgetUpdateHelper.updateWidgets(context)
+                    editingTransaction = null
+                    showAddTransaction = false
+                }
+            }
         )
     }
 
@@ -691,7 +710,8 @@ private fun TabContentAnimated(
     onOpenBudgets: () -> Unit,
     onOpenRecurringTransactions: () -> Unit,
     onNavigateToHome: () -> Unit,
-    onSetUpRecurringFromInsights: (Double) -> Unit = {}
+    onSetUpRecurringFromInsights: (Double) -> Unit = {},
+    onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
     val tabIndex = when (activeTab) {
         MakeFlowTab.HOME -> 0
@@ -744,7 +764,8 @@ private fun TabContentAnimated(
                 BackHandler { onNavigateToHome() }
                 HistoryScreen(
                     viewModel = historyViewModel,
-                    hapticManager = hapticManager
+                    hapticManager = hapticManager,
+                    onEditTransaction = onEditTransaction
                 )
             }
         }

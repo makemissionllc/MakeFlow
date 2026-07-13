@@ -11,6 +11,7 @@ import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
+import com.makemission.makeflow.domain.DuplicateCheckResult
 import kotlinx.coroutines.flow.Flow
 
 interface FinanceRepository {
@@ -72,6 +73,7 @@ interface FinanceRepository {
     suspend fun deleteRecurringTransaction(entity: RecurringTransactionEntity)
     suspend fun toggleRecurringTransactionActive(id: String)
     suspend fun skipRecurringTransaction(id: String)
+    suspend fun checkDuplicate(candidate: com.makemission.makeflow.data.local.entity.TransactionEntity): DuplicateCheckResult?
     suspend fun processDueRecurringTransactions()
     fun getAllActiveRecurringTransactions(): Flow<List<RecurringTransactionEntity>>
     fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>>

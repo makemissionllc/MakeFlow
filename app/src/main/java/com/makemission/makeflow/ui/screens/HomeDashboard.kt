@@ -33,7 +33,8 @@ import androidx.compose.material.icons.rounded.FilterList
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
-import androidx.compose.material.icons.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,6 +61,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
+import com.makemission.makeflow.domain.VelocityAlert
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
@@ -107,6 +109,7 @@ fun HomeDashboard(
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val cardOrder by viewModel.cardOrder.collectAsState()
     val cashFlowProjection by viewModel.cashFlowProjection.collectAsState()
+    val velocityAlerts by viewModel.velocityAlerts.collectAsState()
 
     var showReorderSheet by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -222,6 +225,14 @@ fun HomeDashboard(
             }
             item {
                 CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel)
+            }
+            if (velocityAlerts.isNotEmpty()) {
+                item {
+                    VelocityAlertsCard(
+                        alerts = velocityAlerts,
+                        currencyCode = selectedCurrency
+                    )
+                }
             }
             cashFlowProjection?.let { projection ->
                 item {
@@ -945,6 +956,75 @@ fun CardContainer(content: @Composable () -> Unit) {
 }
 
 @Composable
+private fun VelocityAlertsCard(
+    alerts: List<VelocityAlert>,
+    currencyCode: String
+) {
+    CardContainer {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
+                contentDescription = null,
+                tint = Color(0xFFFFA726),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Spending velocity",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        alerts.forEach { alert ->
+            val severityColor = when (alert.severity) {
+                com.makemission.makeflow.domain.VelocitySeverity.CRITICAL -> Color(0xFFEF5350)
+                com.makemission.makeflow.domain.VelocitySeverity.HIGH -> Color(0xFFFF7043)
+                com.makemission.makeflow.domain.VelocitySeverity.ELEVATED -> Color(0xFFFFA726)
+                com.makemission.makeflow.domain.VelocitySeverity.NONE -> Color.White.copy(alpha = 0.5f)
+            }
+            val formattedPct = "${(alert.percentAhead * 100).toInt()}%"
+            val projectedFormatted = CurrencyFormatter.format(alert.projectedMonthEndAmount, currencyCode)
+            val actualFormatted = CurrencyFormatter.format(alert.actualCumulativeSpend, currencyCode)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = alert.categoryName,
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = "$formattedPct ahead",
+                        color = severityColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Text(
+                    text = "$actualFormatted spent \u00B7 at this pace: $projectedFormatted by month end",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
+            if (alert != alerts.last()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+        }
+    }
+}
+
+@Composable
 private fun ProjectionCard(
     projection: CashFlowProjection,
     currencyCode: String
@@ -965,7 +1045,7 @@ private fun ProjectionCard(
         ) {
             if (isNegative) {
                 Icon(
-                    imageVector = Icons.Rounded.TrendingDown,
+                    imageVector = Icons.AutoMirrored.Rounded.TrendingDown,
                     contentDescription = null,
                     tint = Color(0xFFEF5350),
                     modifier = Modifier.size(20.dp)

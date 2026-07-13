@@ -9,6 +9,13 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.domain.BudgetForecast
 import com.makemission.makeflow.domain.BudgetForecaster
+import com.makemission.makeflow.domain.ExpenseSeasonalityDetector
+import com.makemission.makeflow.domain.FrugalStreak
+import com.makemission.makeflow.domain.FrugalStreakDetector
+import com.makemission.makeflow.domain.MonthlySurplus
+import com.makemission.makeflow.domain.SavingsCapacityDetector
+import com.makemission.makeflow.domain.SavingsCapacitySuggestion
+import com.makemission.makeflow.domain.SeasonalPattern
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +23,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -214,6 +222,85 @@ class InsightsViewModel(
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val savingsSuggestion: StateFlow<SavingsCapacitySuggestion?> = combine(
+        allTransactions, userPreferencesDataStore.dismissedSuggestions
+    ) { txs, dismissed ->
+        if ("savings_capacity" in dismissed) null
+        else {
+            val now = YearMonth.now()
+            val surpluses = (0L until 6L).mapNotNull { offset ->
+                val m = now.minusMonths(offset)
+                val (start, end) = getMonthRangeMillis(m)
+                val income = txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { it.amount }
+                val expense = txs.filter { it.type == "EXPENSE" && it.timestamp in start..end }.sumOf { it.amount }
+                if (income == 0.0 && expense == 0.0) null else MonthlySurplus(income, expense)
+            }
+            SavingsCapacityDetector.compute(surpluses)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val frugalStreaks: StateFlow<List<FrugalStreak>> = combine(
+        allTransactions, allCategories, userPreferencesDataStore.dismissedSuggestions
+    ) { txs, cats, dismissed ->
+        val expenseCategories = cats.filter { it.parentCategoryId == null }
+        val childToParent = cats.filter { it.parentCategoryId != null }
+            .associate { it.id to it.parentCategoryId!! }
+
+        expenseCategories.mapNotNull { category ->
+            val dismissKey = "frugal_streak_${category.id}"
+            if (dismissKey in dismissed) return@mapNotNull null
+
+            val categoryTxns = txs.filter { tx ->
+                val effectiveCat = childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+                effectiveCat == category.id
+            }
+
+            FrugalStreakDetector.detect(
+                categoryId = category.id,
+                categoryName = category.name,
+                categoryTransactions = categoryTxns
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val upcomingSeasonalExpenses: StateFlow<List<SeasonalPattern>> = combine(
+        allTransactions, allCategories
+    ) { txs, cats ->
+        val expenseCategories = cats.filter { it.parentCategoryId == null }
+        val childToParent = cats.filter { it.parentCategoryId != null }
+            .associate { it.id to it.parentCategoryId!! }
+
+        val now = YearMonth.now()
+        val upcomingMonths = (0..2).map { now.plusMonths(it.toLong()).monthValue }.toSet()
+
+        expenseCategories.flatMap { category ->
+            val categoryTxns = txs.filter { tx ->
+                val effectiveCat = childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+                effectiveCat == category.id
+            }
+
+            ExpenseSeasonalityDetector.detect(
+                categoryId = category.id,
+                categoryName = category.name,
+                categoryTransactions = categoryTxns
+            ).filter { pattern ->
+                pattern.peakMonths.any { it in upcomingMonths }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun dismissSavingsSuggestion() {
+        viewModelScope.launch {
+            userPreferencesDataStore.dismissSuggestion("savings_capacity")
+        }
+    }
+
+    fun dismissFrugalStreak(categoryId: String) {
+        viewModelScope.launch {
+            userPreferencesDataStore.dismissSuggestion("frugal_streak_$categoryId")
+        }
+    }
 
     fun previousMonth() {
         selectedMonth.value = selectedMonth.value.minusMonths(1)

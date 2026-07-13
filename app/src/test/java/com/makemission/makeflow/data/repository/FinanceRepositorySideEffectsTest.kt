@@ -101,6 +101,9 @@ class FinanceRepositorySideEffectsTest {
         }
 
         override suspend fun getAllTransactionsOnce(): List<TransactionEntity> = transactions.toList()
+
+        override suspend fun getTransactionsSince(sinceMillis: Long): List<TransactionEntity> =
+            transactions.filter { it.timestamp >= sinceMillis }
     }
 
     private class FakeRecurringPatternDao : RecurringPatternDao {

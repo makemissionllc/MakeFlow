@@ -92,6 +92,7 @@ import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
 import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
 import com.makemission.makeflow.ui.screens.AccountsScreen
+import com.makemission.makeflow.ui.screens.AddEditRecurringTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.BudgetScreen
 import com.makemission.makeflow.ui.screens.CategoryManagementScreen
@@ -209,6 +210,8 @@ fun MainScreen(
     var showAccountsScreen by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showRecurringTransactionsScreen by remember { mutableStateOf(false) }
+    var showRecurringSetupFromInsights by remember { mutableStateOf(false) }
+    var recurringSetupAmount by remember { mutableStateOf(0.0) }
     var showManageTemplates by remember { mutableStateOf(false) }
     var showManageCategories by remember { mutableStateOf(false) }
     var showExchangeRates by remember { mutableStateOf(false) }
@@ -330,7 +333,11 @@ fun MainScreen(
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
-                    onNavigateToHome = { activeTab = MakeFlowTab.HOME }
+                    onNavigateToHome = { activeTab = MakeFlowTab.HOME },
+                    onSetUpRecurringFromInsights = { amount ->
+                        recurringSetupAmount = amount
+                        showRecurringSetupFromInsights = true
+                    }
                 )
             }
 
@@ -405,7 +412,11 @@ fun MainScreen(
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
-                    onNavigateToHome = { activeTab = MakeFlowTab.HOME }
+                    onNavigateToHome = { activeTab = MakeFlowTab.HOME },
+                    onSetUpRecurringFromInsights = { amount ->
+                        recurringSetupAmount = amount
+                        showRecurringSetupFromInsights = true
+                    }
                 )
 
                 Column(
@@ -607,6 +618,9 @@ fun MainScreen(
                 val history = repository.getRecentAmountsForCategory(categoryId)
                 AnomalyDetector.analyze(amount, history)
             },
+            onCheckDuplicate = { entity ->
+                repository.checkDuplicate(entity)
+            },
             onGetPastTransactions = {
                 val pairs = repository.getRecentDescriptionsAndCategories()
                 pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
@@ -632,6 +646,23 @@ fun MainScreen(
             }
         )
     }
+
+    if (showRecurringSetupFromInsights) {
+        AddEditRecurringTransactionBottomSheet(
+            onDismiss = { showRecurringSetupFromInsights = false },
+            onSave = { entity: com.makemission.makeflow.data.local.entity.RecurringTransactionEntity ->
+                scope.launch(Dispatchers.IO) {
+                    repository.createRecurringTransaction(entity)
+                    showRecurringSetupFromInsights = false
+                }
+            },
+            accounts = accounts,
+            categories = categories,
+            currencySymbol = currencySymbol,
+            prefillAmount = recurringSetupAmount,
+            prefillDescription = "Savings"
+        )
+    }
 }
 
 }
@@ -649,7 +680,8 @@ private fun TabContentAnimated(
     onOpenSettings: () -> Unit,
     onOpenBudgets: () -> Unit,
     onOpenRecurringTransactions: () -> Unit,
-    onNavigateToHome: () -> Unit
+    onNavigateToHome: () -> Unit,
+    onSetUpRecurringFromInsights: (Double) -> Unit = {}
 ) {
     val tabIndex = when (activeTab) {
         MakeFlowTab.HOME -> 0
@@ -693,6 +725,7 @@ private fun TabContentAnimated(
                 InsightsScreen(
                     viewModel = insightsViewModel,
                     onOpenBudgets = onOpenBudgets,
+                    onSetUpRecurring = onSetUpRecurringFromInsights,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
                 )

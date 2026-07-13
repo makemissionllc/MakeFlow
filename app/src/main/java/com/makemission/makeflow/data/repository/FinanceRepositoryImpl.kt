@@ -21,6 +21,8 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
 import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.domain.BudgetSuggestionEngine
+import com.makemission.makeflow.domain.DuplicateCheckResult
+import com.makemission.makeflow.domain.DuplicateTransactionDetector
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -337,6 +339,12 @@ class FinanceRepositoryImpl(
             val nextDue = advanceDate(entity.nextDueDate, entity.intervalDays)
             recurringTransactionDao?.update(entity.copy(nextDueDate = nextDue))
         }
+    }
+
+    override suspend fun checkDuplicate(candidate: TransactionEntity): DuplicateCheckResult? {
+        val tenMinutesAgo = System.currentTimeMillis() - 10 * 60 * 1000
+        val recent = transactionDao.getTransactionsSince(tenMinutesAgo)
+        return DuplicateTransactionDetector.check(candidate, recent)
     }
 
     override suspend fun processDueRecurringTransactions() {

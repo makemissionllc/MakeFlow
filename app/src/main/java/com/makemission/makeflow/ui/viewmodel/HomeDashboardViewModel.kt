@@ -23,6 +23,8 @@ import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.CashFlowProjector
 import com.makemission.makeflow.domain.DashboardCardRanker
 import com.makemission.makeflow.domain.DashboardCardType
+import com.makemission.makeflow.domain.SpendingVelocityTracker
+import com.makemission.makeflow.domain.VelocityAlert
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -158,6 +160,27 @@ class HomeDashboardViewModel(
             today = today
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val velocityAlerts: StateFlow<List<VelocityAlert>> = combine(
+        allTransactions, budgets, categories
+    ) { txs, budgetList, cats ->
+        val childToParent = cats.filter { it.parentCategoryId != null }
+            .associate { it.id to it.parentCategoryId!! }
+        val now = System.currentTimeMillis()
+        budgetList.mapNotNull { budget ->
+            val catId = budget.categoryId ?: return@mapNotNull null
+            val catTxs = txs.filter { tx ->
+                val effectiveCat = childToParent[tx.categoryId] ?: tx.categoryId ?: ""
+                tx.type == "EXPENSE" && effectiveCat == catId
+            }
+            SpendingVelocityTracker.compute(
+                categoryId = catId,
+                categoryName = budget.categoryName,
+                categoryTransactions = catTxs,
+                now = now
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun confirmRecurringTransaction(entity: RecurringTransactionEntity) {
         viewModelScope.launch {

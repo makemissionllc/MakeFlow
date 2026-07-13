@@ -79,6 +79,9 @@ interface TransactionDao {
     @Query("SELECT note AS description, categoryId FROM transactions WHERE note IS NOT NULL AND note != '' AND categoryId IS NOT NULL ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecentDescriptionsAndCategories(limit: Int = 100): List<DescriptionCategoryPair>
 
+    @Query("SELECT * FROM transactions WHERE timestamp >= :sinceMillis ORDER BY timestamp DESC")
+    suspend fun getTransactionsSince(sinceMillis: Long): List<TransactionEntity>
+
     @Query("DELETE FROM transactions")
     suspend fun clearAll()
 }

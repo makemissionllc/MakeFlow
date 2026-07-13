@@ -241,6 +241,7 @@ class HistoryViewModelTest {
         override suspend fun deleteBudget(budget: com.makemission.makeflow.data.local.entity.BudgetEntity) {}
         override suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String) {}
         override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {}
+        override suspend fun checkDuplicate(candidate: TransactionEntity): com.makemission.makeflow.domain.DuplicateCheckResult? = null
         override suspend fun clearAllTransactions() {}
         override suspend fun clearAllAccounts() {}
         override suspend fun clearAllBudgets() {}

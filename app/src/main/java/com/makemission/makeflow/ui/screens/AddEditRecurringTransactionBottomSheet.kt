@@ -54,14 +54,24 @@ fun AddEditRecurringTransactionBottomSheet(
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
     currencySymbol: String,
-    editEntity: RecurringTransactionEntity? = null
+    editEntity: RecurringTransactionEntity? = null,
+    prefillAmount: Double? = null,
+    prefillDescription: String? = null
 ) {
     val scope = rememberCoroutineScope()
 
     val isEditing = editEntity != null
 
-    var description by remember { mutableStateOf(editEntity?.description ?: "") }
-    var amountInput by remember { mutableStateOf(if (editEntity != null) editEntity.amount.toString() else "") }
+    var description by remember {
+        mutableStateOf(editEntity?.description ?: prefillDescription ?: "")
+    }
+    var amountInput by remember {
+        mutableStateOf(
+            if (editEntity != null) editEntity.amount.toString()
+            else if (prefillAmount != null) prefillAmount.toString()
+            else ""
+        )
+    }
     var selectedType by remember { mutableStateOf(editEntity?.type ?: "EXPENSE") }
     var selectedCategoryId by remember { mutableStateOf(editEntity?.categoryId ?: "") }
     var selectedAccountId by remember { mutableStateOf(editEntity?.accountId ?: "") }

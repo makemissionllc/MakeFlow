@@ -27,10 +27,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +62,9 @@ import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
+import com.makemission.makeflow.domain.FrugalStreak
+import com.makemission.makeflow.domain.PatternType
+import com.makemission.makeflow.domain.SeasonalPattern
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
@@ -73,6 +79,7 @@ import com.patrykandpatrick.vico.core.common.component.LineComponent
 fun InsightsScreen(
     viewModel: InsightsViewModel,
     onOpenBudgets: () -> Unit = {},
+    onSetUpRecurring: (Double) -> Unit = {},
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
@@ -90,6 +97,9 @@ fun InsightsScreen(
     val momItems by viewModel.momItems.collectAsState()
     val budgetForecasts by viewModel.budgetForecasts.collectAsState()
     val dailyAverageSpends by viewModel.dailyAverageSpends.collectAsState()
+    val savingsSuggestion by viewModel.savingsSuggestion.collectAsState()
+    val frugalStreaks by viewModel.frugalStreaks.collectAsState()
+    val upcomingSeasonalExpenses by viewModel.upcomingSeasonalExpenses.collectAsState()
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -525,6 +535,155 @@ fun InsightsScreen(
             }
         }
 
+        savingsSuggestion?.let { suggestion ->
+            item {
+            StaggeredItem(index = 7) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Savings Capacity",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "You could save ${CurrencyFormatter.format(suggestion.suggestedAmount, selectedCurrency)} per month",
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "Based on your lowest surplus month (${CurrencyFormatter.format(suggestion.safeFloor, selectedCurrency)})",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val confidencePercent = (suggestion.confidence * 100).toInt()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Confidence",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "$confidencePercent%",
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+                    val confidenceColor = when {
+                        suggestion.confidence >= 0.7f -> Color(0xFF4CAF50)
+                        suggestion.confidence >= 0.4f -> Color(0xFFFFA726)
+                        else -> Color(0xFFEF5350)
+                    }
+                    AnimatedProgressBar(
+                        progress = suggestion.confidence.coerceIn(0f, 1f),
+                        color = confidenceColor,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp)
+                            .background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp))
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(onClick = { viewModel.dismissSavingsSuggestion() }) {
+                        Text("Dismiss", color = Color.White.copy(alpha = 0.5f))
+                    }
+                    Button(
+                        onClick = { onSetUpRecurring(suggestion.suggestedAmount) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color(0xFF121315)
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Set up recurring transfer")
+                    }
+                }
+            }
+            }
+            }
+        }
+
+        if (frugalStreaks.isNotEmpty()) {
+            item {
+            StaggeredItem(index = 8) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF1B3A2A), RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Frugality Streaks",
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "2 months and counting",
+                        color = Color(0xFF4CAF50),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                frugalStreaks.forEach { streak ->
+                    FrugalStreakRow(
+                        streak = streak,
+                        currencySymbol = currencySymbol,
+                        selectedCurrency = selectedCurrency,
+                        onDismiss = { viewModel.dismissFrugalStreak(streak.categoryId) }
+                    )
+                }
+            }
+            }
+            }
+        }
+
+        if (upcomingSeasonalExpenses.isNotEmpty()) {
+            item {
+            StaggeredItem(index = 9) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF2C241B), RoundedCornerShape(20.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Upcoming seasonal expenses",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                upcomingSeasonalExpenses.forEach { pattern ->
+                    SeasonalPatternRow(
+                        pattern = pattern,
+                        currencySymbol = currencySymbol,
+                        selectedCurrency = selectedCurrency
+                    )
+                }
+            }
+            }
+            }
+        }
+
         item {
             StaggeredItem(index = 6) {
             Column(
@@ -680,6 +839,112 @@ fun InsightsScreen(
             title = "Insights",
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart)
+        )
+    }
+}
+
+@Composable
+private fun FrugalStreakRow(
+    streak: FrugalStreak,
+    currencySymbol: String,
+    selectedCurrency: String,
+    onDismiss: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = streak.categoryName,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "Streak!",
+                color = Color(0xFF4CAF50),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            text = "Saved ${CurrencyFormatter.format(streak.totalSavedVsAverage, selectedCurrency)} vs your average",
+            color = Color(0xFF81C784),
+            fontSize = 13.sp
+        )
+        Text(
+            text = "Projected ${CurrencyFormatter.format(streak.projectedAnnualSavings, selectedCurrency)}/year",
+            color = Color.White.copy(alpha = 0.6f),
+            fontSize = 12.sp
+        )
+        TextButton(
+            onClick = onDismiss,
+            modifier = Modifier.align(Alignment.End)
+        ) {
+            Text("Dismiss", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun SeasonalPatternRow(
+    pattern: SeasonalPattern,
+    currencySymbol: String,
+    selectedCurrency: String
+) {
+    val monthNames = pattern.peakMonths.map { month ->
+        java.time.Month.of(month).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
+    }
+    val typeLabel = when (pattern.patternType) {
+        PatternType.ANNUAL_BILL -> "Annual bill"
+        PatternType.SEASONAL_SPIKE -> "Seasonal spike"
+    }
+    val typeBadgeColor = when (pattern.patternType) {
+        PatternType.ANNUAL_BILL -> Color(0xFFFFA726)
+        PatternType.SEASONAL_SPIKE -> Color(0xFFEF5350)
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = pattern.categoryName,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = typeLabel,
+                color = typeBadgeColor,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            text = monthNames.joinToString(", "),
+            color = Color.White.copy(alpha = 0.6f),
+            fontSize = 12.sp
+        )
+        Text(
+            text = "Expect ~${CurrencyFormatter.format(pattern.avgPeakAmount, selectedCurrency)}",
+            color = Color(0xFFFFCC80),
+            fontSize = 13.sp
         )
     }
 }

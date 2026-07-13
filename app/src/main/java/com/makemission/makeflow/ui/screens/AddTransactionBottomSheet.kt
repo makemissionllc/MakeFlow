@@ -59,10 +59,12 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
+import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -85,6 +87,7 @@ fun AddTransactionBottomSheet(
     onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
     onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
+    onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     initialType: String = "INCOME"
 ) {
     val scope = rememberCoroutineScope()
@@ -99,6 +102,8 @@ fun AddTransactionBottomSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
+    var duplicateWarning by remember { mutableStateOf<DuplicateCheckResult?>(null) }
+    var pendingEntity by remember { mutableStateOf<TransactionEntity?>(null) }
     var showSaveTemplateDialog by remember { mutableStateOf(false) }
     var templateNameInput by remember { mutableStateOf("") }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
@@ -649,12 +654,83 @@ fun AddTransactionBottomSheet(
                 )
             }
 
+            duplicateWarning?.let { warning ->
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = {
+                        duplicateWarning = null
+                        pendingEntity = null
+                    },
+                    containerColor = Color(0xFF1B1C1F),
+                    title = {
+                        Text("Possible duplicate", color = Color.White, fontWeight = FontWeight.Bold)
+                    },
+                    text = {
+                        Text(
+                            "This looks like a ${warning.reason} — save anyway?",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                    },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            val entity = pendingEntity ?: return@TextButton
+                            scope.launch {
+                                val fromId = if (entity.type == "TRANSFER") entity.fromAccountId else null
+                                val toId = if (entity.type == "TRANSFER") entity.toAccountId else null
+                                onSave(entity.amount, entity.type, entity.categoryId, entity.accountId, entity.note, entity.timestamp, fromId, toId)
+                                hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
+                                if (entity.type == "EXPENSE" && entity.categoryId != null && onAnomalyCheck != null) {
+                                    val result = onAnomalyCheck(entity.amount, entity.categoryId)
+                                    if (result != null && result.severity != AnomalySeverity.NONE) {
+                                        anomalyResult = result
+                                        hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
+                                        delay(2500)
+                                    }
+                                }
+                                duplicateWarning = null
+                                pendingEntity = null
+                                onDismiss()
+                                anomalyResult = null
+                            }
+                        }) {
+                            Text("Save Anyway", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            duplicateWarning = null
+                            pendingEntity = null
+                        }) {
+                            Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                        }
+                    }
+                )
+            }
+
             androidx.compose.material3.Button(
                 onClick = {
                     val amount = parsedAmount ?: return@Button
                     scope.launch {
                         val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
                         val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
+                        val entity = TransactionEntity(
+                            amount = amount,
+                            type = selectedType,
+                            categoryId = resolvedCategoryId,
+                            accountId = selectedAccountId,
+                            fromAccountId = fromId,
+                            toAccountId = toId,
+                            note = note,
+                            timestamp = selectedDate
+                        )
+                        if (onCheckDuplicate != null) {
+                            val result = onCheckDuplicate(entity)
+                            if (result != null) {
+                                duplicateWarning = result
+                                pendingEntity = entity
+                                return@launch
+                            }
+                        }
                         onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
                         hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                         if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {

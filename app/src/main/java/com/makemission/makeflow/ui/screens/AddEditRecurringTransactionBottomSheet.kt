@@ -103,7 +103,8 @@ fun AddEditRecurringTransactionBottomSheet(
             && (selectedType != "EXPENSE" || selectedCategoryId.isNotEmpty())
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        scrollable = false
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

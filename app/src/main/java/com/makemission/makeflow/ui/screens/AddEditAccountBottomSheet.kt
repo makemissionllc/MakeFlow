@@ -70,7 +70,8 @@ fun AddEditAccountBottomSheet(
     val isSaveEnabled = name.isNotBlank()
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        scrollable = false
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

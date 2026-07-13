@@ -203,7 +203,8 @@ fun AddTransactionBottomSheet(
     }
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        scrollable = false
     ) {
         AnimatedVisibility(
                 visible = anomalyResult != null,

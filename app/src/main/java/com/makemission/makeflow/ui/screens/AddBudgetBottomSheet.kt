@@ -100,7 +100,8 @@ fun AddBudgetBottomSheet(
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 && selectedCategoryId.isNotEmpty()
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss
+        onDismiss = onDismiss,
+        scrollable = false
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

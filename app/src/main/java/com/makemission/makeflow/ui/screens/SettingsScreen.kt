@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RestorePage
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SwapHoriz
+import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -106,6 +107,7 @@ fun SettingsScreen(
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+    val smartCategorizationEnabled by viewModel.smartCategorizationEnabled.collectAsState()
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
@@ -179,6 +181,15 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 7) {
+                    SmartCategorizationToggleRow(
+                        enabled = smartCategorizationEnabled,
+                        onToggle = { viewModel.saveSmartCategorizationEnabled(it) }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 8) {
                     HapticToggleRow(
                         enabled = hapticsEnabled,
                         onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
@@ -187,7 +198,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    StaggeredItem(index = 8) {
+                    StaggeredItem(index = 9) {
                     AppLockToggleRow(
                         enabled = appLockEnabled,
                         onToggle = { viewModel.saveAppLockEnabled(it) }
@@ -197,20 +208,20 @@ fun SettingsScreen(
 
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
-                        StaggeredItem(index = 8) {
+                        StaggeredItem(index = 10) {
                         Box(Modifier.fillMaxWidth()) {
                             NotificationEnableRow()
                         }
                         }
                     }
-                    item { StaggeredItem(index = 9) { Spacer(modifier = Modifier.height(4.dp)) } }
+                    item { StaggeredItem(index = 11) { Spacer(modifier = Modifier.height(4.dp)) } }
                 }
 
-                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 11) { SectionHeader(text = "Data") } }
+                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 13) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 12) {
+                    StaggeredItem(index = 14) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
@@ -306,6 +317,15 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 8) {
+                    SmartCategorizationToggleRow(
+                        enabled = smartCategorizationEnabled,
+                        onToggle = { viewModel.saveSmartCategorizationEnabled(it) }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 9) {
                     HapticToggleRow(
                         enabled = hapticsEnabled,
                         onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
@@ -314,7 +334,7 @@ fun SettingsScreen(
                 }
 
                 item {
-                    StaggeredItem(index = 9) {
+                    StaggeredItem(index = 10) {
                     AppLockToggleRow(
                         enabled = appLockEnabled,
                         onToggle = { viewModel.saveAppLockEnabled(it) }
@@ -324,56 +344,56 @@ fun SettingsScreen(
 
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
-                        StaggeredItem(index = 9) {
+                        StaggeredItem(index = 11) {
                         NotificationEnableRow()
                         }
                     }
                 }
 
-                item { StaggeredItem(index = 10) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 11) { SectionHeader(text = "Data") } }
+                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 13) { SectionHeader(text = "Data") } }
 
                 item {
-                    StaggeredItem(index = 12) {
+                    StaggeredItem(index = 14) {
                     SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 13) {
+                    StaggeredItem(index = 15) {
                     SettingsRow(icon=Icons.Outlined.FileDownload, title="Export PDF", subtitle="Statement with date range", onClick={ showPdfExportDialog = true })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 14) {
+                    StaggeredItem(index = 16) {
                     SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 15) {
+                    StaggeredItem(index = 17) {
                     SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore from Backup", subtitle="Replace all data from a file", onClick={ onRestore })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 16) {
+                    StaggeredItem(index = 18) {
                     SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                     }
                 }
 
-                item { StaggeredItem(index = 17) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 18) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 19) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 20) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 19) {
+                    StaggeredItem(index = 21) {
                     SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 20) {
+                        StaggeredItem(index = 22) {
                         ReducedMotionRow()
                         }
                     }
@@ -633,6 +653,57 @@ private fun AppLockToggleRow(
             }
             Column {
                 Text(text = "App Lock", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color(0xFF4CAF50),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                uncheckedTrackColor = Color(0xFF2C2C2C)
+            )
+        )
+    }
+}
+
+@Composable
+private fun SmartCategorizationToggleRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onToggle(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.TipsAndUpdates,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Smart categorization", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
             }
         }

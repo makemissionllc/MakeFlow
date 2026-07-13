@@ -1,5 +1,7 @@
 package com.makemission.makeflow.domain
 
+import com.makemission.makeflow.core.ml.CategoryClassifier
+
 data class CategorySuggestion(
     val categoryId: String,
     val confidence: Float,
@@ -53,6 +55,33 @@ object CategorySuggester {
             confidence = confidence,
             matchedOnExactPastDescription = false
         )
+    }
+
+    fun suggestWithClassifier(
+        inputDescription: String,
+        pastTransactions: List<PastTransactionForSuggestion>,
+        classifier: CategoryClassifier?,
+        categoryNameToId: Map<String, String>,
+        confidenceThreshold: Float = 0.6f
+    ): CategorySuggestion? {
+        val exactOrPartial = suggest(inputDescription, pastTransactions)
+        if (exactOrPartial != null && exactOrPartial.matchedOnExactPastDescription) {
+            return exactOrPartial
+        }
+        if (classifier != null) {
+            val prediction = classifier.classify(inputDescription)
+            if (prediction != null && prediction.confidence >= confidenceThreshold) {
+                val categoryId = categoryNameToId[prediction.categoryName]
+                if (categoryId != null) {
+                    return CategorySuggestion(
+                        categoryId = categoryId,
+                        confidence = prediction.confidence,
+                        matchedOnExactPastDescription = false
+                    )
+                }
+            }
+        }
+        return exactOrPartial?.takeIf { it.confidence >= 0.5f }
     }
 
     private fun normalize(description: String): String =

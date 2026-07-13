@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -100,8 +100,7 @@ fun AddBudgetBottomSheet(
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 && selectedCategoryId.isNotEmpty()
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss,
-        scrollable = false
+        onDismiss = onDismiss
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -147,8 +146,8 @@ fun AddBudgetBottomSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.5f)
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(expenseParents) { parent ->
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    expenseParents.forEach { parent ->
                         val isSelected = parent.id == selectedParentCategory?.id
                         Text(
                             text = parent.name,
@@ -174,8 +173,8 @@ fun AddBudgetBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.35f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(childCategories) { child ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        childCategories.forEach { child ->
                             val isSelected = child.id == selectedChildCategory?.id
                             Text(
                                 text = child.name,

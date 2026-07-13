@@ -1,5 +1,7 @@
 package com.makemission.makeflow.domain
 
+import com.makemission.makeflow.core.ml.CategoryClassifier
+import com.makemission.makeflow.core.ml.CategoryPrediction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -88,4 +90,70 @@ class CategorySuggesterTest {
         val result = CategorySuggester.suggest("", history)
         assertNull(result)
     }
+
+    @Test
+    fun threeTier_exactMatch_winsOverMl() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.95f))
+        val idMap = mapOf("food" to "food_id", "transport" to "transport_id")
+        val result = CategorySuggester.suggestWithClassifier("boda boda", history, classifier, idMap)
+        assertNotNull(result)
+        assertEquals("transport", result!!.categoryId)
+        assertEquals(1.0f, result.confidence, 0.001f)
+        assertEquals(true, result.matchedOnExactPastDescription)
+    }
+
+    @Test
+    fun threeTier_mlHighConfidence_winsOverSubstring() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.85f))
+        val idMap = mapOf("food" to "food_id")
+        val substringHistory = listOf(
+            PastTransactionForSuggestion("cafe latte", "cafe"),
+            PastTransactionForSuggestion("cafe mocha", "cafe"),
+        )
+        val result = CategorySuggester.suggestWithClassifier("cafe", substringHistory, classifier, idMap)
+        assertNotNull(result)
+        assertEquals("food_id", result!!.categoryId)
+        assertEquals(0.85f, result.confidence, 0.001f)
+    }
+
+    @Test
+    fun threeTier_mlBelowThreshold_fallsBackToSubstring() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.4f))
+        val idMap = mapOf("food" to "food_id")
+        val substringHistory = listOf(
+            PastTransactionForSuggestion("cafe latte", "cafe"),
+            PastTransactionForSuggestion("cafe mocha", "cafe"),
+        )
+        val result = CategorySuggester.suggestWithClassifier("cafe", substringHistory, classifier, idMap)
+        assertNotNull(result)
+        assertEquals("cafe", result!!.categoryId)
+    }
+
+    @Test
+    fun threeTier_noClassifier_usesSubstring() {
+        val substringHistory = listOf(
+            PastTransactionForSuggestion("cafe latte", "cafe"),
+            PastTransactionForSuggestion("cafe mocha", "cafe"),
+        )
+        val result = CategorySuggester.suggestWithClassifier("cafe", substringHistory, null, emptyMap())
+        assertNotNull(result)
+        assertEquals("cafe", result!!.categoryId)
+    }
+
+    @Test
+    fun threeTier_mlCategoryNotFoundInMap_fallsThrough() {
+        val classifier = FakeClassifier(CategoryPrediction("unknown_category", 0.9f))
+        val idMap = mapOf("food" to "food_id")
+        val substringHistory = listOf(
+            PastTransactionForSuggestion("cafe latte", "cafe"),
+            PastTransactionForSuggestion("cafe mocha", "cafe"),
+        )
+        val result = CategorySuggester.suggestWithClassifier("cafe", substringHistory, classifier, idMap)
+        assertNotNull(result)
+        assertEquals("cafe", result!!.categoryId)
+    }
+}
+
+private class FakeClassifier(private val prediction: CategoryPrediction) : CategoryClassifier {
+    override fun classify(description: String): CategoryPrediction = prediction
 }

@@ -48,7 +48,7 @@ import kotlinx.coroutines.runBlocking
         TransactionTemplateEntity::class,
         ExchangeRateEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -312,6 +312,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget)
+                        SELECT hex(randomblob(16)), 'Services/Errands', 'EXPENSE', id, 'assignment', '#FFA726', 0.0
+                        FROM categories WHERE name = 'Bills' AND parentCategoryId IS NULL AND type = 'EXPENSE'
+                        AND NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Services/Errands' AND parentCategoryId IS NOT NULL)"""
+                )
+                db.execSQL(
+                    """INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget)
+                        SELECT hex(randomblob(16)), 'Tithe', 'EXPENSE', id, 'church', '#7B1FA2', 0.0
+                        FROM categories WHERE name = 'Generosity' AND parentCategoryId IS NULL AND type = 'EXPENSE'
+                        AND NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Tithe' AND parentCategoryId IS NOT NULL)"""
+                )
+                db.execSQL(
+                    """INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget)
+                        SELECT hex(randomblob(16)), 'Offertory', 'EXPENSE', id, 'redeem', '#E040FB', 0.0
+                        FROM categories WHERE name = 'Generosity' AND parentCategoryId IS NULL AND type = 'EXPENSE'
+                        AND NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Offertory' AND parentCategoryId IS NOT NULL)"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -320,7 +343,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance

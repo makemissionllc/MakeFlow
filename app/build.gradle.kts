@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.vico.compose.m3)
     implementation(libs.gson)
     implementation(libs.androidx.glance)
+    implementation(libs.tensorflow.lite)
     implementation(libs.androidx.material3.window.size)
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material3.adaptive.layout)

@@ -45,6 +45,9 @@ class SettingsViewModel(
     val appLockEnabled: StateFlow<Boolean> = userPreferencesDataStore.appLockEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val smartCategorizationEnabled: StateFlow<Boolean> = userPreferencesDataStore.smartCategorizationEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val hasPromptedNotificationPermission: StateFlow<Boolean> = userPreferencesDataStore.hasPromptedNotificationPermission
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -73,6 +76,12 @@ class SettingsViewModel(
     fun saveAppLockEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveAppLockEnabled(enabled)
+        }
+    }
+
+    fun saveSmartCategorizationEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveSmartCategorizationEnabled(enabled)
         }
     }
 

@@ -113,6 +113,40 @@ class MigrationsTest {
     }
 
     @Test
+    fun migrateV13ToV14_seedsNewCategories() {
+        val testDb = "migration_test_v13_to_v14"
+        val db = helper.createDatabase(testDb, 13).apply {
+            execSQL("CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parentCategoryId TEXT, iconName TEXT NOT NULL DEFAULT '', colorHex TEXT NOT NULL DEFAULT '', monthlyBudget REAL NOT NULL DEFAULT 0.0)")
+            execSQL("INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget) VALUES ('bill_parent', 'Bills', 'EXPENSE', NULL, 'receipt_long', '#26C6DA', 0.0)")
+            execSQL("INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget) VALUES ('gen_parent', 'Generosity', 'EXPENSE', NULL, 'volunteer_activism', '#EC407A', 0.0)")
+            execSQL("INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget) VALUES ('phone', 'Phone', 'EXPENSE', 'bill_parent', 'phone_android', '#4DD0E1', 0.0)")
+            execSQL("INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget) VALUES ('gifts', 'Gifts', 'EXPENSE', 'gen_parent', 'card_giftcard', '#F06292', 0.0)")
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(testDb, 14, true, AppDatabase.MIGRATION_13_14)
+
+        migratedDb.query("SELECT COUNT(*) FROM categories").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("Should have 7 categories (4 original + 3 new)", 7, cursor.getInt(0))
+        }
+
+        migratedDb.query("SELECT id FROM categories WHERE name = 'Services/Errands' AND parentCategoryId = 'bill_parent'").use { cursor ->
+            assertTrue("Services/Errands must exist under Bills", cursor.moveToFirst())
+        }
+
+        migratedDb.query("SELECT id FROM categories WHERE name = 'Tithe' AND parentCategoryId = 'gen_parent'").use { cursor ->
+            assertTrue("Tithe must exist under Generosity", cursor.moveToFirst())
+        }
+
+        migratedDb.query("SELECT id FROM categories WHERE name = 'Offertory' AND parentCategoryId = 'gen_parent'").use { cursor ->
+            assertTrue("Offertory must exist under Generosity", cursor.moveToFirst())
+        }
+
+        migratedDb.close()
+    }
+
+    @Test
     fun categoriesSeededSynchronouslyOnFreshInstall() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()

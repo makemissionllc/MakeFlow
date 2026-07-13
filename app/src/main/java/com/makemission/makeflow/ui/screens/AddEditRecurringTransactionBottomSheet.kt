@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -103,8 +103,7 @@ fun AddEditRecurringTransactionBottomSheet(
             && (selectedType != "EXPENSE" || selectedCategoryId.isNotEmpty())
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss,
-        scrollable = false
+        onDismiss = onDismiss
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -249,8 +248,8 @@ fun AddEditRecurringTransactionBottomSheet(
                         fontSize = 13.sp
                     )
                 } else {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(filteredCategories) { cat ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        filteredCategories.forEach { cat ->
                             val isSelected = cat.id == selectedCategoryId
                             Text(
                                 text = cat.name,
@@ -285,8 +284,8 @@ fun AddEditRecurringTransactionBottomSheet(
                     fontSize = 13.sp
                 )
             } else {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(accounts) { acct ->
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    accounts.forEach { acct ->
                         val isSelected = acct.id == selectedAccountId
                         Text(
                             text = acct.name,

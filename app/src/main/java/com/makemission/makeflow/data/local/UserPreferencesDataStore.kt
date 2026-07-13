@@ -64,6 +64,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val smartCategorizationEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[SMART_CATEGORIZATION_KEY] ?: true
+    }
+
+    suspend fun saveSmartCategorizationEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[SMART_CATEGORIZATION_KEY] = enabled
+        }
+    }
+
     val dismissedSuggestions: Flow<Set<String>> = dataStore.data.map { prefs ->
         prefs[DISMISSED_SUGGESTIONS_KEY]?.split(",")?.filter { it.isNotBlank() }?.toSet() ?: emptySet()
     }
@@ -128,5 +138,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")
         private val APP_LOCK_ENABLED_KEY = booleanPreferencesKey("app_lock_enabled")
         private val MANUAL_CARD_ORDER_KEY = stringPreferencesKey("manual_card_order")
+        private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
     }
 }

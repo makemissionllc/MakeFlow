@@ -77,6 +77,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
@@ -187,9 +188,16 @@ fun MainScreen(
         factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)
     )
     val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
+    val smartCategorizationEnabled by settingsViewModel.smartCategorizationEnabled.collectAsState()
 
     val hapticManager = rememberHapticManager()
     hapticManager.isEnabled = hapticsEnabled
+
+    var categoryClassifier by remember { mutableStateOf<CategoryClassifier?>(null) }
+
+    LaunchedEffect(Unit) {
+        categoryClassifier = com.makemission.makeflow.core.ml.TfliteCategoryClassifier.create(context)
+    }
 
     val accounts by homeViewModel.accounts.collectAsState()
     val categories by homeViewModel.categories.collectAsState()
@@ -624,7 +632,9 @@ fun MainScreen(
             onGetPastTransactions = {
                 val pairs = repository.getRecentDescriptionsAndCategories()
                 pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
-            }
+            },
+            categoryClassifier = categoryClassifier,
+            smartCategorizationEnabled = smartCategorizationEnabled
         )
     }
 

@@ -16,9 +16,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.ml.CategoryClassifier
+import com.makemission.makeflow.core.ml.CategoryPrediction
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -62,16 +64,21 @@ import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
+import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+private const val ML_CONFIDENCE_THRESHOLD = 0.6f
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,6 +95,8 @@ fun AddTransactionBottomSheet(
     onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
+    categoryClassifier: CategoryClassifier? = null,
+    smartCategorizationEnabled: Boolean = true,
     initialType: String = "INCOME"
 ) {
     val scope = rememberCoroutineScope()
@@ -124,31 +133,61 @@ fun AddTransactionBottomSheet(
         }
     }
 
-    LaunchedEffect(note) {
+    LaunchedEffect(note, smartCategorizationEnabled) {
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
         }
         delay(300)
-        val result = CategorySuggester.suggest(note, pastTransactions.value)
-        if (result != null && result.confidence >= 0.5f) {
-            categorySuggestion = result
-            if (result.matchedOnExactPastDescription) {
-                val cat = parentCategories.find { it.id == result.categoryId }
-                if (cat != null) {
-                    selectedParentCategory = cat
-                    selectedChildCategory = null
-                } else {
-                    val childCat = categories.find { it.id == result.categoryId }
-                    if (childCat != null) {
-                        val parent = categories.find { it.id == childCat.parentCategoryId }
-                        if (parent != null) {
-                            selectedParentCategory = parent
-                            selectedChildCategory = childCat
-                        }
+
+        val suggesterResult = CategorySuggester.suggest(note, pastTransactions.value)
+
+        if (suggesterResult != null && suggesterResult.confidence >= 1.0f) {
+            categorySuggestion = suggesterResult
+            val cat = parentCategories.find { it.id == suggesterResult.categoryId }
+            if (cat != null) {
+                selectedParentCategory = cat
+                selectedChildCategory = null
+            } else {
+                val childCat = categories.find { it.id == suggesterResult.categoryId }
+                if (childCat != null) {
+                    val parent = categories.find { it.id == childCat.parentCategoryId }
+                    if (parent != null) {
+                        selectedParentCategory = parent
+                        selectedChildCategory = childCat
                     }
                 }
             }
+            return@LaunchedEffect
+        }
+
+        if (smartCategorizationEnabled && categoryClassifier != null) {
+            val prediction = withContext(Dispatchers.IO) {
+                categoryClassifier.classify(note)
+            }
+            if (prediction != null && prediction.confidence >= ML_CONFIDENCE_THRESHOLD) {
+                val mlCat = CategoryLabelResolver.resolve(prediction.categoryName, categories)
+                if (mlCat != null) {
+                    categorySuggestion = CategorySuggestion(
+                        categoryId = mlCat.id,
+                        confidence = prediction.confidence,
+                        matchedOnExactPastDescription = false
+                    )
+                    if (mlCat.parentCategoryId != null) {
+                        val parent = parentCategories.find { it.id == mlCat.parentCategoryId }
+                        selectedParentCategory = parent
+                        selectedChildCategory = mlCat
+                    } else {
+                        selectedParentCategory = mlCat
+                        selectedChildCategory = null
+                    }
+                    return@LaunchedEffect
+                }
+            }
+        }
+
+        if (suggesterResult != null && suggesterResult.confidence >= 0.5f) {
+            categorySuggestion = suggesterResult
         } else {
             categorySuggestion = null
         }
@@ -203,8 +242,7 @@ fun AddTransactionBottomSheet(
     }
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss,
-        scrollable = false
+        onDismiss = onDismiss
     ) {
         AnimatedVisibility(
                 visible = anomalyResult != null,
@@ -259,8 +297,8 @@ fun AddTransactionBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.5f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(templates) { template ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        templates.forEach { template ->
                             Text(
                                 text = template.name,
                                 color = Color.White,
@@ -361,8 +399,8 @@ fun AddTransactionBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.5f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(accounts) { account ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferFromId
                             Text(
                                 text = account.name,
@@ -386,8 +424,8 @@ fun AddTransactionBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.5f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(accounts) { account ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferToId
                             Text(
                                 text = account.name,
@@ -412,8 +450,8 @@ fun AddTransactionBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.5f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(accounts) { account ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        accounts.forEach { account ->
                             val isSelected = account.id == selectedAccountId
                             Text(
                                 text = account.name,
@@ -440,8 +478,8 @@ fun AddTransactionBottomSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.5f)
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(parentCategories) { parent ->
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    parentCategories.forEach { parent ->
                         val isSelected = parent.id == selectedParentCategory?.id
                         val isSuggested = !isSelected && categorySuggestion?.categoryId == parent.id
                         val bgColor = when {
@@ -483,8 +521,8 @@ fun AddTransactionBottomSheet(
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White.copy(alpha = 0.35f)
                     )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(childCategories) { child ->
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        childCategories.forEach { child ->
                             val isSelected = child.id == selectedChildCategory?.id
                             val isSuggested = !isSelected && categorySuggestion?.categoryId == child.id
                             val bgColor = when {

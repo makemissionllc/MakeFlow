@@ -11,10 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -70,8 +70,7 @@ fun AddEditAccountBottomSheet(
     val isSaveEnabled = name.isNotBlank()
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss,
-        scrollable = false
+        onDismiss = onDismiss
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -178,8 +177,8 @@ fun AddEditAccountBottomSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = Color.White.copy(alpha = 0.5f)
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(accountColors) { colorHex ->
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    accountColors.forEach { colorHex ->
                         val isSelected = colorHex == selectedColorHex
                         val dotColor = try {
                             Color(android.graphics.Color.parseColor(colorHex))

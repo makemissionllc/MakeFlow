@@ -47,7 +47,7 @@ data class MomComparisonItem(
     val label: String,
     val currentAmount: Double,
     val priorAmount: Double,
-    val percentChange: Double
+    val percentChange: Double?
 )
 
 data class DailyAverageSpend(
@@ -171,9 +171,6 @@ class InsightsViewModel(
         val priorExpense = txs.filter {
             it.type == "EXPENSE" && it.timestamp in getMonthRangeMillis(priorMonth).let { it.first..it.second }
         }.sumOf { it.amount }
-
-        fun pctChange(current: Double, prior: Double): Double =
-            if (prior != 0.0) ((current - prior) / prior * 100.0) else if (current != 0.0) 100.0 else 0.0
 
         val topCategories = computeCategorySpending(txs, cats, month).take(3)
 
@@ -323,3 +320,6 @@ class InsightsViewModelFactory(
         return InsightsViewModel(financeRepository, userPreferencesDataStore) as T
     }
 }
+
+internal fun pctChange(current: Double, prior: Double): Double? =
+    if (prior != 0.0) ((current - prior) / prior * 100.0) else null

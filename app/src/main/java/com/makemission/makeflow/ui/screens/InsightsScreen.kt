@@ -68,8 +68,12 @@ import com.makemission.makeflow.domain.SeasonalPattern
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
+import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
 import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
+import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
 import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
 import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
@@ -246,15 +250,20 @@ fun InsightsScreen(
                     Text("No data for comparison", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
                 } else {
                     momItems.forEach { item ->
-                        val changeColor = when {
-                            item.label == "Income" && item.percentChange >= 0 -> Color(0xFF4CAF50)
-                            item.label == "Income" -> Color(0xFFEF5350)
-                            item.label == "Expenses" && item.percentChange <= 0 -> Color(0xFF4CAF50)
-                            item.label == "Expenses" -> Color(0xFFEF5350)
-                            item.percentChange >= 0 -> Color(0xFFEF5350)
-                            else -> Color(0xFF4CAF50)
+                        val (changeText, changeColor) = if (item.percentChange != null) {
+                            val color = when {
+                                item.label == "Income" && item.percentChange >= 0 -> Color(0xFF4CAF50)
+                                item.label == "Income" -> Color(0xFFEF5350)
+                                item.label == "Expenses" && item.percentChange <= 0 -> Color(0xFF4CAF50)
+                                item.label == "Expenses" -> Color(0xFFEF5350)
+                                item.percentChange >= 0 -> Color(0xFFEF5350)
+                                else -> Color(0xFF4CAF50)
+                            }
+                            val arrow = if (item.percentChange >= 0) "\u25B2" else "\u25BC"
+                            Pair("$arrow ${String.format("%+.1f", item.percentChange)}%", color)
+                        } else {
+                            Pair("New", Color(0xFFFFA726))
                         }
-                        val arrow = if (item.percentChange >= 0) "\u25B2" else "\u25BC"
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -263,7 +272,7 @@ fun InsightsScreen(
                             Text(item.label, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "$arrow ${String.format("%+.1f", item.percentChange)}%",
+                                    text = changeText,
                                     color = changeColor,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp
@@ -522,8 +531,8 @@ fun InsightsScreen(
                     CartesianChartHost(
                         chart = rememberCartesianChart(
                             layers = arrayOf(rememberColumnCartesianLayer(columnProvider = columnProvider)),
-                            startAxis = null,
-                            bottomAxis = null
+                            startAxis = VerticalAxis.rememberStart(),
+                            bottomAxis = HorizontalAxis.rememberBottom()
                         ),
                         modelProducer = barModelProducer,
                         modifier = Modifier

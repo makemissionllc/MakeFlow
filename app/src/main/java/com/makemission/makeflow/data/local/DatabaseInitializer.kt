@@ -37,6 +37,8 @@ object DatabaseInitializer {
         categoryDao.insertCategory(CategoryEntity(name = "Snacks", type = "EXPENSE", parentCategoryId = foodDrinks.id, iconName = "lunch_dining", colorHex = "#FFCC02"))
 
         categoryDao.insertCategory(CategoryEntity(name = "Gifts", type = "EXPENSE", parentCategoryId = generosity.id, iconName = "card_giftcard", colorHex = "#F06292"))
+        categoryDao.insertCategory(CategoryEntity(name = "Tithe", type = "EXPENSE", parentCategoryId = generosity.id, iconName = "church", colorHex = "#7B1FA2"))
+        categoryDao.insertCategory(CategoryEntity(name = "Offertory", type = "EXPENSE", parentCategoryId = generosity.id, iconName = "redeem", colorHex = "#E040FB"))
 
         categoryDao.insertCategory(CategoryEntity(name = "Groceries", type = "EXPENSE", parentCategoryId = shopping.id, iconName = "local_grocery_store", colorHex = "#BA68C8"))
         categoryDao.insertCategory(CategoryEntity(name = "Clothing", type = "EXPENSE", parentCategoryId = shopping.id, iconName = "checkroom", colorHex = "#CE93D8"))
@@ -54,6 +56,7 @@ object DatabaseInitializer {
         categoryDao.insertCategory(CategoryEntity(name = "Subscriptions", type = "EXPENSE", parentCategoryId = bills.id, iconName = "subscriptions", colorHex = "#00838F"))
         categoryDao.insertCategory(CategoryEntity(name = "Healthcare", type = "EXPENSE", parentCategoryId = bills.id, iconName = "local_hospital", colorHex = "#00897B"))
         categoryDao.insertCategory(CategoryEntity(name = "Taxes", type = "EXPENSE", parentCategoryId = bills.id, iconName = "account_balance_wallet", colorHex = "#558B2F"))
+        categoryDao.insertCategory(CategoryEntity(name = "Services/Errands", type = "EXPENSE", parentCategoryId = bills.id, iconName = "assignment", colorHex = "#FFA726"))
 
         categoryDao.insertCategory(CategoryEntity(name = "Public", type = "EXPENSE", parentCategoryId = transport.id, iconName = "directions_bus", colorHex = "#81C784"))
         categoryDao.insertCategory(CategoryEntity(name = "Private", type = "EXPENSE", parentCategoryId = transport.id, iconName = "directions_car", colorHex = "#A5D6A7"))

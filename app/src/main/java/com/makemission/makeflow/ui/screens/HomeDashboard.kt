@@ -42,7 +42,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -106,6 +108,7 @@ fun HomeDashboard(
     val cardOrder by viewModel.cardOrder.collectAsState()
     val cashFlowProjection by viewModel.cashFlowProjection.collectAsState()
 
+    var showReorderSheet by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
@@ -234,7 +237,7 @@ fun HomeDashboard(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { }
+                        .clickable { showReorderSheet = true }
                         .padding(vertical = 12.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
@@ -247,7 +250,10 @@ fun HomeDashboard(
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart),
             actions = {
-                IconButton(onClick = { }) {
+                Box(
+                    modifier = Modifier.size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         imageVector = Icons.Rounded.CloudOff,
                         contentDescription = "Local storage",
@@ -263,6 +269,21 @@ fun HomeDashboard(
                         modifier = Modifier.size(22.dp)
                     )
                 }
+            }
+        )
+    }
+
+    if (showReorderSheet) {
+        ReorderCardsSheet(
+            currentOrder = cardOrder,
+            onSave = { newOrder ->
+                viewModel.saveManualCardOrder(newOrder)
+            },
+            onReset = {
+                viewModel.clearManualCardOrder()
+            },
+            onDismiss = {
+                showReorderSheet = false
             }
         )
     }

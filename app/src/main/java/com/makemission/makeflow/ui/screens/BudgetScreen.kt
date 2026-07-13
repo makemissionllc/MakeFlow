@@ -113,6 +113,7 @@ fun BudgetScreen(
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
     var showAddBudget by remember { mutableStateOf(false) }
+    var editingBudget by remember { mutableStateOf<BudgetEntity?>(null) }
     var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
     val scope = rememberCoroutineScope()
 
@@ -202,7 +203,7 @@ fun BudgetScreen(
 
                                         CardContainer {
                                             Column(
-                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={}, onLongClick={ budgetToDelete = budget }),
+                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
                                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
@@ -247,7 +248,7 @@ fun BudgetScreen(
 
                             CardContainer {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={}, onLongClick={ budgetToDelete = budget }),
+                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
@@ -295,17 +296,26 @@ fun BudgetScreen(
         )
     }
 
-    if (showAddBudget) {
+    if (showAddBudget || editingBudget != null) {
         AddBudgetBottomSheet(
-            onDismiss = { showAddBudget = false },
-            onSave = { categoryId, categoryName, amount, period ->
+            onDismiss = {
+                showAddBudget = false
+                editingBudget = null
+            },
+            onSave = { budgetId, categoryId, categoryName, amount, period ->
                 scope.launch {
-                    viewModel.addBudget(categoryId, categoryName, amount, period)
+                    if (budgetId != null) {
+                        viewModel.updateBudget(budgetId, amount, period)
+                    } else {
+                        viewModel.addBudget(categoryId, categoryName, amount, period)
+                    }
                     showAddBudget = false
+                    editingBudget = null
                 }
             },
             categories = categories,
-            currencySymbol = currencySymbol
+            currencySymbol = currencySymbol,
+            editingBudget = editingBudget
         )
     }
 

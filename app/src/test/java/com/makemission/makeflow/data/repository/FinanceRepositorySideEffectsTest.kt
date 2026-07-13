@@ -271,6 +271,14 @@ class FinanceRepositorySideEffectsTest {
             budgetsFlow.value = budgets.toList()
         }
 
+        override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {
+            val idx = budgets.indexOfFirst { it.id == budgetId }
+            if (idx >= 0) {
+                budgets[idx] = budgets[idx].copy(amount = amount, period = period)
+                budgetsFlow.value = budgets.toList()
+            }
+        }
+
         override suspend fun updateBudgetSpending(categoryId: String, amount: Double) {}
 
         override suspend fun decrementBudgetSpending(categoryId: String, amount: Double) {}
@@ -929,5 +937,77 @@ class FinanceRepositorySideEffectsTest {
         assertEquals(1500.0, totalIncome, 0.001)
         assertEquals(650.0, totalExpense, 0.001)
         assertEquals(850.0, net, 0.001)
+    }
+
+    @Test
+    fun `updateBudget changes amount and period`() = runBlocking {
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        repo.insertBudget(
+            BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 200.0, period = "Monthly")
+        )
+
+        repo.updateBudget("b1", 600.0, "Weekly")
+
+        val updated = repo.getAllBudgets().first().first()
+        assertEquals(600.0, updated.amount, 0.001)
+        assertEquals("Weekly", updated.period)
+    }
+
+    @Test
+    fun `updateBudget preserves spentAmount and categoryId`() = runBlocking {
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        repo.insertBudget(
+            BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 200.0, period = "Monthly")
+        )
+
+        repo.updateBudget("b1", 600.0, "Weekly")
+
+        val updated = repo.getAllBudgets().first().first()
+        assertEquals("cat1", updated.categoryId)
+        assertEquals(200.0, updated.spentAmount, 0.001)
+    }
+
+    @Test
+    fun `updateBudget does not affect unrelated budgets`() = runBlocking {
+        val repo = FinanceRepositoryImpl(
+            categoryDao = FakeCategoryDao(),
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        repo.insertBudget(
+            BudgetEntity(id = "b1", categoryId = "cat1", categoryName = "Food", amount = 500.0, spentAmount = 200.0, period = "Monthly")
+        )
+        repo.insertBudget(
+            BudgetEntity(id = "b2", categoryId = "cat2", categoryName = "Transport", amount = 300.0, spentAmount = 50.0, period = "Monthly")
+        )
+
+        repo.updateBudget("b1", 600.0, "Weekly")
+
+        val all = repo.getAllBudgets().first()
+        val unchanged = all.find { it.id == "b2" }
+        assertNotNull(unchanged)
+        assertEquals(300.0, unchanged!!.amount, 0.001)
+        assertEquals("Monthly", unchanged.period)
+        assertEquals(50.0, unchanged.spentAmount, 0.001)
     }
 }

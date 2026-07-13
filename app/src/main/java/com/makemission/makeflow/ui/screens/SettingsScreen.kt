@@ -255,7 +255,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 15) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
@@ -368,7 +368,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 19) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0", onClick={})
+                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
@@ -509,15 +509,15 @@ private fun SettingsRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .pressScale()
+            .then(if (onClick != null) Modifier.pressScale() else Modifier)
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF1B1C1F))
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

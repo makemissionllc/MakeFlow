@@ -24,6 +24,9 @@ interface BudgetDao {
     @Query("UPDATE budgets SET spentAmount = MAX(spentAmount - :amount, 0) WHERE categoryId = :categoryId")
     suspend fun decrementBudgetSpending(categoryId: String, amount: Double)
 
+    @Query("UPDATE budgets SET amount = :amount, period = :period WHERE id = :budgetId")
+    suspend fun updateBudget(budgetId: String, amount: Double, period: String)
+
     @Query("UPDATE budgets SET amount = :newAmount WHERE id = :budgetId")
     suspend fun updateBudgetAmount(budgetId: String, newAmount: Double)
 

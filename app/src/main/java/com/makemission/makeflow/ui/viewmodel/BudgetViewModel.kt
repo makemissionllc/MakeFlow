@@ -102,6 +102,13 @@ class BudgetViewModel(
         }
     }
 
+    fun updateBudget(budgetId: String, amount: Double, period: String) {
+        viewModelScope.launch {
+            financeRepository.updateBudget(budgetId, amount, period)
+            refreshSuggestions()
+        }
+    }
+
     fun deleteBudget(budget: BudgetEntity) {
         viewModelScope.launch {
             financeRepository.deleteBudget(budget)

@@ -95,6 +95,22 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val manualCardOrder: Flow<List<String>?> = dataStore.data.map { prefs ->
+        prefs[MANUAL_CARD_ORDER_KEY]?.split(",")?.filter { it.isNotBlank() }
+    }
+
+    suspend fun saveManualCardOrder(order: List<String>) {
+        dataStore.edit { prefs ->
+            prefs[MANUAL_CARD_ORDER_KEY] = order.joinToString(",")
+        }
+    }
+
+    suspend fun clearManualCardOrder() {
+        dataStore.edit { prefs ->
+            prefs.remove(MANUAL_CARD_ORDER_KEY)
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -111,5 +127,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
         private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")
         private val APP_LOCK_ENABLED_KEY = booleanPreferencesKey("app_lock_enabled")
+        private val MANUAL_CARD_ORDER_KEY = stringPreferencesKey("manual_card_order")
     }
 }

@@ -181,6 +181,18 @@ class HomeDashboardViewModel(
         }
     }
 
+    fun saveManualCardOrder(order: List<DashboardCardType>) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveManualCardOrder(order.map { it.name })
+        }
+    }
+
+    fun clearManualCardOrder() {
+        viewModelScope.launch {
+            userPreferencesDataStore.clearManualCardOrder()
+        }
+    }
+
     fun logCardInteraction(cardType: DashboardCardType) {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
@@ -195,6 +207,8 @@ class HomeDashboardViewModel(
         }
     }
 
+    private val _manualOrderOverride = MutableStateFlow<List<DashboardCardType>?>(null)
+
     init {
         viewModelScope.launch {
             financeRepository.refreshRecurringPatterns()
@@ -202,7 +216,20 @@ class HomeDashboardViewModel(
         viewModelScope.launch {
             val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             val counts = cardInteractionDao.getInteractionCounts()
-            _cardOrder.value = DashboardCardRanker.rank(currentHour, counts, defaultCardOrder)
+            val ranked = DashboardCardRanker.rank(currentHour, counts, defaultCardOrder)
+            _manualOrderOverride.value = null
+            userPreferencesDataStore.manualCardOrder.collect { rawNames ->
+                if (rawNames != null) {
+                    val parsed = rawNames.mapNotNull { name ->
+                        try { DashboardCardType.valueOf(name) } catch (_: IllegalArgumentException) { null }
+                    }
+                    if (parsed.size == defaultCardOrder.size) {
+                        _cardOrder.value = parsed
+                        return@collect
+                    }
+                }
+                _cardOrder.value = ranked
+            }
         }
     }
 

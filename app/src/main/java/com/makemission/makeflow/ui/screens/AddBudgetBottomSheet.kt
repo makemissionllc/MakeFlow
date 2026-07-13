@@ -39,24 +39,46 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import kotlinx.coroutines.launch
 
 @Composable
 fun AddBudgetBottomSheet(
     onDismiss: () -> Unit,
-    onSave: suspend (categoryId: String, categoryName: String, amount: Double, period: String) -> Unit,
+    onSave: suspend (budgetId: String?, categoryId: String, categoryName: String, amount: Double, period: String) -> Unit,
     categories: List<CategoryEntity>,
-    currencySymbol: String
+    currencySymbol: String,
+    editingBudget: BudgetEntity? = null
 ) {
     val scope = rememberCoroutineScope()
+    val isEditing = editingBudget != null
 
     val expenseParents = remember(categories) {
         categories.filter { it.type == "EXPENSE" && it.parentCategoryId == null }
     }
 
-    var selectedParentCategory by remember { mutableStateOf(expenseParents.firstOrNull()) }
-    var selectedChildCategory by remember { mutableStateOf<CategoryEntity?>(null) }
+    val initialParent = remember(editingBudget, expenseParents) {
+        if (editingBudget != null) {
+            val cat = categories.find { it.id == editingBudget.categoryId }
+            cat?.let { c ->
+                if (c.parentCategoryId != null) {
+                    expenseParents.find { it.id == c.parentCategoryId }
+                } else {
+                    expenseParents.find { it.id == c.id }
+                }
+            }
+        } else null
+    }
+    val initialChild = remember(editingBudget, categories) {
+        if (editingBudget != null) {
+            val cat = categories.find { it.id == editingBudget.categoryId }
+            cat?.takeIf { it.parentCategoryId != null }
+        } else null
+    }
+
+    var selectedParentCategory by remember { mutableStateOf(initialParent ?: expenseParents.firstOrNull()) }
+    var selectedChildCategory by remember { mutableStateOf(initialChild) }
 
     val childCategories = remember(categories, selectedParentCategory) {
         selectedParentCategory?.let { parent ->
@@ -67,8 +89,12 @@ fun AddBudgetBottomSheet(
     val selectedCategoryId = selectedChildCategory?.id ?: selectedParentCategory?.id ?: ""
     val selectedCategoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: ""
 
-    var amountInput by remember { mutableStateOf("") }
-    var selectedPeriod by remember { mutableStateOf("Monthly") }
+    var amountInput by remember {
+        mutableStateOf(editingBudget?.amount?.let {
+            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+        } ?: "")
+    }
+    var selectedPeriod by remember { mutableStateOf(editingBudget?.period ?: "Monthly") }
 
     val parsedAmount = amountInput.toDoubleOrNull()
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 && selectedCategoryId.isNotEmpty()
@@ -82,7 +108,7 @@ fun AddBudgetBottomSheet(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "New Budget",
+                text = if (isEditing) "Edit Budget" else "New Budget",
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.White
             )
@@ -95,7 +121,26 @@ fun AddBudgetBottomSheet(
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (isEditing) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = selectedCategoryName,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                )
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
@@ -148,103 +193,110 @@ fun AddBudgetBottomSheet(
                     }
                 }
             }
+        }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = currencySymbol,
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                BasicTextField(
-                    value = amountInput,
-                    onValueChange = { newValue ->
-                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
-                            amountInput = newValue
-                        }
-                    },
-                    textStyle = TextStyle(
-                        color = Color.White,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    ),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    cursorBrush = SolidColor(Color.White),
-                    decorationBox = { innerTextField ->
-                        Box {
-                            if (amountInput.isEmpty()) {
-                                Text(
-                                    text = "0.00",
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 32.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            innerTextField()
-                        }
-                    },
-                    modifier = Modifier.width(200.dp)
-                )
-            }
+        Spacer(modifier = Modifier.height(8.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Resets every",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Weekly", "Monthly", "Annual").forEach { period ->
-                        val isSelected = selectedPeriod == period
-                        Text(
-                            text = period,
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            modifier = Modifier
-                                .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
-                                )
-                                .clickable { selectedPeriod = period }
-                                .padding(horizontal = 14.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-            }
-
-            androidx.compose.material3.Button(
-                onClick = {
-                    val amount = parsedAmount ?: return@Button
-                    scope.launch {
-                        onSave(selectedCategoryId, selectedCategoryName, amount, selectedPeriod)
-                        onDismiss()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = currencySymbol,
+                color = Color.White,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            BasicTextField(
+                value = amountInput,
+                onValueChange = { newValue ->
+                    if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+                        amountInput = newValue
                     }
                 },
-                enabled = isSaveEnabled,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315),
-                    disabledContainerColor = Color(0xFF1B1C1F),
-                    disabledContentColor = Color.White.copy(alpha = 0.2f)
+                textStyle = TextStyle(
+                    color = Color.White,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
                 ),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-            ) {
-                Text(
-                    text = "Save Budget",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                singleLine = true,
+                cursorBrush = SolidColor(Color.White),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (amountInput.isEmpty()) {
+                            Text(
+                                text = "0.00",
+                                color = Color.White.copy(alpha = 0.3f),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+                modifier = Modifier.width(200.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Resets every",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.5f)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("Weekly", "Monthly", "Annual").forEach { period ->
+                    val isSelected = selectedPeriod == period
+                    Text(
+                        text = period,
+                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .background(
+                                if (isSelected) Color.White else Color(0xFF1B1C1F),
+                                RoundedCornerShape(14.dp)
+                            )
+                            .clickable { selectedPeriod = period }
+                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
             }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        androidx.compose.material3.Button(
+            onClick = {
+                val amount = parsedAmount ?: return@Button
+                scope.launch {
+                    onSave(editingBudget?.id, selectedCategoryId, selectedCategoryName, amount, selectedPeriod)
+                    onDismiss()
+                }
+            },
+            enabled = isSaveEnabled,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = Color.White,
+                contentColor = Color(0xFF121315),
+                disabledContainerColor = Color(0xFF1B1C1F),
+                disabledContentColor = Color.White.copy(alpha = 0.2f)
+            ),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp)
+        ) {
+            Text(
+                text = if (isEditing) "Save Changes" else "Save Budget",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }

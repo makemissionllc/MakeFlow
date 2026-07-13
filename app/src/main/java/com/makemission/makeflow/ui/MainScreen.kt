@@ -182,7 +182,7 @@ fun MainScreen(
         factory = AccountsViewModelFactory(repository, userPrefDataStore, exchangeRateRepository)
     )
     val settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager)
+        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager, exchangeRateRepository)
     )
     val recurringTransactionsViewModel: RecurringTransactionsViewModel = viewModel(
         factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)

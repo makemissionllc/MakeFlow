@@ -22,7 +22,9 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import com.makemission.makeflow.data.backup.BackupManager
+import com.makemission.makeflow.data.repository.ExchangeRateRepository
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -30,7 +32,8 @@ import java.util.Locale
 class SettingsViewModel(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
-    private val backupManager: BackupManager? = null
+    private val backupManager: BackupManager? = null,
+    private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModel() {
 
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
@@ -127,10 +130,10 @@ class SettingsViewModel(
 
     fun exportPdf(context: Context, startMillis: Long, endMillis: Long, onComplete: (String) -> Unit = {}) {
         viewModelScope.launch {
-            val transactions = financeRepository.getTransactionsInRange(startMillis, endMillis)
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()).value
-            val accounts = financeRepository.getAllAccounts()
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()).value
+            val transactions = financeRepository.getTransactionsInRange(startMillis, endMillis).first()
+            val accounts = financeRepository.getAllAccounts().first()
+            val exchangeRatesList = exchangeRateRepository?.getAllRatesOnce() ?: emptyList()
+            val exchangeRates = exchangeRatesList.associateBy { it.currencyCode }
             val accountMap = accounts.associateBy { it.id }
             val displayCurrency = selectedCurrency.value
 
@@ -139,10 +142,20 @@ class SettingsViewModel(
 
             val dateRangeLabel = "${headerDateFmt.format(Date(startMillis))} - ${headerDateFmt.format(Date(endMillis))}"
 
+            val exportData = PdfExportDataBuilder.build(
+                transactions = transactions,
+                accountMap = accountMap,
+                exchangeRates = exchangeRates,
+                displayCurrency = displayCurrency
+            ) { ts -> dateFmt.format(Date(ts)) }
+
+            val rows = exportData.rows
+            val summary = exportData.summary
+
             val document = PdfDocument()
-            val pageInfo = PdfDocument.PageInfo.Builder(612, 792, 1).create() // US Letter
-            val page = document.startPage(pageInfo)
-            val canvas: Canvas = page.canvas
+            val pageWidth = 612
+            val pageHeight = 792
+            var pageNumber = 1
 
             val titlePaint = Paint().apply {
                 color = Color.DKGRAY
@@ -158,17 +171,42 @@ class SettingsViewModel(
                 color = Color.DKGRAY
                 textSize = 11f
             }
+            val transferDetailPaint = Paint().apply {
+                color = Color.GRAY
+                textSize = 9f
+                typeface = Typeface.ITALIC
+            }
             val linePaint = Paint().apply {
                 color = Color.LTGRAY
                 strokeWidth = 0.5f
             }
             val currencySymbol = CurrencyFormatter.symbolFor(displayCurrency)
 
-            var y = 40f
             val leftMargin = 40f
             val rightMargin = 572f
-            val colWidths = floatArrayOf(100f, 130f, 100f, 100f, 102f)
+            val colWidths = floatArrayOf(90f, 140f, 100f, 100f, 102f)
+            val rowHeight = 16f
+            val transferRowHeight = 26f
 
+            fun drawHeader(c: Canvas, yStart: Float): Float {
+                var yy = yStart
+                val headers = listOf("Date", "Description", "Category", "Account", "Amount")
+                var x = leftMargin
+                headers.forEachIndexed { i, h ->
+                    c.drawText(h, x, yy, headerPaint)
+                    x += colWidths[i]
+                }
+                yy += 6f
+                c.drawLine(leftMargin, yy, rightMargin, yy, linePaint)
+                yy += 14f
+                return yy
+            }
+
+            var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            var page = document.startPage(pageInfo)
+            var canvas: Canvas = page.canvas
+
+            var y = 40f
             canvas.drawText("MakeFlow Statement", leftMargin, y, titlePaint)
             y += 24f
             canvas.drawText("Date Range: $dateRangeLabel", leftMargin, y, rowPaint)
@@ -176,58 +214,49 @@ class SettingsViewModel(
             canvas.drawText("Display Currency: $displayCurrency ($currencySymbol)", leftMargin, y, rowPaint)
             y += 24f
 
-            val headers = listOf("Date", "Description", "Category", "Account", "Amount")
-            var x = leftMargin
-            headers.forEachIndexed { i, h ->
-                canvas.drawText(h, x, y, headerPaint)
-                x += colWidths[i]
-            }
-            y += 6f
-            canvas.drawLine(leftMargin, y, rightMargin, y, linePaint)
-            y += 14f
+            y = drawHeader(canvas, y)
 
-            var totalIncome = 0.0
-            var totalExpense = 0.0
+            for (row in rows) {
+                val rh = if (row.isTransfer) transferRowHeight else rowHeight
 
-            for (tx in transactions) {
-                val date = dateFmt.format(Date(tx.timestamp))
-                val accountName = accountMap[tx.accountId]?.name ?: tx.accountId
-                val categoryName = tx.categoryId ?: ""
-                val amountStr = "${tx.amount}"
-                val note = tx.note ?: ""
+                if (y + rh > 750f) {
+                    document.finishPage(page)
+                    pageNumber++
+                    pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                    page = document.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = 40f
+                    y = drawHeader(canvas, y)
+                }
 
-                if (tx.type == "INCOME") totalIncome += tx.amount
-                else totalExpense += tx.amount
-
-                val cols = listOf(date, note, categoryName, accountName, amountStr)
-                x = leftMargin
+                val cols = listOf(row.date, row.description, row.category, row.account, row.amount)
+                var x = leftMargin
                 cols.forEachIndexed { i, text ->
                     canvas.drawText(text, x, y, rowPaint)
                     x += colWidths[i]
                 }
-                y += 16f
 
-                if (y > 750f) {
-                    document.finishPage(page)
-                    break
+                if (row.isTransfer && row.transferDetail.isNotEmpty()) {
+                    canvas.drawText(row.transferDetail, leftMargin, y + 12f, transferDetailPaint)
                 }
+
+                y += rh
             }
 
             y += 12f
             canvas.drawLine(leftMargin, y, rightMargin, y, linePaint)
             y += 20f
 
-            val net = totalIncome - totalExpense
             val summaryPaint = Paint().apply {
                 color = Color.DKGRAY
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
             }
-            canvas.drawText("Total Income: $currencySymbol$totalIncome", leftMargin, y, summaryPaint)
+            canvas.drawText("Total Income: $currencySymbol${summary.totalIncome}", leftMargin, y, summaryPaint)
             y += 16f
-            canvas.drawText("Total Expense: $currencySymbol$totalExpense", leftMargin, y, summaryPaint)
+            canvas.drawText("Total Expense: $currencySymbol${summary.totalExpense}", leftMargin, y, summaryPaint)
             y += 16f
-            canvas.drawText("Net: $currencySymbol$net", leftMargin, y, summaryPaint)
+            canvas.drawText("Net: $currencySymbol${summary.net}", leftMargin, y, summaryPaint)
 
             document.finishPage(page)
 
@@ -282,10 +311,11 @@ class SettingsViewModel(
 class SettingsViewModelFactory(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
-    private val backupManager: BackupManager? = null
+    private val backupManager: BackupManager? = null,
+    private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return SettingsViewModel(financeRepository, userPreferencesDataStore, backupManager) as T
+        return SettingsViewModel(financeRepository, userPreferencesDataStore, backupManager, exchangeRateRepository) as T
     }
 }

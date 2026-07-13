@@ -80,7 +80,8 @@ import java.util.Locale
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
-    hapticManager: HapticManager
+    hapticManager: HapticManager,
+    onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
     val transactions by viewModel.filteredTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
@@ -219,6 +220,19 @@ fun HistoryScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
+                            if (onEditTransaction != null) {
+                                androidx.compose.material3.Button(
+                                    onClick = { onEditTransaction(tx) },
+                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                        containerColor = Color.White,
+                                        contentColor = Color(0xFF121315)
+                                    ),
+                                    shape = RoundedCornerShape(14.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Edit", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                         }
                     }
                 } else {
@@ -252,7 +266,7 @@ fun HistoryScreen(
             snackbarHostState = snackbarHostState,
             todayCal = todayCal,
             yesterdayCal = yesterdayCal,
-            onTransactionClick = null
+            onTransactionClick = onEditTransaction
         )
     }
 }

@@ -39,7 +39,7 @@ interface FinanceRepository {
     suspend fun updateTask(task: TaskEntity)
     fun getAllBudgets(): Flow<List<BudgetEntity>>
     suspend fun insertBudget(budget: BudgetEntity)
-    suspend fun updateBudget(budgetId: String, amount: Double, period: String)
+    suspend fun updateBudget(budgetId: String, amount: Double, period: String, name: String? = null)
     suspend fun deleteBudget(budget: BudgetEntity)
     suspend fun syncBudgetSpending(categoryId: String?, amount: Double, type: String)
     suspend fun clearAllTransactions()

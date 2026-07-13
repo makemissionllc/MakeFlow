@@ -123,7 +123,7 @@ fun InsightsScreen(
                         notificationGate?.dispatchOrQueue(
                             type = "budget_alert",
                             title = "Budget exceeded",
-                            body = "${budget.categoryName} has exceeded its limit"
+                            body = "${budget.displayName} has exceeded its limit"
                         )
                     }
                 }
@@ -776,7 +776,7 @@ fun InsightsScreen(
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                                Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     val forecast = budgetForecasts.find { it.budgetId == budget.id }
                                                     if (forecast != null) {
@@ -816,7 +816,7 @@ fun InsightsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(budget.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                    Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         val forecast = budgetForecasts.find { it.budgetId == budget.id }
                                         if (forecast != null) {

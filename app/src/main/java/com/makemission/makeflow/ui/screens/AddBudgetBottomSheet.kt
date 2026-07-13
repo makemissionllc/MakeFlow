@@ -46,7 +46,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun AddBudgetBottomSheet(
     onDismiss: () -> Unit,
-    onSave: suspend (budgetId: String?, categoryId: String, categoryName: String, amount: Double, period: String) -> Unit,
+    onSave: suspend (budgetId: String?, categoryId: String, categoryName: String, amount: Double, period: String, name: String?) -> Unit,
     categories: List<CategoryEntity>,
     currencySymbol: String,
     editingBudget: BudgetEntity? = null
@@ -94,6 +94,7 @@ fun AddBudgetBottomSheet(
             if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
         } ?: "")
     }
+    var nameInput by remember { mutableStateOf(editingBudget?.name ?: "") }
     var selectedPeriod by remember { mutableStateOf(editingBudget?.period ?: "Monthly") }
 
     val parsedAmount = amountInput.toDoubleOrNull()
@@ -246,6 +247,45 @@ fun AddBudgetBottomSheet(
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
+                text = "Name (optional)",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.5f)
+            )
+            BasicTextField(
+                value = nameInput,
+                onValueChange = { nameInput = it },
+                textStyle = TextStyle(
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                singleLine = true,
+                cursorBrush = SolidColor(Color.White),
+                decorationBox = { innerTextField ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                    ) {
+                        if (nameInput.isEmpty()) {
+                            Text(
+                                text = selectedCategoryName,
+                                color = Color.White.copy(alpha = 0.3f),
+                                fontSize = 15.sp
+                            )
+                        }
+                        innerTextField()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
                 text = "Resets every",
                 style = MaterialTheme.typography.labelMedium,
                 color = Color.White.copy(alpha = 0.5f)
@@ -276,7 +316,8 @@ fun AddBudgetBottomSheet(
             onClick = {
                 val amount = parsedAmount ?: return@Button
                 scope.launch {
-                    onSave(editingBudget?.id, selectedCategoryId, selectedCategoryName, amount, selectedPeriod)
+                    val budgetName = nameInput.ifBlank { null }
+                    onSave(editingBudget?.id, selectedCategoryId, selectedCategoryName, amount, selectedPeriod, budgetName)
                     onDismiss()
                 }
             },

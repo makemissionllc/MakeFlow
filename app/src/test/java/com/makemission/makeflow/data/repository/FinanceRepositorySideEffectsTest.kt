@@ -274,10 +274,10 @@ class FinanceRepositorySideEffectsTest {
             budgetsFlow.value = budgets.toList()
         }
 
-        override suspend fun updateBudget(budgetId: String, amount: Double, period: String) {
+        override suspend fun updateBudget(budgetId: String, amount: Double, period: String, name: String?) {
             val idx = budgets.indexOfFirst { it.id == budgetId }
             if (idx >= 0) {
-                budgets[idx] = budgets[idx].copy(amount = amount, period = period)
+                budgets[idx] = budgets[idx].copy(amount = amount, period = period, name = name)
                 budgetsFlow.value = budgets.toList()
             }
         }

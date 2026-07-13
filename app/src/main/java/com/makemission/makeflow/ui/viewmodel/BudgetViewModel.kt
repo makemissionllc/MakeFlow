@@ -86,13 +86,14 @@ class BudgetViewModel(
         }
     }
 
-    fun addBudget(categoryId: String, categoryName: String, amount: Double, period: String) {
+    fun addBudget(categoryId: String, categoryName: String, amount: Double, period: String, name: String? = null) {
         viewModelScope.launch {
             financeRepository.insertBudget(
                 BudgetEntity(
                     id = UUID.randomUUID().toString(),
                     categoryId = categoryId,
                     categoryName = categoryName,
+                    name = name,
                     amount = amount,
                     spentAmount = 0.0,
                     period = period,
@@ -102,9 +103,9 @@ class BudgetViewModel(
         }
     }
 
-    fun updateBudget(budgetId: String, amount: Double, period: String) {
+    fun updateBudget(budgetId: String, amount: Double, period: String, name: String? = null) {
         viewModelScope.launch {
-            financeRepository.updateBudget(budgetId, amount, period)
+            financeRepository.updateBudget(budgetId, amount, period, name)
             refreshSuggestions()
         }
     }

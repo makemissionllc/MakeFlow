@@ -694,7 +694,7 @@ fun BudgetsCard(
                         notificationGate?.dispatchOrQueue(
                             type = "budget_alert",
                             title = "Budget exceeded",
-                            body = "${budget.categoryName} has exceeded its limit"
+                            body = "${budget.displayName} has exceeded its limit"
                         )
                     }
                 }
@@ -765,7 +765,7 @@ fun BudgetsCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = budget.categoryName,
+                            text = budget.displayName,
                             color = Color.White,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium

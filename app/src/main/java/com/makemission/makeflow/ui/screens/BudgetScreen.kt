@@ -101,7 +101,7 @@ fun BudgetScreen(
                         notificationGate?.dispatchOrQueue(
                             type = "budget_alert",
                             title = "Budget exceeded",
-                            body = "${budget.categoryName} has exceeded its limit"
+                            body = "${budget.displayName} has exceeded its limit"
                         )
                     }
                 }
@@ -201,14 +201,19 @@ fun BudgetScreen(
                                             else -> Color(0xFF4CAF50)
                                         }
 
-                                        CardContainer {
-                                            Column(
-                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
-                                                    Text(budget.categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                                    Text(
+                                            CardContainer {
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
+                                                        Column {
+                                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                            if (budget.name != null) {
+                                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                            }
+                                                        }
+                                                        Text(
                                                         when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
                                                         style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
                                                         modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
@@ -252,7 +257,12 @@ fun BudgetScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
-                                        Text(budget.categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                        Column {
+                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            if (budget.name != null) {
+                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                            }
+                                        }
                                         Text(
                                             when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
                                             style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
@@ -302,12 +312,12 @@ fun BudgetScreen(
                 showAddBudget = false
                 editingBudget = null
             },
-            onSave = { budgetId, categoryId, categoryName, amount, period ->
+            onSave = { budgetId, categoryId, categoryName, amount, period, name ->
                 scope.launch {
                     if (budgetId != null) {
-                        viewModel.updateBudget(budgetId, amount, period)
+                        viewModel.updateBudget(budgetId, amount, period, name)
                     } else {
-                        viewModel.addBudget(categoryId, categoryName, amount, period)
+                        viewModel.addBudget(categoryId, categoryName, amount, period, name)
                     }
                     showAddBudget = false
                     editingBudget = null

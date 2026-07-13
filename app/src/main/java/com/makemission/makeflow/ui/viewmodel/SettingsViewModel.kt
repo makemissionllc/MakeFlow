@@ -174,7 +174,7 @@ class SettingsViewModel(
             val transferDetailPaint = Paint().apply {
                 color = Color.GRAY
                 textSize = 9f
-                typeface = Typeface.ITALIC
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
             }
             val linePaint = Paint().apply {
                 color = Color.LTGRAY

@@ -119,11 +119,11 @@ fun AppNavigationEngine() {
             ?.takeIf { it == "EXPENSE" || it == "INCOME" }
     }
 
-    val appLockEnabled by userPrefDataStore.appLockEnabled.collectAsState(initial = true)
-    var isUnlocked by remember { mutableStateOf(false) }
+    val appLockEnabled by userPrefDataStore.appLockEnabled.collectAsState(initial = false)
+    var isUnlocked by remember { mutableStateOf(!appLockEnabled) }
 
     LaunchedEffect(appLockEnabled) {
-        if (!appLockEnabled) isUnlocked = true
+        isUnlocked = !appLockEnabled
     }
 
     CompositionLocalProvider(

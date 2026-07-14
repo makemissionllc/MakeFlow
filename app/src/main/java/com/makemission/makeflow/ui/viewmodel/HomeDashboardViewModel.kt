@@ -17,7 +17,9 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.data.repository.ExchangeRateRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.CashFlowProjector
@@ -43,6 +45,7 @@ data class ParentCategorySpending(
     val amount: Double
 )
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeDashboardViewModel(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
@@ -53,21 +56,47 @@ class HomeDashboardViewModel(
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
-    val totalBalance: StateFlow<Double> = combine(
-        financeRepository.getAllAccounts(),
-        selectedCurrency,
-        exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
-    ) { accts, displayCurrency, rates ->
-        val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
-        accts.sumOf { account ->
-            val acctCurrency = account.currencyCode ?: displayCurrency
-            if (acctCurrency == displayCurrency) account.balance
-            else rateMap[acctCurrency]?.let { account.balance * it } ?: account.balance
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
-
     val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val focusedAccount: StateFlow<AccountEntity?> = combine(
+        accounts, focusedAccountId
+    ) { accts, focusedId ->
+        if (focusedId != null) accts.find { it.id == focusedId } else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val balanceCurrencyCode: StateFlow<String> = combine(
+        accounts, focusedAccountId, selectedCurrency
+    ) { accts, focusedId, displayCurrency ->
+        if (focusedId != null) {
+            val focused = accts.find { it.id == focusedId }
+            focused?.currencyCode ?: displayCurrency
+        } else {
+            displayCurrency
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
+
+    val totalBalance: StateFlow<Double> = combine(
+        financeRepository.getAllAccounts(),
+        focusedAccountId,
+        selectedCurrency,
+        exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
+    ) { accts, focusedId, displayCurrency, rates ->
+        if (focusedId != null) {
+            val focused = accts.find { it.id == focusedId }
+            focused?.balance ?: 0.0
+        } else {
+            val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
+            accts.sumOf { account ->
+                val acctCurrency = account.currencyCode ?: displayCurrency
+                if (acctCurrency == displayCurrency) account.balance
+                else rateMap[acctCurrency]?.let { account.balance * it } ?: account.balance
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val categories: StateFlow<List<CategoryEntity>> = financeRepository.getAllCategories()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -142,9 +171,14 @@ class HomeDashboardViewModel(
     private val _cardOrder = MutableStateFlow(defaultCardOrder)
     val cardOrder: StateFlow<List<DashboardCardType>> = _cardOrder
 
-    private val thisMonthTransactions: StateFlow<List<TransactionEntity>> =
-        financeRepository.getTransactionsInRange(monthStart, monthEnd)
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    internal val thisMonthTransactions: StateFlow<List<TransactionEntity>> =
+        focusedAccountId.flatMapLatest { focusedId ->
+            if (focusedId != null) {
+                financeRepository.getTransactionsInRangeForAccount(monthStart, monthEnd, focusedId)
+            } else {
+                financeRepository.getTransactionsInRange(monthStart, monthEnd)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val cashFlowProjection: StateFlow<CashFlowProjection?> = combine(
         totalBalance,
@@ -181,6 +215,12 @@ class HomeDashboardViewModel(
             )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setFocusedAccountId(accountId: String?) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveFocusedAccountId(accountId)
+        }
+    }
 
     fun confirmRecurringTransaction(entity: RecurringTransactionEntity) {
         viewModelScope.launch {
@@ -252,6 +292,15 @@ class HomeDashboardViewModel(
                     }
                 }
                 _cardOrder.value = ranked
+            }
+        }
+        viewModelScope.launch {
+            combine(accounts, focusedAccountId) { accts, focusedId ->
+                if (focusedId != null && accts.none { it.id == focusedId }) focusedId else null
+            }.collect { staleId ->
+                if (staleId != null) {
+                    userPreferencesDataStore.saveFocusedAccountId(null)
+                }
             }
         }
     }

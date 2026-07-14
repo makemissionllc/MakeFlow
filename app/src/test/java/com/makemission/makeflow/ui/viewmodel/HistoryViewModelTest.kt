@@ -209,6 +209,10 @@ class HistoryViewModelTest {
             startMillis: Long, endMillis: Long
         ): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
 
+        override fun getTransactionsInRangeForAccount(
+            startMillis: Long, endMillis: Long, accountId: String
+        ): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
+
         override fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double> =
             MutableStateFlow(0.0)
 
@@ -264,7 +268,9 @@ class HistoryViewModelTest {
         override fun getDueRecurringTransactions(now: Long): Flow<List<com.makemission.makeflow.data.local.entity.RecurringTransactionEntity>> = MutableStateFlow(emptyList())
         override suspend fun mergeCategories(sourceId: String, targetId: String): String? = null
         override suspend fun convertCategoryType(categoryId: String, newType: String): String? = null
+        override suspend fun deleteCategoryWithGuards(categoryId: String): String? = null
         override suspend fun getConvertedTotalBalance(displayCurrency: String): Double = 0.0
+        override suspend fun hasExternalReference(externalRef: String): Boolean = false
     }
 
     private fun createTestUserPrefs(): UserPreferencesDataStore {

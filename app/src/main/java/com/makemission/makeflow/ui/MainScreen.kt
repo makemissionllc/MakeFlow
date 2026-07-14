@@ -92,6 +92,7 @@ import com.makemission.makeflow.data.backup.BackupManager
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
 import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
+import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.screens.AccountsScreen
 import com.makemission.makeflow.ui.screens.AddEditRecurringTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
@@ -131,7 +132,10 @@ fun MainScreen(
     username: String,
     onLogout: () -> Unit,
     notificationGate: NotificationGate? = null,
-    initialTransactionType: String? = null
+    initialTransactionType: String? = null,
+    sharedMpesaData: MpesaMessageParser.MpesaParsedMessage? = null,
+    shareParseError: String? = null,
+    onShareParseErrorShown: () -> Unit = {}
 ) {
     var activeTab by remember { mutableStateOf(MakeFlowTab.HOME) }
 
@@ -215,6 +219,88 @@ fun MainScreen(
         }
     }
 
+    // M-PESA share intent handling
+    var mpesaInitialAmount by remember { mutableStateOf("") }
+    var mpesaInitialType by remember { mutableStateOf<String?>(null) }
+    var mpesaInitialNote by remember { mutableStateOf("") }
+    var mpesaInitialTimestamp by remember { mutableStateOf<Long?>(null) }
+    var mpesaExternalReference by remember { mutableStateOf<String?>(null) }
+    var mpesaDuplicateMessage by remember { mutableStateOf<String?>(null) }
+    var mpesaShareErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(sharedMpesaData) {
+        val data = sharedMpesaData ?: return@LaunchedEffect
+        if (data.code.isNotEmpty()) {
+            val isDuplicate = repository.hasExternalReference(data.code)
+            if (isDuplicate) {
+                mpesaDuplicateMessage = "This M-PESA transaction has already been logged"
+                return@LaunchedEffect
+            }
+        }
+        val type = when (data.type) {
+            MpesaMessageParser.TransactionType.RECEIVED -> "INCOME"
+            MpesaMessageParser.TransactionType.SENT,
+            MpesaMessageParser.TransactionType.PAYBILL,
+            MpesaMessageParser.TransactionType.WITHDRAW,
+            MpesaMessageParser.TransactionType.AIRTIME -> "EXPENSE"
+            else -> "EXPENSE"
+        }
+        mpesaInitialAmount = if (data.amount == data.amount.toLong().toDouble())
+            data.amount.toLong().toString() else data.amount.toString()
+        mpesaInitialType = type
+        mpesaInitialNote = data.counterpartyName ?: ""
+        mpesaInitialTimestamp = try {
+            val fmt = java.text.SimpleDateFormat("d/M/yyyy h:mm a", java.util.Locale.getDefault())
+            fmt.parse("${data.date} ${data.time}")?.time
+        } catch (_: Exception) { null }
+        mpesaExternalReference = data.code
+        showAddTransaction = true
+    }
+
+    LaunchedEffect(shareParseError) {
+        shareParseError?.let {
+            mpesaShareErrorMessage = it
+            onShareParseErrorShown()
+            showAddTransaction = true
+        }
+    }
+
+    if (mpesaDuplicateMessage != null) {
+        AlertDialog(
+            onDismissRequest = { mpesaDuplicateMessage = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Duplicate Transaction", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(mpesaDuplicateMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = { mpesaDuplicateMessage = null }) {
+                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (mpesaShareErrorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { mpesaShareErrorMessage = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Couldn't Parse Message", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(mpesaShareErrorMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = { mpesaShareErrorMessage = null }) {
+                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
     var showBudgetScreen by remember { mutableStateOf(false) }
     var showAccountsScreen by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
@@ -294,7 +380,7 @@ fun MainScreen(
     }
 
     fun performBackup() {
-        backupLauncher.launch("MakeFlow_Backup_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())}.json")
+        backupLauncher.launch("Mindful_Backup_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())}.json")
     }
 
     fun pickRestoreFile() {
@@ -527,6 +613,33 @@ fun MainScreen(
         )
     }
 
+    if (showManageCategories) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            BackHandler { showManageCategories = false }
+            CategoryManagementScreen(
+                categories = categories,
+                onBack = { showManageCategories = false },
+                onMerge = { sourceId, targetId ->
+                    repository.mergeCategories(sourceId, targetId)
+                },
+                onConvertType = { categoryId, newType ->
+                    repository.convertCategoryType(categoryId, newType)
+                },
+                onCreate = { entity ->
+                    repository.insertCategory(entity)
+                    null
+                },
+                onDelete = { categoryId ->
+                    repository.deleteCategoryWithGuards(categoryId)
+                }
+            )
+        }
+    }
+
     if (showRestoreConfirm && backupJson != null) {
         AlertDialog(
             onDismissRequest = { showRestoreConfirm = false; backupJson = null },
@@ -587,10 +700,18 @@ fun MainScreen(
 
     if (showAddTransaction) {
         AddTransactionBottomSheet(
-            initialType = editingTransaction?.type ?: shortcutPendingType.value ?: "INCOME",
+            initialType = editingTransaction?.type ?: mpesaInitialType ?: shortcutPendingType.value ?: "INCOME",
+            initialAmount = mpesaInitialAmount,
+            initialNote = mpesaInitialNote,
+            initialTimestamp = mpesaInitialTimestamp,
             onDismiss = {
                 shortcutPendingType.value = null
                 editingTransaction = null
+                mpesaInitialAmount = ""
+                mpesaInitialType = null
+                mpesaInitialNote = ""
+                mpesaInitialTimestamp = null
+                mpesaExternalReference = null
                 showAddTransaction = false
             },
             onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
@@ -604,10 +725,12 @@ fun MainScreen(
                             fromAccountId = fromAccountId,
                             toAccountId = toAccountId,
                             note = note,
-                            timestamp = timestamp
+                            timestamp = timestamp,
+                            externalReference = mpesaExternalReference
                         )
                     )
                     WidgetUpdateHelper.updateWidgets(context)
+                    mpesaExternalReference = null
                     showAddTransaction = false
                 }
             },
@@ -958,7 +1081,7 @@ private fun MakeFlowNavRail(
         containerColor = Color.Transparent,
         header = {
             Text(
-                text = "MakeFlow",
+                text = "Mindful Wallet",
                 color = Color(0xFF8B938A),
                 fontSize = if (alwaysShowLabel) 12.sp else 0.sp,
                 fontWeight = FontWeight.Medium,

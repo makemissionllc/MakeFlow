@@ -67,7 +67,7 @@ fun LockScreen(
         val prompt = BiometricPrompt(activity, executor, callback)
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle("App Lock")
-            .setSubtitle("Authenticate to access MakeFlow")
+            .setSubtitle("Authenticate to access Mindful Wallet")
             .setAllowedAuthenticators(
                 BiometricManager.Authenticators.BIOMETRIC_STRONG or
                         BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -109,7 +109,7 @@ fun LockScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "MakeFlow",
+                text = "Mindful Wallet",
                 color = androidx.compose.ui.graphics.Color.White,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold

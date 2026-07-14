@@ -64,6 +64,7 @@ import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.domain.VelocityAlert
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -99,6 +100,9 @@ fun HomeDashboard(
 ) {
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val focusedAccountId by viewModel.focusedAccountId.collectAsState()
+    val focusedAccount by viewModel.focusedAccount.collectAsState()
+    val balanceCurrencyCode by viewModel.balanceCurrencyCode.collectAsState()
     val monthlyIncome by viewModel.monthlyIncome.collectAsState()
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()
@@ -113,11 +117,12 @@ fun HomeDashboard(
     val velocityAlerts by viewModel.velocityAlerts.collectAsState()
 
     var showReorderSheet by remember { mutableStateOf(false) }
+    var showAccountFocusSheet by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val config = LocalAdaptiveConfig.current
-    val formattedBalance = CurrencyFormatter.format(totalBalance, selectedCurrency)
+    val formattedBalance = CurrencyFormatter.format(totalBalance, balanceCurrencyCode)
     val formattedIncome = CurrencyFormatter.format(monthlyIncome, selectedCurrency)
     val formattedExpenses = CurrencyFormatter.format(monthlyExpenses, selectedCurrency)
     val formattedNet = CurrencyFormatter.format(monthlyIncome - monthlyExpenses, selectedCurrency)
@@ -160,7 +165,17 @@ fun HomeDashboard(
                 LargeTitleItem(title = "Home", scrollState = listState)
             }
             item {
-                TotalBalanceCard(balance = formattedBalance, monthLabel = currentMonthLabel)
+                AccountFocusSelector(
+                    focusedAccountName = focusedAccount?.name,
+                    onClick = { showAccountFocusSheet = true }
+                )
+            }
+            item {
+                TotalBalanceCard(
+                    balance = formattedBalance,
+                    monthLabel = currentMonthLabel,
+                    label = if (focusedAccount != null) focusedAccount!!.name else "Total balance"
+                )
             }
             cardOrder.forEach { cardType ->
                 when (cardType) {
@@ -299,12 +314,27 @@ fun HomeDashboard(
             }
         )
     }
+
+    if (showAccountFocusSheet) {
+        AccountFocusSheet(
+            accounts = accounts,
+            focusedAccountId = focusedAccountId,
+            onSelectAccount = { accountId ->
+                viewModel.setFocusedAccountId(accountId)
+                showAccountFocusSheet = false
+            },
+            onDismiss = {
+                showAccountFocusSheet = false
+            }
+        )
+    }
 }
 
 @Composable
 fun TotalBalanceCard(
     balance: String = "KES 0.00",
-    monthLabel: String = "June 2026"
+    monthLabel: String = "June 2026",
+    label: String = "Total balance"
 ) {
     CardContainer {
         Row(
@@ -313,7 +343,7 @@ fun TotalBalanceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Total balance",
+                text = label,
                 color = Color.White,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
@@ -1069,6 +1099,123 @@ private fun ProjectionCard(
                     fontWeight = if (isNegative) FontWeight.SemiBold else FontWeight.Normal
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun AccountFocusSelector(
+    focusedAccountName: String?,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = focusedAccountName ?: "All Accounts",
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = "Change account",
+            tint = Color.White.copy(alpha = 0.5f),
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+@Composable
+fun AccountFocusSheet(
+    accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
+    focusedAccountId: String?,
+    onSelectAccount: (String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AdaptiveSheetDialog(onDismiss = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "Focus Account",
+                color = Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            val allAccountsItem = @Composable {
+                val isSelected = focusedAccountId == null
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) Color(0xFF007AFF).copy(alpha = 0.15f) else Color(0xFF121315))
+                        .clickable { onSelectAccount(null) }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "All Accounts",
+                        color = if (isSelected) Color(0xFF007AFF) else Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                    )
+                }
+            }
+
+            allAccountsItem()
+
+            Spacer(Modifier.height(8.dp))
+
+            accounts.forEach { account ->
+                val isSelected = focusedAccountId == account.id
+                val accountColor = try {
+                    Color(android.graphics.Color.parseColor(account.colorHex))
+                } catch (_: Exception) {
+                    Color(0xFF007AFF)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) Color(0xFF007AFF).copy(alpha = 0.15f) else Color(0xFF121315))
+                        .clickable { onSelectAccount(account.id) }
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .background(accountColor, CircleShape)
+                        )
+                        Text(
+                            text = account.name,
+                            color = if (isSelected) Color(0xFF007AFF) else Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        )
+                    }
+                }
+                if (account != accounts.last()) {
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
         }
     }
 }

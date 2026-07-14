@@ -46,6 +46,9 @@ class FinanceRepositorySideEffectsTest {
         override fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> =
             flowOf(transactions.filter { it.timestamp in startMillis until endMillis })
 
+        override fun getTransactionsInRangeForAccount(startMillis: Long, endMillis: Long, accountId: String): Flow<List<TransactionEntity>> =
+            flowOf(transactions.filter { (it.timestamp in startMillis until endMillis) && (it.accountId == accountId || it.fromAccountId == accountId || it.toAccountId == accountId) })
+
         override suspend fun getCategorySpendByMonth(
             categoryId: String, startMillis: Long, endMillis: Long
         ): List<MonthlyCategorySpend> = emptyList()
@@ -104,6 +107,9 @@ class FinanceRepositorySideEffectsTest {
 
         override suspend fun getTransactionsSince(sinceMillis: Long): List<TransactionEntity> =
             transactions.filter { it.timestamp >= sinceMillis }
+
+        override suspend fun hasExternalReference(externalRef: String): Boolean =
+            transactions.any { it.externalReference == externalRef }
     }
 
     private class FakeRecurringPatternDao : RecurringPatternDao {
@@ -875,6 +881,146 @@ class FinanceRepositorySideEffectsTest {
         val error = repo.convertCategoryType("c1", "EXPENSE")
         assertNull(error)
         assertEquals("EXPENSE", catDao.getCategoryById("c1")?.type)
+    }
+
+    @Test
+    fun insertCategory_persistsWithCorrectFields() = runBlocking {
+        val catDao = FakeCategoryDao()
+        val repo = FinanceRepositoryImpl(
+            categoryDao = catDao,
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val category = CategoryEntity(
+            id = "new1",
+            name = "Groceries",
+            type = "EXPENSE",
+            parentCategoryId = null,
+            iconName = "local_grocery_store",
+            colorHex = "#4CAF50"
+        )
+        repo.insertCategory(category)
+
+        val saved = catDao.getCategoryById("new1")
+        assertNotNull(saved)
+        assertEquals("Groceries", saved!!.name)
+        assertEquals("EXPENSE", saved.type)
+        assertNull(saved.parentCategoryId)
+        assertEquals("local_grocery_store", saved.iconName)
+        assertEquals("#4CAF50", saved.colorHex)
+    }
+
+    @Test
+    fun insertCategory_withParentCategory_persistsCorrectly() = runBlocking {
+        val catDao = FakeCategoryDao()
+        catDao.insertCategory(CategoryEntity(id = "parent", name = "Food", type = "EXPENSE"))
+
+        val child = CategoryEntity(
+            id = "child1",
+            name = "Groceries",
+            type = "EXPENSE",
+            parentCategoryId = "parent",
+            iconName = "local_grocery_store",
+            colorHex = "#BA68C8"
+        )
+        catDao.insertCategory(child)
+
+        val saved = catDao.getCategoryById("child1")
+        assertNotNull(saved)
+        assertEquals("parent", saved!!.parentCategoryId)
+        assertEquals("EXPENSE", catDao.getCategoryById("parent")?.type)
+    }
+
+    @Test
+    fun deleteCategoryWithGuards_unusedCategory_succeeds() = runBlocking {
+        val catDao = FakeCategoryDao()
+        catDao.insertCategory(CategoryEntity(id = "c1", name = "Vacations", type = "EXPENSE"))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = catDao,
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val error = repo.deleteCategoryWithGuards("c1")
+        assertNull(error)
+        assertNull(catDao.getCategoryById("c1"))
+    }
+
+    @Test
+    fun deleteCategoryWithGuards_withTransactions_returnsError() = runBlocking {
+        val catDao = FakeCategoryDao()
+        catDao.insertCategory(CategoryEntity(id = "c1", name = "Groceries", type = "EXPENSE"))
+        catDao.txCountForCategory = { if (it == "c1") 5 else 0 }
+        val txDao = FakeTransactionDao()
+        val repo = FinanceRepositoryImpl(
+            categoryDao = catDao,
+            transactionDao = txDao,
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val error = repo.deleteCategoryWithGuards("c1")
+        assertNotNull(error)
+        assertTrue(error!!.contains("5 transaction"))
+        assertNotNull(catDao.getCategoryById("c1"))
+    }
+
+    @Test
+    fun deleteCategoryWithGuards_withChildren_returnsError() = runBlocking {
+        val catDao = FakeCategoryDao()
+        catDao.insertCategory(CategoryEntity(id = "parent", name = "Food", type = "EXPENSE"))
+        catDao.insertCategory(CategoryEntity(id = "child1", name = "Groceries", type = "EXPENSE", parentCategoryId = "parent"))
+        val repo = FinanceRepositoryImpl(
+            categoryDao = catDao,
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = FakeBudgetDao(),
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val error = repo.deleteCategoryWithGuards("parent")
+        assertNotNull(error)
+        assertTrue(error!!.contains("subcategor"))
+        assertNotNull(catDao.getCategoryById("parent"))
+    }
+
+    @Test
+    fun deleteCategoryWithGuards_withBudget_returnsError() = runBlocking {
+        val catDao = FakeCategoryDao()
+        catDao.insertCategory(CategoryEntity(id = "c1", name = "Groceries", type = "EXPENSE"))
+        val budgetDao = FakeBudgetDao()
+        budgetDao.insertBudget(
+            com.makemission.makeflow.data.local.entity.BudgetEntity(
+                id = "b1",
+                categoryId = "c1",
+                categoryName = "Groceries",
+                amount = 500.0,
+                period = "Monthly"
+            )
+        )
+        val repo = FinanceRepositoryImpl(
+            categoryDao = catDao,
+            transactionDao = FakeTransactionDao(),
+            taskDao = FakeTaskDao(),
+            accountDao = FakeAccountDao(),
+            budgetDao = budgetDao,
+            recurringPatternDao = FakeRecurringPatternDao()
+        )
+
+        val error = repo.deleteCategoryWithGuards("c1")
+        assertNotNull(error)
+        assertTrue(error!!.contains("budget"))
+        assertNotNull(catDao.getCategoryById("c1"))
     }
 
     @Test

@@ -22,8 +22,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -154,13 +156,29 @@ class HomeDashboardViewModelTest {
     }
 
     private class FakeFinanceRepository : FinanceRepository {
-        override fun getAllTransactions(): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
+        private val _allTransactions = MutableStateFlow(emptyList<TransactionEntity>())
+        private val _allAccounts = MutableStateFlow(emptyList<AccountEntity>())
+
+        fun setAccounts(accounts: List<AccountEntity>) {
+            _allAccounts.value = accounts
+        }
+
+        fun setTransactions(transactions: List<TransactionEntity>) {
+            _allTransactions.value = transactions
+        }
+
+        override fun getAllTransactions(): Flow<List<TransactionEntity>> = _allTransactions
         override suspend fun insertTransaction(transaction: TransactionEntity) {}
         override suspend fun deleteTransaction(transaction: TransactionEntity) {}
-        override fun getAllAccounts(): Flow<List<AccountEntity>> = MutableStateFlow(emptyList())
+        override fun getAllAccounts(): Flow<List<AccountEntity>> = _allAccounts
         override fun getAllCategories(): Flow<List<CategoryEntity>> = MutableStateFlow(emptyList())
         override fun getMonthlySpendingByCategory(monthStartMillis: Long, monthEndMillis: Long): Flow<List<CategorySpending>> = MutableStateFlow(emptyList())
-        override fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
+        override fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> = _allTransactions
+        override fun getTransactionsInRangeForAccount(startMillis: Long, endMillis: Long, accountId: String): Flow<List<TransactionEntity>> {
+            return _allTransactions.map { txs ->
+                txs.filter { it.accountId == accountId || it.fromAccountId == accountId || it.toAccountId == accountId }
+            }
+        }
         override fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double> = MutableStateFlow(0.0)
         override fun getMonthlyTotalIncome(monthStartMillis: Long, monthEndMillis: Long): Flow<Double> = MutableStateFlow(0.0)
         override suspend fun getMonthlyTotalExpenseOnce(monthStartMillis: Long, monthEndMillis: Long): Double = 0.0
@@ -203,7 +221,9 @@ class HomeDashboardViewModelTest {
         override fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>> = MutableStateFlow(emptyList())
         override suspend fun mergeCategories(sourceId: String, targetId: String): String? = null
         override suspend fun convertCategoryType(categoryId: String, newType: String): String? = null
+        override suspend fun deleteCategoryWithGuards(categoryId: String): String? = null
         override suspend fun getConvertedTotalBalance(displayCurrency: String): Double = 0.0
+        override suspend fun hasExternalReference(externalRef: String): Boolean = false
     }
 
     private class FakeCardInteractionDao : CardInteractionDao {
@@ -229,5 +249,199 @@ class HomeDashboardViewModelTest {
             }
         }
         return UserPreferencesDataStore(dataStore)
+    }
+
+    @Test
+    fun `focused account shows only that account balance`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50", currencyCode = "USD")
+        val accountB = AccountEntity(id = "acc_b", name = "Checking", balance = 3000.0, initialBalance = 3000.0, colorHex = "#2196F3", currencyCode = "EUR")
+        repo.setAccounts(listOf(accountA, accountB))
+
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+
+        // Default: all accounts
+        val allCollected = mutableListOf<Double>()
+        val allJob = launch { viewModel.totalBalance.collect { allCollected.add(it) } }
+        runCurrent()
+        assertEquals(8000.0, allCollected.last(), 0.01)
+        allJob.cancel()
+
+        // Focus on account A
+        viewModel.setFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        val focusedCollected = mutableListOf<Double>()
+        val focusedJob = launch { viewModel.totalBalance.collect { focusedCollected.add(it) } }
+        runCurrent()
+        assertEquals(5000.0, focusedCollected.last(), 0.01)
+        focusedJob.cancel()
+
+        val currCollected = mutableListOf<String>()
+        val currJob = launch { viewModel.balanceCurrencyCode.collect { currCollected.add(it) } }
+        runCurrent()
+        assertEquals("USD", currCollected.last())
+        currJob.cancel()
+    }
+
+    @Test
+    fun `focused account scopes cash flow projector to that account transactions`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50")
+        repo.setAccounts(listOf(accountA))
+
+        // Create transactions: one for acc_a, one for acc_b
+        val now = System.currentTimeMillis()
+        val txA = TransactionEntity(id = "tx_a", amount = 100.0, type = "EXPENSE", categoryId = null, accountId = "acc_a", note = "Lunch", timestamp = now)
+        val txB = TransactionEntity(id = "tx_b", amount = 200.0, type = "EXPENSE", categoryId = null, accountId = "acc_b", note = "Dinner", timestamp = now)
+        repo.setTransactions(listOf(txA, txB))
+
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+
+        // Default: all transactions
+        val allTxsCollected = mutableListOf<List<TransactionEntity>>()
+        val allTxsJob = launch { viewModel.thisMonthTransactions.collect { allTxsCollected.add(it) } }
+        runCurrent()
+        assertEquals(2, allTxsCollected.last().size)
+        allTxsJob.cancel()
+
+        // Focus on account A
+        viewModel.setFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        val focusedTxsCollected = mutableListOf<List<TransactionEntity>>()
+        val focusedTxsJob = launch { viewModel.thisMonthTransactions.collect { focusedTxsCollected.add(it) } }
+        runCurrent()
+        assertEquals(1, focusedTxsCollected.last().size)
+        assertEquals("tx_a", focusedTxsCollected.last()[0].id)
+        focusedTxsJob.cancel()
+    }
+
+    @Test
+    fun `selecting all accounts restores combined balance`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50")
+        val accountB = AccountEntity(id = "acc_b", name = "Checking", balance = 3000.0, initialBalance = 3000.0, colorHex = "#2196F3")
+        repo.setAccounts(listOf(accountA, accountB))
+
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+
+        // Focus on account A
+        viewModel.setFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        val focusedCollected = mutableListOf<Double>()
+        val focusedJob = launch { viewModel.totalBalance.collect { focusedCollected.add(it) } }
+        runCurrent()
+        assertEquals(5000.0, focusedCollected.last(), 0.01)
+        focusedJob.cancel()
+
+        // Switch back to All Accounts
+        viewModel.setFocusedAccountId(null)
+        advanceUntilIdle()
+
+        val restoredCollected = mutableListOf<Double>()
+        val restoredJob = launch { viewModel.totalBalance.collect { restoredCollected.add(it) } }
+        runCurrent()
+        assertEquals(8000.0, restoredCollected.last(), 0.01)
+        restoredJob.cancel()
+
+        val currCollected = mutableListOf<String>()
+        val currJob = launch { viewModel.balanceCurrencyCode.collect { currCollected.add(it) } }
+        runCurrent()
+        assertEquals(userPrefs.selectedCurrency.first(), currCollected.last())
+        currJob.cancel()
+    }
+
+    @Test
+    fun `deleting focused account resets to all accounts`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50")
+        val accountB = AccountEntity(id = "acc_b", name = "Checking", balance = 3000.0, initialBalance = 3000.0, colorHex = "#2196F3")
+        repo.setAccounts(listOf(accountA, accountB))
+
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+
+        // Focus on account A
+        viewModel.setFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        val focusCollected = mutableListOf<String?>()
+        val focusJob = launch { viewModel.focusedAccountId.collect { focusCollected.add(it) } }
+        runCurrent()
+        assertEquals("acc_a", focusCollected.last())
+        focusJob.cancel()
+
+        // Simulate account A deletion by removing it from accounts
+        repo.setAccounts(listOf(accountB))
+        advanceUntilIdle()
+
+        val resetCollected = mutableListOf<String?>()
+        val resetJob = launch { viewModel.focusedAccountId.collect { resetCollected.add(it) } }
+        runCurrent()
+        assertEquals(null, resetCollected.last())
+        resetJob.cancel()
+    }
+
+    @Test
+    fun `focused account preference is independent of other preferences`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50")
+        repo.setAccounts(listOf(accountA))
+
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+
+        // Set focused account
+        viewModel.setFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        // Set currency (another preference)
+        userPrefs.saveCurrency("EUR")
+        advanceUntilIdle()
+
+        // Focused account should still be set
+        val focusCollected = mutableListOf<String?>()
+        val focusJob = launch { viewModel.focusedAccountId.collect { focusCollected.add(it) } }
+        runCurrent()
+        assertEquals("acc_a", focusCollected.last())
+        focusJob.cancel()
+
+        val currCollected = mutableListOf<String>()
+        val currJob = launch { viewModel.selectedCurrency.collect { currCollected.add(it) } }
+        runCurrent()
+        assertEquals("EUR", currCollected.last())
+        currJob.cancel()
+
+        // Change currency again
+        userPrefs.saveCurrency("GBP")
+        advanceUntilIdle()
+
+        // Focused account should remain unchanged
+        val focusCollected2 = mutableListOf<String?>()
+        val focusJob2 = launch { viewModel.focusedAccountId.collect { focusCollected2.add(it) } }
+        runCurrent()
+        assertEquals("acc_a", focusCollected2.last())
+        focusJob2.cancel()
+
+        val currCollected2 = mutableListOf<String>()
+        val currJob2 = launch { viewModel.selectedCurrency.collect { currCollected2.add(it) } }
+        runCurrent()
+        assertEquals("GBP", currCollected2.last())
+        currJob2.cancel()
     }
 }

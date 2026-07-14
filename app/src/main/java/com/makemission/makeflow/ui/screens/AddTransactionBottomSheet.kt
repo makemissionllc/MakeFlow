@@ -98,6 +98,9 @@ fun AddTransactionBottomSheet(
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
     initialType: String = "INCOME",
+    initialAmount: String = "",
+    initialNote: String = "",
+    initialTimestamp: Long? = null,
     editTransaction: TransactionEntity? = null,
     onUpdate: (suspend (TransactionEntity) -> Unit)? = null
 ) {
@@ -109,13 +112,13 @@ fun AddTransactionBottomSheet(
         val amt = editTransaction?.amount
         mutableStateOf(if (amt != null) {
             if (amt == amt.toLong().toDouble()) amt.toLong().toString() else amt.toString()
-        } else "")
+        } else initialAmount)
     }
     var selectedAccountId by remember { mutableStateOf(editTransaction?.accountId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
-    var note by remember { mutableStateOf(editTransaction?.note ?: "") }
-    var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: Calendar.getInstance().timeInMillis) }
+    var note by remember { mutableStateOf(editTransaction?.note ?: initialNote) }
+    var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
     var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }

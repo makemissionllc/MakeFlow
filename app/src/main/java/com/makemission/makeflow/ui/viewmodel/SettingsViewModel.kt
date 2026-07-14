@@ -109,7 +109,7 @@ class SettingsViewModel(
                 }
             }
 
-            val fileName = "MakeFlow_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv"
+            val fileName = "Mindful_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv"
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = ContentValues().apply {
@@ -207,7 +207,7 @@ class SettingsViewModel(
             var canvas: Canvas = page.canvas
 
             var y = 40f
-            canvas.drawText("MakeFlow Statement", leftMargin, y, titlePaint)
+            canvas.drawText("Mindful Wallet Statement", leftMargin, y, titlePaint)
             y += 24f
             canvas.drawText("Date Range: $dateRangeLabel", leftMargin, y, rowPaint)
             y += 18f
@@ -260,7 +260,7 @@ class SettingsViewModel(
 
             document.finishPage(page)
 
-            val fileName = "MakeFlow_Statement_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.pdf"
+            val fileName = "Mindful_Statement_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.pdf"
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 val contentValues = android.content.ContentValues().apply {

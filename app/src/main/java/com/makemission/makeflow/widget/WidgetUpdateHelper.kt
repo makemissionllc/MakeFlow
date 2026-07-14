@@ -11,6 +11,7 @@ object WidgetUpdateHelper {
     fun updateWidgets(context: Context) {
         CoroutineScope(Dispatchers.Main).launch {
             MakeFlowWidget().updateAll(context)
+            QuickActionWidget().updateAll(context)
         }
     }
 }

@@ -46,6 +46,9 @@ class FinanceRepositorySideEffectsTest {
         override fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>> =
             flowOf(transactions.filter { it.timestamp in startMillis until endMillis })
 
+        override fun getTransactionsInRangeForAccount(startMillis: Long, endMillis: Long, accountId: String): Flow<List<TransactionEntity>> =
+            flowOf(transactions.filter { (it.timestamp in startMillis until endMillis) && (it.accountId == accountId || it.fromAccountId == accountId || it.toAccountId == accountId) })
+
         override suspend fun getCategorySpendByMonth(
             categoryId: String, startMillis: Long, endMillis: Long
         ): List<MonthlyCategorySpend> = emptyList()

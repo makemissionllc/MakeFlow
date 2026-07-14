@@ -121,6 +121,20 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val focusedAccountId: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[FOCUSED_ACCOUNT_ID_KEY]
+    }
+
+    suspend fun saveFocusedAccountId(accountId: String?) {
+        dataStore.edit { prefs ->
+            if (accountId != null) {
+                prefs[FOCUSED_ACCOUNT_ID_KEY] = accountId
+            } else {
+                prefs.remove(FOCUSED_ACCOUNT_ID_KEY)
+            }
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -139,5 +153,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val APP_LOCK_ENABLED_KEY = booleanPreferencesKey("app_lock_enabled")
         private val MANUAL_CARD_ORDER_KEY = stringPreferencesKey("manual_card_order")
         private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
+        private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
     }
 }

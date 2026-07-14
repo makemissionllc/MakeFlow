@@ -72,6 +72,12 @@ class FinanceRepositoryImpl(
         endMillis: Long
     ): Flow<List<TransactionEntity>> = transactionDao.getTransactionsInRange(startMillis, endMillis)
 
+    override fun getTransactionsInRangeForAccount(
+        startMillis: Long,
+        endMillis: Long,
+        accountId: String
+    ): Flow<List<TransactionEntity>> = transactionDao.getTransactionsInRangeForAccount(startMillis, endMillis, accountId)
+
     override fun getMonthlyTotalExpense(
         monthStartMillis: Long,
         monthEndMillis: Long

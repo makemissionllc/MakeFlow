@@ -209,6 +209,10 @@ class HistoryViewModelTest {
             startMillis: Long, endMillis: Long
         ): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
 
+        override fun getTransactionsInRangeForAccount(
+            startMillis: Long, endMillis: Long, accountId: String
+        ): Flow<List<TransactionEntity>> = MutableStateFlow(emptyList())
+
         override fun getMonthlyTotalExpense(monthStartMillis: Long, monthEndMillis: Long): Flow<Double> =
             MutableStateFlow(0.0)
 

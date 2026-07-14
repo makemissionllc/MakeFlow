@@ -73,6 +73,14 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE timestamp >= :startMillis AND timestamp <= :endMillis ORDER BY timestamp ASC")
     fun getTransactionsInRange(startMillis: Long, endMillis: Long): Flow<List<TransactionEntity>>
 
+    @Query("""
+        SELECT * FROM transactions
+        WHERE timestamp >= :startMillis AND timestamp <= :endMillis
+          AND (accountId = :accountId OR fromAccountId = :accountId OR toAccountId = :accountId)
+        ORDER BY timestamp ASC
+    """)
+    fun getTransactionsInRangeForAccount(startMillis: Long, endMillis: Long, accountId: String): Flow<List<TransactionEntity>>
+
     @Query("SELECT amount FROM transactions WHERE categoryId = :categoryId AND type = 'EXPENSE' AND id != COALESCE(:excludingTransactionId, '') ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String? = null, limit: Int = 30): List<Double>
 

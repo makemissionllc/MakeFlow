@@ -107,6 +107,9 @@ class FinanceRepositorySideEffectsTest {
 
         override suspend fun getTransactionsSince(sinceMillis: Long): List<TransactionEntity> =
             transactions.filter { it.timestamp >= sinceMillis }
+
+        override suspend fun hasExternalReference(externalRef: String): Boolean =
+            transactions.any { it.externalReference == externalRef }
     }
 
     private class FakeRecurringPatternDao : RecurringPatternDao {

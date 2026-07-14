@@ -92,6 +92,9 @@ interface TransactionDao {
 
     @Query("DELETE FROM transactions")
     suspend fun clearAll()
+
+    @Query("SELECT EXISTS(SELECT 1 FROM transactions WHERE externalReference = :externalRef LIMIT 1)")
+    suspend fun hasExternalReference(externalRef: String): Boolean
 }
 
 data class DescriptionCategoryPair(

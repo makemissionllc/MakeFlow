@@ -270,6 +270,7 @@ class HistoryViewModelTest {
         override suspend fun convertCategoryType(categoryId: String, newType: String): String? = null
         override suspend fun deleteCategoryWithGuards(categoryId: String): String? = null
         override suspend fun getConvertedTotalBalance(displayCurrency: String): Double = 0.0
+        override suspend fun hasExternalReference(externalRef: String): Boolean = false
     }
 
     private fun createTestUserPrefs(): UserPreferencesDataStore {

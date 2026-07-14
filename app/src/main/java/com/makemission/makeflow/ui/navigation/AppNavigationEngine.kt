@@ -28,6 +28,7 @@ import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
@@ -35,7 +36,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavigationEngine() {
+fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> Unit = {}) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -126,6 +127,24 @@ fun AppNavigationEngine() {
         isUnlocked = !appLockEnabled
     }
 
+    // M-PESA share intent parsing
+    var parsedMpesa by remember { mutableStateOf<MpesaMessageParser.MpesaParsedMessage?>(null) }
+    var shareParseError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(sharedText) {
+        if (sharedText != null) {
+            val result = MpesaMessageParser.parse(sharedText)
+            if (result != null) {
+                parsedMpesa = result
+                shareParseError = null
+            } else {
+                parsedMpesa = null
+                shareParseError = "Message not recognized as M-PESA. You can enter it manually."
+            }
+            onSharedTextConsumed()
+        }
+    }
+
     CompositionLocalProvider(
         LocalReducedMotion provides powerState.shouldReduceMotion,
         LocalDeviceLayoutMode provides deviceLayoutMode
@@ -151,7 +170,10 @@ fun AppNavigationEngine() {
                         }
                     },
                     notificationGate = notificationGate,
-                    initialTransactionType = shortcutType
+                    initialTransactionType = shortcutType,
+                    sharedMpesaData = parsedMpesa,
+                    shareParseError = shareParseError,
+                    onShareParseErrorShown = { shareParseError = null }
                 )
             } else {
                 OnboardingScreen(

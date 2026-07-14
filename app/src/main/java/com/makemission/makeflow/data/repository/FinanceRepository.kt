@@ -77,6 +77,7 @@ interface FinanceRepository {
     suspend fun toggleRecurringTransactionActive(id: String)
     suspend fun skipRecurringTransaction(id: String)
     suspend fun checkDuplicate(candidate: com.makemission.makeflow.data.local.entity.TransactionEntity): DuplicateCheckResult?
+    suspend fun hasExternalReference(externalRef: String): Boolean
     suspend fun processDueRecurringTransactions()
     fun getAllActiveRecurringTransactions(): Flow<List<RecurringTransactionEntity>>
     fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>>

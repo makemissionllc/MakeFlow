@@ -353,6 +353,10 @@ class FinanceRepositoryImpl(
         return DuplicateTransactionDetector.check(candidate, recent)
     }
 
+    override suspend fun hasExternalReference(externalRef: String): Boolean {
+        return transactionDao.hasExternalReference(externalRef)
+    }
+
     override suspend fun processDueRecurringTransactions() {
         val now = System.currentTimeMillis()
         val dueItems = recurringTransactionDao?.getDueTodayOrOverdueOnce(now) ?: return

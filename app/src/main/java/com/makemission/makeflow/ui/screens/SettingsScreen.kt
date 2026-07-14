@@ -266,7 +266,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 15) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0")
+                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
@@ -388,7 +388,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 21) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="MakeFlow", subtitle="Version 1.0")
+                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {

@@ -114,7 +114,7 @@ private fun WidgetContent(data: WidgetData) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "MakeFlow",
+                text = "Mindful Wallet",
                 style = TextStyle(
                     color = mutedColor,
                     fontSize = 11.sp,
@@ -184,7 +184,7 @@ private fun WidgetContent(data: WidgetData) {
             }
             is WidgetContent.NoData -> {
                 Text(
-                    text = "Welcome to MakeFlow",
+                    text = "Welcome to Mindful Wallet",
                     style = TextStyle(color = textColor, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 )
                 Spacer(modifier = GlanceModifier.height(4.dp))

@@ -294,7 +294,7 @@ fun MainScreen(
     }
 
     fun performBackup() {
-        backupLauncher.launch("MakeFlow_Backup_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())}.json")
+        backupLauncher.launch("Mindful_Backup_${java.text.SimpleDateFormat("yyyyMMdd", java.util.Locale.getDefault()).format(java.util.Date())}.json")
     }
 
     fun pickRestoreFile() {
@@ -985,7 +985,7 @@ private fun MakeFlowNavRail(
         containerColor = Color.Transparent,
         header = {
             Text(
-                text = "MakeFlow",
+                text = "Mindful Wallet",
                 color = Color(0xFF8B938A),
                 fontSize = if (alwaysShowLabel) 12.sp else 0.sp,
                 fontWeight = FontWeight.Medium,

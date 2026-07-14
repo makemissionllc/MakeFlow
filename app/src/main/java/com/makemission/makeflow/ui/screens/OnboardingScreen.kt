@@ -271,7 +271,7 @@ fun WelcomeStageView(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "MakeFlow", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = (-1).sp)
+                Text(text = "Mindful Wallet", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = (-1).sp)
                 Text(text = "Manage all your finances with ease.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             }
 

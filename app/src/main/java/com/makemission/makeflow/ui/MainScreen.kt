@@ -227,6 +227,10 @@ fun MainScreen(
     var mpesaExternalReference by remember { mutableStateOf<String?>(null) }
     var mpesaDuplicateMessage by remember { mutableStateOf<String?>(null) }
     var mpesaShareErrorMessage by remember { mutableStateOf<String?>(null) }
+    var mpesaCreatedAccountMessage by remember { mutableStateOf<String?>(null) }
+    var mpesaInitialAccountId by remember { mutableStateOf<String?>(null) }
+    var mpesaInitialTransferFromId by remember { mutableStateOf<String?>(null) }
+    var mpesaInitialTransferToId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(sharedMpesaData) {
         val data = sharedMpesaData ?: return@LaunchedEffect
@@ -237,21 +241,57 @@ fun MainScreen(
                 return@LaunchedEffect
             }
         }
-        val type = when (data.type) {
-            MpesaMessageParser.TransactionType.RECEIVED -> "INCOME"
-            MpesaMessageParser.TransactionType.SENT,
-            MpesaMessageParser.TransactionType.PAYBILL,
-            MpesaMessageParser.TransactionType.WITHDRAW,
-            MpesaMessageParser.TransactionType.AIRTIME -> "EXPENSE"
-            else -> "EXPENSE"
+
+        val normalizedName = MpesaMessageParser.normalizeWhitespace(data.counterpartyName)
+        val isZiidi = normalizedName.equals("ZIIDI", ignoreCase = true)
+
+        val mpesaAccountId = withContext(Dispatchers.IO) {
+            db.accountDao().getAllAccountsOnce().firstOrNull { a ->
+                a.name.contains("mpesa", ignoreCase = true)
+            }?.id
         }
+
+        if (isZiidi) {
+            val ziidiAccountId = withContext(Dispatchers.IO) {
+                val existing = db.accountDao().getAllAccountsOnce()
+                    .firstOrNull { a -> a.name.equals("Ziidi", ignoreCase = true) }
+                if (existing != null) {
+                    existing.id
+                } else {
+                    val newId = java.util.UUID.randomUUID().toString()
+                    db.accountDao().insertAccount(
+                        com.makemission.makeflow.data.local.entity.AccountEntity(
+                            id = newId, name = "Ziidi", balance = 0.0,
+                            initialBalance = 0.0, colorHex = "#26A69A"
+                        )
+                    )
+                    mpesaCreatedAccountMessage = "Created 'Ziidi' account for M-PESA savings transfers"
+                    newId
+                }
+            }
+            mpesaInitialTransferFromId = mpesaAccountId
+            mpesaInitialTransferToId = ziidiAccountId
+            mpesaInitialType = "TRANSFER"
+        } else {
+            val type = when (data.type) {
+                MpesaMessageParser.TransactionType.RECEIVED -> "INCOME"
+                MpesaMessageParser.TransactionType.SENT,
+                MpesaMessageParser.TransactionType.PAYBILL,
+                MpesaMessageParser.TransactionType.WITHDRAW,
+                MpesaMessageParser.TransactionType.AIRTIME -> "EXPENSE"
+                else -> "EXPENSE"
+            }
+            mpesaInitialAccountId = mpesaAccountId
+            mpesaInitialType = type
+        }
+
         mpesaInitialAmount = if (data.amount == data.amount.toLong().toDouble())
             data.amount.toLong().toString() else data.amount.toString()
-        mpesaInitialType = type
         mpesaInitialNote = data.counterpartyName ?: ""
         mpesaInitialTimestamp = try {
+            val normalizedDate = data.date.replace(Regex("""/(\d{2})$""")) { "/20${it.groupValues[1]}" }
             val fmt = java.text.SimpleDateFormat("d/M/yyyy h:mm a", java.util.Locale.getDefault())
-            fmt.parse("${data.date} ${data.time}")?.time
+            fmt.parse("$normalizedDate ${data.time}")?.time
         } catch (_: Exception) { null }
         mpesaExternalReference = data.code
         showAddTransaction = true
@@ -295,6 +335,28 @@ fun MainScreen(
             },
             confirmButton = {
                 TextButton(onClick = { mpesaShareErrorMessage = null }) {
+                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (mpesaCreatedAccountMessage != null) {
+        LaunchedEffect(mpesaCreatedAccountMessage) {
+            kotlinx.coroutines.delay(5000)
+            mpesaCreatedAccountMessage = null
+        }
+        AlertDialog(
+            onDismissRequest = { mpesaCreatedAccountMessage = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Account Created", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(mpesaCreatedAccountMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = { mpesaCreatedAccountMessage = null }) {
                     Text("OK", color = Color.White.copy(alpha = 0.5f))
                 }
             }
@@ -704,6 +766,9 @@ fun MainScreen(
             initialAmount = mpesaInitialAmount,
             initialNote = mpesaInitialNote,
             initialTimestamp = mpesaInitialTimestamp,
+            initialAccountId = mpesaInitialAccountId,
+            initialTransferFromId = mpesaInitialTransferFromId,
+            initialTransferToId = mpesaInitialTransferToId,
             onDismiss = {
                 shortcutPendingType.value = null
                 editingTransaction = null
@@ -712,6 +777,9 @@ fun MainScreen(
                 mpesaInitialNote = ""
                 mpesaInitialTimestamp = null
                 mpesaExternalReference = null
+                mpesaInitialAccountId = null
+                mpesaInitialTransferFromId = null
+                mpesaInitialTransferToId = null
                 showAddTransaction = false
             },
             onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->

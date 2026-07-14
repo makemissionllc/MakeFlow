@@ -101,6 +101,9 @@ fun AddTransactionBottomSheet(
     initialAmount: String = "",
     initialNote: String = "",
     initialTimestamp: Long? = null,
+    initialAccountId: String? = null,
+    initialTransferFromId: String? = null,
+    initialTransferToId: String? = null,
     editTransaction: TransactionEntity? = null,
     onUpdate: (suspend (TransactionEntity) -> Unit)? = null
 ) {
@@ -114,9 +117,9 @@ fun AddTransactionBottomSheet(
             if (amt == amt.toLong().toDouble()) amt.toLong().toString() else amt.toString()
         } else initialAmount)
     }
-    var selectedAccountId by remember { mutableStateOf(editTransaction?.accountId ?: accounts.firstOrNull()?.id ?: "") }
-    var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: accounts.firstOrNull()?.id ?: "") }
-    var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
+    var selectedAccountId by remember { mutableStateOf(editTransaction?.accountId ?: initialAccountId ?: accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: initialTransferFromId ?: accounts.firstOrNull()?.id ?: "") }
+    var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
     var note by remember { mutableStateOf(editTransaction?.note ?: initialNote) }
     var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -58,7 +59,9 @@ fun CategoryManagementScreen(
     categories: List<CategoryEntity>,
     onBack: () -> Unit,
     onMerge: suspend (sourceId: String, targetId: String) -> String?,
-    onConvertType: suspend (categoryId: String, newType: String) -> String?
+    onConvertType: suspend (categoryId: String, newType: String) -> String?,
+    onCreate: suspend (CategoryEntity) -> String?,
+    onDelete: suspend (categoryId: String) -> String?
 ) {
     val listState = rememberLazyListState()
     val config = LocalAdaptiveConfig.current
@@ -66,6 +69,8 @@ fun CategoryManagementScreen(
 
     var mergeSource by remember { mutableStateOf<CategoryEntity?>(null) }
     var convertTarget by remember { mutableStateOf<CategoryEntity?>(null) }
+    var deleteTarget by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showCreateSheet by remember { mutableStateOf(false) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var expandedMenuId by remember { mutableStateOf<String?>(null) }
 
@@ -112,6 +117,10 @@ fun CategoryManagementScreen(
                         onConvertType = {
                             convertTarget = category
                             expandedMenuId = null
+                        },
+                        onDelete = {
+                            deleteTarget = category
+                            expandedMenuId = null
                         }
                     )
                 }
@@ -138,6 +147,10 @@ fun CategoryManagementScreen(
                         onConvertType = {
                             convertTarget = category
                             expandedMenuId = null
+                        },
+                        onDelete = {
+                            deleteTarget = category
+                            expandedMenuId = null
                         }
                     )
                 }
@@ -153,6 +166,15 @@ fun CategoryManagementScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
+                        tint = Color.White
+                    )
+                }
+            },
+            actions = {
+                IconButton(onClick = { showCreateSheet = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "New Category",
                         tint = Color.White
                     )
                 }
@@ -217,6 +239,49 @@ fun CategoryManagementScreen(
         )
     }
 
+    deleteTarget?.let { category ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = { Text("Delete Category", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "Delete \"${category.name}\"? This action cannot be undone.",
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch(Dispatchers.IO) {
+                        val error = onDelete(category.id)
+                        if (error != null) resultMessage = error
+                    }
+                    deleteTarget = null
+                }) {
+                    Text("Delete", color = Color(0xFFEF5350))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (showCreateSheet) {
+        CreateCategoryBottomSheet(
+            onDismiss = { showCreateSheet = false },
+            onCreate = { entity ->
+                val error = onCreate(entity)
+                if (error != null) resultMessage = error
+                null
+            },
+            parentCategories = categories,
+            existingType = "EXPENSE"
+        )
+    }
+
     resultMessage?.let { msg ->
         AlertDialog(
             onDismissRequest = { resultMessage = null },
@@ -245,7 +310,8 @@ private fun CategoryRow(
     isExpanded: Boolean,
     onToggleMenu: () -> Unit,
     onMerge: () -> Unit,
-    onConvertType: () -> Unit
+    onConvertType: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -308,6 +374,10 @@ private fun CategoryRow(
                 DropdownMenuItem(
                     text = { Text(newTypeLabel, color = Color.White, fontSize = 14.sp) },
                     onClick = onConvertType
+                )
+                DropdownMenuItem(
+                    text = { Text("Delete", color = Color(0xFFEF5350), fontSize = 14.sp) },
+                    onClick = onDelete
                 )
             }
         }

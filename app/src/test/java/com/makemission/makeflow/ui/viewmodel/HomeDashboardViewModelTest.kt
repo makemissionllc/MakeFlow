@@ -203,6 +203,7 @@ class HomeDashboardViewModelTest {
         override fun getDueRecurringTransactions(now: Long): Flow<List<RecurringTransactionEntity>> = MutableStateFlow(emptyList())
         override suspend fun mergeCategories(sourceId: String, targetId: String): String? = null
         override suspend fun convertCategoryType(categoryId: String, newType: String): String? = null
+        override suspend fun deleteCategoryWithGuards(categoryId: String): String? = null
         override suspend fun getConvertedTotalBalance(displayCurrency: String): Double = 0.0
     }
 

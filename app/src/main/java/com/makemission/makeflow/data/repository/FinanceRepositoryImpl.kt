@@ -402,6 +402,18 @@ class FinanceRepositoryImpl(
         return null
     }
 
+    override suspend fun deleteCategoryWithGuards(categoryId: String): String? {
+        val category = categoryDao.getCategoryById(categoryId) ?: return "Category not found."
+        val childCount = categoryDao.getChildCategoryCount(categoryId)
+        if (childCount > 0) return "Cannot delete \"${category.name}\" because it has $childCount subcategor${if (childCount == 1) "y" else "ies"}. Remove or reassign them first."
+        val txCount = categoryDao.getTransactionCountForCategory(categoryId)
+        if (txCount > 0) return "Cannot delete \"${category.name}\" because it has $txCount transaction(s). Merge it into another category first."
+        val budget = budgetDao?.getBudgetByCategory(categoryId)
+        if (budget != null) return "Cannot delete \"${category.name}\" because it has an associated budget. Delete the budget first."
+        categoryDao.deleteCategoryById(categoryId)
+        return null
+    }
+
     override suspend fun getConvertedTotalBalance(displayCurrency: String): Double {
         val accounts = accountDao?.let {
             it.getAllAccounts().first()

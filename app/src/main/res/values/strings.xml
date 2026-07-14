@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">MakeFlow</string>
     <string name="widget_description">Your financial snapshot at a glance</string>
+    <string name="quick_action_widget_description">Quick expense and income entry</string>
     <string name="shortcut_add_expense">Add expense</string>
     <string name="shortcut_add_expense_long">Add a new expense</string>
     <string name="shortcut_add_income">Add income</string>

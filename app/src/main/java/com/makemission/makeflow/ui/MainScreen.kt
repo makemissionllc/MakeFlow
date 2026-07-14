@@ -527,6 +527,33 @@ fun MainScreen(
         )
     }
 
+    if (showManageCategories) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            BackHandler { showManageCategories = false }
+            CategoryManagementScreen(
+                categories = categories,
+                onBack = { showManageCategories = false },
+                onMerge = { sourceId, targetId ->
+                    repository.mergeCategories(sourceId, targetId)
+                },
+                onConvertType = { categoryId, newType ->
+                    repository.convertCategoryType(categoryId, newType)
+                },
+                onCreate = { entity ->
+                    repository.insertCategory(entity)
+                    null
+                },
+                onDelete = { categoryId ->
+                    repository.deleteCategoryWithGuards(categoryId)
+                }
+            )
+        }
+    }
+
     if (showRestoreConfirm && backupJson != null) {
         AlertDialog(
             onDismissRequest = { showRestoreConfirm = false; backupJson = null },

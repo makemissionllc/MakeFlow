@@ -66,6 +66,8 @@ interface FinanceRepository {
 
     suspend fun convertCategoryType(categoryId: String, newType: String): String?
 
+    suspend fun deleteCategoryWithGuards(categoryId: String): String?
+
     suspend fun getConvertedTotalBalance(displayCurrency: String): Double
 
     suspend fun createRecurringTransaction(entity: RecurringTransactionEntity)

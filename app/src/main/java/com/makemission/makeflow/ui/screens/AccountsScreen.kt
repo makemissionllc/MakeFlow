@@ -70,7 +70,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun AccountsScreen(
     onBack: () -> Unit,
-    viewModel: AccountsViewModel
+    viewModel: AccountsViewModel,
+    onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     val accounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
@@ -82,6 +83,7 @@ fun AccountsScreen(
     var showAddAccount by remember { mutableStateOf(false) }
     var showEditAccount by remember { mutableStateOf<AccountEntity?>(null) }
     var accountToDelete by remember { mutableStateOf<AccountEntity?>(null) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
     var selectedAccount by remember { mutableStateOf<AccountEntity?>(null) }
     val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
@@ -484,7 +486,12 @@ fun AccountsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch {
-                        viewModel.deleteAccount(account)
+                        val error = onDeleteAccount?.let { it(account) }
+                        if (error != null) {
+                            deleteError = error
+                        } else {
+                            viewModel.deleteAccount(account)
+                        }
                         accountToDelete = null
                     }
                 }) {
@@ -496,6 +503,16 @@ fun AccountsScreen(
                     Text("Cancel", color = Color.White.copy(alpha = 0.6f))
                 }
             }
+        )
+    }
+
+    deleteError?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { deleteError = null },
+            containerColor = Color(0xFF1B1C1F),
+            title = { Text("Cannot Delete", color = Color.White, fontWeight = FontWeight.Bold) },
+            text = { Text(msg, color = Color.White.copy(alpha = 0.7f)) },
+            confirmButton = { TextButton(onClick = { deleteError = null }) { Text("OK", color = Color.White) } }
         )
     }
 }

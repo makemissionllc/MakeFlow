@@ -94,6 +94,7 @@ data class CategoryLegend(
 fun HomeDashboard(
     viewModel: HomeDashboardViewModel,
     onOpenAccounts: () -> Unit = {},
+    onOpenSavingsGoals: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
@@ -197,7 +198,8 @@ fun HomeDashboard(
                                 onOpenAccounts = {
                                     viewModel.logCardInteraction(DashboardCardType.ACCOUNTS)
                                     onOpenAccounts()
-                                }
+                                },
+                                onOpenSavingsGoals = onOpenSavingsGoals
                             )
                         }
                     }
@@ -392,7 +394,8 @@ fun AccountsCard(
         AccountChip("Cash", "KES 0.00", Color(0xFF34C759)),
         AccountChip("Bank account", "KES 0.00", Color(0xFF007AFF))
     ),
-    onOpenAccounts: () -> Unit = {}
+    onOpenAccounts: () -> Unit = {},
+    onOpenSavingsGoals: () -> Unit = {}
 ) {
     CardContainer {
         Row(
@@ -418,6 +421,32 @@ fun AccountsCard(
                         interactionSource = chevronInteractionSource,
                         indication = null
                     ) { onOpenAccounts() }
+            )
+        }
+
+        HorizontalDivider(
+            thickness = 0.5.dp,
+            color = Color.White.copy(alpha = 0.08f),
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpenSavingsGoals() },
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Savings Goals",
+                color = Color.White.copy(alpha = 0.8f),
+                fontSize = 14.sp
+            )
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = "View goals",
+                tint = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.size(18.dp)
             )
         }
 

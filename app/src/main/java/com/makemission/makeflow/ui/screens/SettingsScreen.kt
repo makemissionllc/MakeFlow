@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RestorePage
@@ -98,6 +99,7 @@ fun SettingsScreen(
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null,
     onOpenRecurringTransactions: () -> Unit = {},
+    onOpenSavingsGoals: () -> Unit = {},
     onOpenManageTemplates: () -> Unit = {},
     onOpenManageCategories: () -> Unit = {},
     onOpenExchangeRates: () -> Unit = {},
@@ -181,6 +183,12 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 7) {
+                    SettingsRow(icon=Icons.Outlined.EmojiEvents, title="Savings Goals", subtitle="Track and manage savings targets", onClick={ onOpenSavingsGoals() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 8) {
                     SmartCategorizationToggleRow(
                         enabled = smartCategorizationEnabled,
                         onToggle = { viewModel.saveSmartCategorizationEnabled(it) }
@@ -317,6 +325,12 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 8) {
+                    SettingsRow(icon=Icons.Outlined.EmojiEvents, title="Savings Goals", subtitle="Track and manage savings targets", onClick={ onOpenSavingsGoals() })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 9) {
                     SmartCategorizationToggleRow(
                         enabled = smartCategorizationEnabled,
                         onToggle = { viewModel.saveSmartCategorizationEnabled(it) }

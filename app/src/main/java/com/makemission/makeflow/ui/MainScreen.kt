@@ -94,6 +94,7 @@ import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
 import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
 import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.screens.AccountsScreen
+import com.makemission.makeflow.ui.screens.AddEditAccountBottomSheet
 import com.makemission.makeflow.ui.screens.AddEditRecurringTransactionBottomSheet
 import com.makemission.makeflow.ui.screens.AddTransactionScreen
 import com.makemission.makeflow.ui.screens.BudgetScreen
@@ -104,6 +105,7 @@ import com.makemission.makeflow.ui.screens.HomeDashboard
 import com.makemission.makeflow.ui.screens.InsightsScreen
 import com.makemission.makeflow.ui.screens.ManageTemplatesSheet
 import com.makemission.makeflow.ui.screens.RecurringTransactionsScreen
+import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
@@ -111,12 +113,15 @@ import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModelFactory
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModel
 import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModelFactory
+import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModel
+import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
@@ -169,6 +174,7 @@ fun MainScreen(
     }
     val templateRepository = remember { TransactionTemplateRepositoryImpl(db.transactionTemplateDao()) }
     val templates by templateRepository.getAllTemplates().collectAsState(initial = emptyList())
+    val goalRepository = remember { com.makemission.makeflow.data.repository.GoalRepositoryImpl(db.goalDao()) }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val homeViewModel: HomeDashboardViewModel = viewModel(
         factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao(), exchangeRateRepository)
@@ -190,6 +196,9 @@ fun MainScreen(
     )
     val recurringTransactionsViewModel: RecurringTransactionsViewModel = viewModel(
         factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)
+    )
+    val savingsGoalsViewModel: SavingsGoalsViewModel = viewModel(
+        factory = SavingsGoalsViewModelFactory(goalRepository, repository, userPrefDataStore)
     )
     val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
     val smartCategorizationEnabled by settingsViewModel.smartCategorizationEnabled.collectAsState()
@@ -365,12 +374,14 @@ fun MainScreen(
 
     var showBudgetScreen by remember { mutableStateOf(false) }
     var showAccountsScreen by remember { mutableStateOf(false) }
+    var showSavingsGoalsScreen by remember { mutableStateOf(false) }
     var showSettingsScreen by remember { mutableStateOf(false) }
     var showRecurringTransactionsScreen by remember { mutableStateOf(false) }
     var showRecurringSetupFromInsights by remember { mutableStateOf(false) }
     var recurringSetupAmount by remember { mutableStateOf(0.0) }
     var showManageTemplates by remember { mutableStateOf(false) }
     var showManageCategories by remember { mutableStateOf(false) }
+    var showAddAccountSheet by remember { mutableStateOf(false) }
     var showExchangeRates by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val previousTab = remember { mutableStateOf(activeTab) }
@@ -487,6 +498,7 @@ fun MainScreen(
                             hapticManager = hapticManager,
                             notificationGate = notificationGate,
                     onOpenAccounts = { showAccountsScreen = true },
+                    onOpenSavingsGoals = { showSavingsGoalsScreen = true },
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
@@ -548,10 +560,17 @@ fun MainScreen(
                         notificationGate = notificationGate,
                         reducedMotion = reducedMotion,
                         onOpenManageTemplates = { showManageTemplates = true },
+                        onOpenSavingsGoals = { showSavingsGoalsScreen = true },
                         onOpenManageCategories = { showManageCategories = true },
                         onOpenExchangeRates = { showExchangeRates = true },
                         onBackup = { performBackup() },
-                        onRestore = { pickRestoreFile() }
+                        onRestore = { pickRestoreFile() },
+                        onDeleteAccount = { account ->
+                            savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
+                                .let { count ->
+                                    if (count > 0) "Cannot delete account with active savings goals" else null
+                                }
+                        }
                     )
                 }
             }
@@ -570,6 +589,7 @@ fun MainScreen(
                     hapticManager = hapticManager,
                     notificationGate = notificationGate,
                     onOpenAccounts = { showAccountsScreen = true },
+                    onOpenSavingsGoals = { showSavingsGoalsScreen = true },
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
@@ -653,10 +673,17 @@ fun MainScreen(
                     notificationGate = notificationGate,
                     reducedMotion = reducedMotion,
                     onOpenManageTemplates = { showManageTemplates = true },
+                    onOpenSavingsGoals = { showSavingsGoalsScreen = true },
                     onOpenManageCategories = { showManageCategories = true },
                     onOpenExchangeRates = { showExchangeRates = true },
                     onBackup = { performBackup() },
-                    onRestore = { pickRestoreFile() }
+                    onRestore = { pickRestoreFile() },
+                    onDeleteAccount = { account ->
+                        savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
+                            .let { count ->
+                                if (count > 0) "Cannot delete account with active savings goals" else null
+                            }
+                    }
                 )
             }
         }
@@ -891,6 +918,37 @@ fun MainScreen(
         )
     }
 
+    if (showSavingsGoalsScreen) {
+        SavingsGoalsScreen(
+            onBack = { showSavingsGoalsScreen = false },
+            viewModel = savingsGoalsViewModel,
+            accounts = accounts,
+            currencyCode = currencyCode,
+            currencySymbol = currencySymbol,
+            onAddAccount = { showAddAccountSheet = true }
+        )
+    }
+
+    if (showAddAccountSheet) {
+        AddEditAccountBottomSheet(
+            onDismiss = { showAddAccountSheet = false },
+            onSave = { name, balance, colorHex ->
+                scope.launch(Dispatchers.IO) {
+                    val account = com.makemission.makeflow.data.local.entity.AccountEntity(
+                        id = java.util.UUID.randomUUID().toString(),
+                        name = name,
+                        balance = balance,
+                        initialBalance = balance,
+                        colorHex = colorHex,
+                        currencyCode = null
+                    )
+                    repository.insertAccount(account)
+                }
+            },
+            currencySymbol = currencySymbol
+        )
+    }
+
     if (showRecurringSetupFromInsights) {
         AddEditRecurringTransactionBottomSheet(
             onDismiss = { showRecurringSetupFromInsights = false },
@@ -921,6 +979,7 @@ private fun TabContentAnimated(
     hapticManager: com.makemission.makeflow.core.haptics.HapticManager,
     notificationGate: NotificationGate?,
     onOpenAccounts: () -> Unit,
+    onOpenSavingsGoals: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenBudgets: () -> Unit,
     onOpenRecurringTransactions: () -> Unit,
@@ -960,6 +1019,7 @@ private fun TabContentAnimated(
                 HomeDashboard(
                     viewModel = homeViewModel,
                     onOpenAccounts = onOpenAccounts,
+                    onOpenSavingsGoals = onOpenSavingsGoals,
                     onOpenSettings = onOpenSettings,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
@@ -1026,10 +1086,12 @@ private fun OverlayPanels(
     notificationGate: NotificationGate?,
     reducedMotion: Boolean,
     onOpenManageTemplates: () -> Unit = {},
+    onOpenSavingsGoals: () -> Unit = {},
     onOpenManageCategories: () -> Unit = {},
     onOpenExchangeRates: () -> Unit = {},
     onBackup: () -> Unit = {},
-    onRestore: () -> Unit = {}
+    onRestore: () -> Unit = {},
+    onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     AnimatedVisibility(
         visible = showBudgetScreen,
@@ -1084,7 +1146,8 @@ private fun OverlayPanels(
             BackHandler { onHideAccounts() }
             AccountsScreen(
                 onBack = onHideAccounts,
-                viewModel = accountsViewModel
+                viewModel = accountsViewModel,
+                onDeleteAccount = onDeleteAccount
             )
         }
     }
@@ -1118,6 +1181,7 @@ private fun OverlayPanels(
                 hapticManager = hapticManager,
                 notificationGate = notificationGate,
                 onOpenRecurringTransactions = onHideRecurringTransactions,
+                onOpenSavingsGoals = onOpenSavingsGoals,
                 onOpenManageTemplates = onOpenManageTemplates,
                 onOpenManageCategories = onOpenManageCategories,
                 onOpenExchangeRates = onOpenExchangeRates,

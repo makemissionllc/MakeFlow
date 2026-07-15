@@ -11,6 +11,7 @@ import com.makemission.makeflow.data.local.dao.AccountDao
 import com.makemission.makeflow.data.local.dao.BudgetDao
 import com.makemission.makeflow.data.local.dao.CardInteractionDao
 import com.makemission.makeflow.data.local.dao.CategoryDao
+import com.makemission.makeflow.data.local.dao.GoalDao
 import com.makemission.makeflow.data.local.dao.QueuedNotificationDao
 import com.makemission.makeflow.data.local.dao.RecurringPatternDao
 import com.makemission.makeflow.data.local.dao.RecurringTransactionDao
@@ -27,6 +28,7 @@ import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.data.local.entity.TaskEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
+import com.makemission.makeflow.data.local.entity.SavingsGoalEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import kotlinx.coroutines.CoroutineScope
@@ -46,9 +48,10 @@ import kotlinx.coroutines.runBlocking
         QueuedNotificationEntity::class,
         RecurringTransactionEntity::class,
         TransactionTemplateEntity::class,
-        ExchangeRateEntity::class
+        ExchangeRateEntity::class,
+        SavingsGoalEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -62,6 +65,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun recurringTransactionDao(): RecurringTransactionDao
     abstract fun transactionTemplateDao(): TransactionTemplateDao
     abstract fun exchangeRateDao(): ExchangeRateDao
+    abstract fun goalDao(): GoalDao
     abstract fun cardInteractionDao(): CardInteractionDao
     abstract fun queuedNotificationDao(): QueuedNotificationDao
 
@@ -347,6 +351,22 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS savings_goals (
+                        id TEXT PRIMARY KEY NOT NULL,
+                        name TEXT NOT NULL,
+                        targetAmount REAL NOT NULL,
+                        targetDate INTEGER,
+                        linkedAccountId TEXT,
+                        createdDate INTEGER NOT NULL,
+                        status TEXT NOT NULL DEFAULT 'ACTIVE'
+                    )"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -355,7 +375,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance

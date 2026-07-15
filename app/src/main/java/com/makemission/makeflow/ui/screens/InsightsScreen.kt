@@ -88,7 +88,7 @@ fun InsightsScreen(
     notificationGate: NotificationGate? = null
 ) {
     // AnomalyDetector is intentionally save-time-only per original spec
-    // (in-the-moment callout in AddTransactionBottomSheet via MainScreen:380).
+    // (in-the-moment callout in AddTransactionScreen via MainScreen).
     // Insights is a retrospective monthly summary and does not need it.
     val selectedMonth by viewModel.selectedMonth.collectAsState()
     val categorySpending by viewModel.categorySpending.collectAsState()

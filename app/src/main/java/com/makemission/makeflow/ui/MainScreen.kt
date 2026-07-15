@@ -95,7 +95,7 @@ import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImp
 import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.screens.AccountsScreen
 import com.makemission.makeflow.ui.screens.AddEditRecurringTransactionBottomSheet
-import com.makemission.makeflow.ui.screens.AddTransactionBottomSheet
+import com.makemission.makeflow.ui.screens.AddTransactionScreen
 import com.makemission.makeflow.ui.screens.BudgetScreen
 import com.makemission.makeflow.ui.screens.CategoryManagementScreen
 import com.makemission.makeflow.ui.screens.ExchangeRatesSheet
@@ -760,16 +760,29 @@ fun MainScreen(
         )
     }
 
-    if (showAddTransaction) {
-        AddTransactionBottomSheet(
-            initialType = editingTransaction?.type ?: mpesaInitialType ?: shortcutPendingType.value ?: "INCOME",
-            initialAmount = mpesaInitialAmount,
-            initialNote = mpesaInitialNote,
-            initialTimestamp = mpesaInitialTimestamp,
-            initialAccountId = mpesaInitialAccountId,
-            initialTransferFromId = mpesaInitialTransferFromId,
-            initialTransferToId = mpesaInitialTransferToId,
-            onDismiss = {
+    AnimatedVisibility(
+        visible = showAddTransaction,
+        enter = slideInHorizontally(
+            animationSpec = if (reducedMotion) tween(200) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            initialOffsetX = { it }
+        ) + fadeIn(tween(200)),
+        exit = slideOutHorizontally(
+            animationSpec = if (reducedMotion) tween(150) else spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            targetOffsetX = { it }
+        ) + fadeOut(tween(150))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            val onDismissAction = {
                 shortcutPendingType.value = null
                 editingTransaction = null
                 mpesaInitialAmount = ""
@@ -781,71 +794,82 @@ fun MainScreen(
                 mpesaInitialTransferFromId = null
                 mpesaInitialTransferToId = null
                 showAddTransaction = false
-            },
-            onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
-                scope.launch(Dispatchers.IO) {
-                    repository.insertTransaction(
-                        TransactionEntity(
-                            amount = amount,
-                            type = type,
-                            categoryId = categoryId,
-                            accountId = accountId,
-                            fromAccountId = fromAccountId,
-                            toAccountId = toAccountId,
-                            note = note,
-                            timestamp = timestamp,
-                            externalReference = mpesaExternalReference
-                        )
-                    )
-                    WidgetUpdateHelper.updateWidgets(context)
-                    mpesaExternalReference = null
-                    showAddTransaction = false
-                }
-            },
-            accounts = accounts,
-            categories = categories,
-            currencySymbol = currencySymbol,
-            currencyCode = currencyCode,
-            hapticManager = hapticManager,
-            templates = if (editingTransaction == null) templates else emptyList(),
-            onSaveAsTemplate = if (editingTransaction == null) ({ name, amount, type, categoryId, accountId, note ->
-                scope.launch(Dispatchers.IO) {
-                    templateRepository.insertTemplate(
-                        TransactionTemplateEntity(
-                            name = name,
-                            amount = amount,
-                            type = type,
-                            categoryId = categoryId,
-                            accountId = accountId,
-                            note = note
-                        )
-                    )
-                }
-            }) else null,
-            onAnomalyCheck = { amount, categoryId ->
-                if (categoryId == null) return@AddTransactionBottomSheet null
-                val history = repository.getRecentAmountsForCategory(categoryId)
-                AnomalyDetector.analyze(amount, history)
-            },
-            onCheckDuplicate = { entity ->
-                repository.checkDuplicate(entity)
-            },
-            onGetPastTransactions = {
-                val pairs = repository.getRecentDescriptionsAndCategories()
-                pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
-            },
-            categoryClassifier = categoryClassifier,
-            smartCategorizationEnabled = smartCategorizationEnabled,
-            editTransaction = editingTransaction,
-            onUpdate = { entity ->
-                scope.launch(Dispatchers.IO) {
-                    repository.updateTransaction(entity)
-                    WidgetUpdateHelper.updateWidgets(context)
-                    editingTransaction = null
-                    showAddTransaction = false
-                }
             }
-        )
+            BackHandler { onDismissAction() }
+            AddTransactionScreen(
+                initialType = editingTransaction?.type ?: mpesaInitialType ?: shortcutPendingType.value ?: "INCOME",
+                initialAmount = mpesaInitialAmount,
+                initialNote = mpesaInitialNote,
+                initialTimestamp = mpesaInitialTimestamp,
+                initialAccountId = mpesaInitialAccountId,
+                initialTransferFromId = mpesaInitialTransferFromId,
+                initialTransferToId = mpesaInitialTransferToId,
+                onDismiss = onDismissAction,
+                onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
+                    scope.launch(Dispatchers.IO) {
+                        repository.insertTransaction(
+                            TransactionEntity(
+                                amount = amount,
+                                type = type,
+                                categoryId = categoryId,
+                                accountId = accountId,
+                                fromAccountId = fromAccountId,
+                                toAccountId = toAccountId,
+                                note = note,
+                                timestamp = timestamp,
+                                externalReference = mpesaExternalReference
+                            )
+                        )
+                        WidgetUpdateHelper.updateWidgets(context)
+                        mpesaExternalReference = null
+                        showAddTransaction = false
+                    }
+                },
+                accounts = accounts,
+                categories = categories,
+                currencySymbol = currencySymbol,
+                currencyCode = currencyCode,
+                hapticManager = hapticManager,
+                templates = if (editingTransaction == null) templates else emptyList(),
+                onSaveAsTemplate = if (editingTransaction == null) ({ name, amount, type, categoryId, accountId, note ->
+                    scope.launch(Dispatchers.IO) {
+                        templateRepository.insertTemplate(
+                            TransactionTemplateEntity(
+                                name = name,
+                                amount = amount,
+                                type = type,
+                                categoryId = categoryId,
+                                accountId = accountId,
+                                note = note
+                            )
+                        )
+                    }
+                }) else null,
+                onAnomalyCheck = { amount, categoryId ->
+                    if (categoryId == null) return@AddTransactionScreen null
+                    val history = repository.getRecentAmountsForCategory(categoryId)
+                    AnomalyDetector.analyze(amount, history)
+                },
+                onCheckDuplicate = { entity ->
+                    repository.checkDuplicate(entity)
+                },
+                onGetPastTransactions = {
+                    val pairs = repository.getRecentDescriptionsAndCategories()
+                    pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
+                },
+                categoryClassifier = categoryClassifier,
+                smartCategorizationEnabled = smartCategorizationEnabled,
+                editTransaction = editingTransaction,
+                onUpdate = { entity ->
+                    scope.launch(Dispatchers.IO) {
+                        repository.updateTransaction(entity)
+                        WidgetUpdateHelper.updateWidgets(context)
+                        editingTransaction = null
+                        showAddTransaction = false
+                    }
+                }
+            )
+        }
     }
 
     if (showManageTemplates) {

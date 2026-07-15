@@ -26,7 +26,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import com.makemission.makeflow.MainActivity
+import com.makemission.makeflow.QuickAddTransactionActivity
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.userPrefDataStore
@@ -75,9 +75,9 @@ class ExpenseShortcutCallback : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, QuickAddTransactionActivity::class.java).apply {
             putExtra("shortcut_type", "EXPENSE")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
     }
@@ -89,9 +89,9 @@ class IncomeShortcutCallback : ActionCallback {
         glanceId: GlanceId,
         parameters: ActionParameters
     ) {
-        val intent = Intent(context, MainActivity::class.java).apply {
+        val intent = Intent(context, QuickAddTransactionActivity::class.java).apply {
             putExtra("shortcut_type", "INCOME")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)
     }

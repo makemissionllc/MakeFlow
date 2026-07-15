@@ -2,4 +2,13 @@
 <resources>
 
     <style name="Theme.MakeFlow" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.MakeFlow.QuickAdd" parent="Theme.MakeFlow">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:statusBarColor">#80121315</item>
+        <item name="android:navigationBarColor">#80121315</item>
+        <item name="android:windowIsFloating">false</item>
+    </style>
 </resources>

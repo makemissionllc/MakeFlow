@@ -113,6 +113,8 @@ fun AddTransactionScreen(
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
+    correctionMemory: Map<String, String> = emptyMap(),
+    onCategoryCorrected: ((description: String, correctedCategoryId: String, originalSuggestedCategoryId: String?) -> Unit)? = null,
     initialType: String = "INCOME",
     initialAmount: String = "",
     initialNote: String = "",
@@ -235,7 +237,7 @@ fun AddTransactionScreen(
         }
     }
 
-    LaunchedEffect(note, smartCategorizationEnabled) {
+    LaunchedEffect(note, smartCategorizationEnabled, correctionMemory) {
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -261,6 +263,27 @@ fun AddTransactionScreen(
                 }
             }
             return@LaunchedEffect
+        }
+
+        val normalized = CategorySuggester.normalize(note)
+        correctionMemory[normalized]?.let { memoryCategoryId ->
+            val memCat = categories.find { it.id == memoryCategoryId }
+            if (memCat != null) {
+                categorySuggestion = CategorySuggestion(
+                    categoryId = memoryCategoryId,
+                    confidence = 0.95f,
+                    matchedOnExactPastDescription = false
+                )
+                if (memCat.parentCategoryId != null) {
+                    val parent = parentCategories.find { it.id == memCat.parentCategoryId }
+                    selectedParentCategory = parent
+                    selectedChildCategory = memCat
+                } else {
+                    selectedParentCategory = memCat
+                    selectedChildCategory = null
+                }
+                return@LaunchedEffect
+            }
         }
 
         if (smartCategorizationEnabled && categoryClassifier != null) {
@@ -312,6 +335,13 @@ fun AddTransactionScreen(
     }
 
     // === Save / Update handlers ===
+    fun fireCorrection() {
+        val suggestedId = categorySuggestion?.categoryId
+        if (suggestedId != null && resolvedCategoryId != null && resolvedCategoryId != suggestedId) {
+            onCategoryCorrected?.invoke(note, resolvedCategoryId, suggestedId)
+        }
+    }
+
     fun doSave(amount: Double) {
         scope.launch {
             val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
@@ -328,6 +358,7 @@ fun AddTransactionScreen(
                     timestamp = selectedDate
                 )
                 onUpdate(updatedEntity)
+                fireCorrection()
                 hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                 if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null
                     && amount != editTransaction.amount) {
@@ -360,6 +391,7 @@ fun AddTransactionScreen(
                     }
                 }
                 onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
+                fireCorrection()
                 hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                 if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
                     val result = onAnomalyCheck(amount, resolvedCategoryId)
@@ -881,6 +913,7 @@ fun AddTransactionScreen(
                     scope.launch {
                         val fromId = if (entity.type == "TRANSFER") entity.fromAccountId else null
                         val toId = if (entity.type == "TRANSFER") entity.toAccountId else null
+                        fireCorrection()
                         onSave(entity.amount, entity.type, entity.categoryId, entity.accountId, entity.note, entity.timestamp, fromId, toId)
                         hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
                         if (entity.type == "EXPENSE" && entity.categoryId != null && onAnomalyCheck != null) {

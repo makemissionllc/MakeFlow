@@ -147,6 +147,43 @@ class MigrationsTest {
     }
 
     @Test
+    fun migrateV17ToV18_createsCorrectionsAndMemoryTables() {
+        val testDb = "migration_test_v17_to_v18"
+        val db = helper.createDatabase(testDb, 17).apply {
+            execSQL("CREATE TABLE IF NOT EXISTS categories (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parentCategoryId TEXT, iconName TEXT NOT NULL DEFAULT '', colorHex TEXT NOT NULL DEFAULT '', monthlyBudget REAL NOT NULL DEFAULT 0.0)")
+            execSQL("INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget) VALUES ('cat1', 'Fuel', 'EXPENSE', NULL, 'local_gas_station', '#EF5350', 0.0)")
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(testDb, 18, true, AppDatabase.MIGRATION_17_18)
+
+        migratedDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name='corrections'").use { cursor ->
+            assertTrue("corrections table must exist after migration 17->18", cursor.moveToFirst())
+        }
+
+        migratedDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name='correction_memory'").use { cursor ->
+            assertTrue("correction_memory table must exist after migration 17->18", cursor.moveToFirst())
+        }
+
+        migratedDb.query("SELECT COUNT(*) FROM corrections").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("corrections should be empty after migration", 0, cursor.getInt(0))
+        }
+
+        migratedDb.query("SELECT COUNT(*) FROM correction_memory").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("correction_memory should be empty after migration", 0, cursor.getInt(0))
+        }
+
+        migratedDb.query("SELECT COUNT(*) FROM categories").use { cursor ->
+            cursor.moveToFirst()
+            assertEquals("existing data must be preserved", 1, cursor.getInt(0))
+        }
+
+        migratedDb.close()
+    }
+
+    @Test
     fun categoriesSeededSynchronouslyOnFreshInstall() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val db = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()

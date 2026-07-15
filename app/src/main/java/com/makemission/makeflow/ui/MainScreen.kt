@@ -78,6 +78,12 @@ import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.core.ml.CategoryClassifier
+import com.makemission.makeflow.core.ml.RetrainableCategoryClassifier
+import com.makemission.makeflow.data.repository.CorrectionRepository
+import com.makemission.makeflow.data.repository.CorrectionRepositoryImpl
+import com.makemission.makeflow.domain.CorrectionRoute
+import com.makemission.makeflow.domain.CorrectionRouter
+import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
@@ -175,6 +181,7 @@ fun MainScreen(
     val templateRepository = remember { TransactionTemplateRepositoryImpl(db.transactionTemplateDao()) }
     val templates by templateRepository.getAllTemplates().collectAsState(initial = emptyList())
     val goalRepository = remember { com.makemission.makeflow.data.repository.GoalRepositoryImpl(db.goalDao()) }
+    val correctionRepository = remember { CorrectionRepositoryImpl(db.correctionDao(), db.correctionMemoryDao()) as CorrectionRepository }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val homeViewModel: HomeDashboardViewModel = viewModel(
         factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao(), exchangeRateRepository)
@@ -192,7 +199,7 @@ fun MainScreen(
         factory = AccountsViewModelFactory(repository, userPrefDataStore, exchangeRateRepository)
     )
     val settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModelFactory(repository, userPrefDataStore, backupManager, exchangeRateRepository)
+        factory = SettingsViewModelFactory(repository, userPrefDataStore, correctionRepository, backupManager, exchangeRateRepository)
     )
     val recurringTransactionsViewModel: RecurringTransactionsViewModel = viewModel(
         factory = RecurringTransactionsViewModelFactory(repository, userPrefDataStore)
@@ -207,9 +214,26 @@ fun MainScreen(
     hapticManager.isEnabled = hapticsEnabled
 
     var categoryClassifier by remember { mutableStateOf<CategoryClassifier?>(null) }
+    var labelSet by remember { mutableStateOf<List<String>>(emptyList()) }
+    var correctionMemory by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     LaunchedEffect(Unit) {
-        categoryClassifier = com.makemission.makeflow.core.ml.TfliteCategoryClassifier.create(context)
+        val classifier = withContext(Dispatchers.IO) {
+            val c = RetrainableCategoryClassifier.create(context)
+            val labels = try { RetrainableCategoryClassifier.loadLabelSet(context) } catch (_: Exception) { emptyList<String>() }
+            c?.restoreCheckpoint()
+            c to labels
+        }
+        categoryClassifier = classifier?.first
+        labelSet = classifier?.second ?: emptyList()
+        correctionMemory = withContext(Dispatchers.IO) { correctionRepository.getAllCorrectionMemory() }
+        withContext(Dispatchers.IO) {
+            val clf = categoryClassifier as? RetrainableCategoryClassifier ?: return@withContext
+            var trained = true
+            while (trained) {
+                trained = correctionRepository.trainBatchIfReady(clf)
+            }
+        }
     }
 
     val accounts by homeViewModel.accounts.collectAsState()
@@ -886,6 +910,40 @@ fun MainScreen(
                 },
                 categoryClassifier = categoryClassifier,
                 smartCategorizationEnabled = smartCategorizationEnabled,
+                correctionMemory = correctionMemory,
+                onCategoryCorrected = { description, correctedCategoryId, originalSuggestedCategoryId ->
+                    val correctedCat = categories.find { it.id == correctedCategoryId } ?: return@AddTransactionScreen
+                    val originalCat = originalSuggestedCategoryId?.let { id -> categories.find { it.id == id } }
+                    val route = CorrectionRouter.route(correctedCat.name, labelSet)
+                    scope.launch(Dispatchers.IO) {
+                        when (route) {
+                            CorrectionRoute.PART_B_TFLITE -> {
+                                val labelIndex = labelSet.indexOf(correctedCat.name)
+                                if (labelIndex >= 0) {
+                                    correctionRepository.queueCorrection(
+                                        description = description,
+                                        correctedLabelName = correctedCat.name,
+                                        correctedLabelIndex = labelIndex,
+                                        originalSuggestedLabelName = originalCat?.name
+                                    )
+                                    if (categoryClassifier is RetrainableCategoryClassifier) {
+                                        correctionRepository.trainBatchIfReady(
+                                            categoryClassifier as RetrainableCategoryClassifier
+                                        )
+                                    }
+                                }
+                            }
+                            CorrectionRoute.PART_C_CORRECTION_MEMORY -> {
+                                val normalized = CategorySuggester.normalize(description)
+                                correctionRepository.upsertCorrectionMemory(normalized, correctedCategoryId)
+                                val updatedMemory = correctionRepository.getAllCorrectionMemory()
+                                withContext(Dispatchers.Main) {
+                                    correctionMemory = updatedMemory
+                                }
+                            }
+                        }
+                    }
+                },
                 editTransaction = editingTransaction,
                 onUpdate = { entity ->
                     scope.launch(Dispatchers.IO) {

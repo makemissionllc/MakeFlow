@@ -95,6 +95,8 @@ fun AddTransactionBottomSheet(
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
+    correctionMemory: Map<String, String> = emptyMap(),
+    onCategoryCorrected: ((description: String, correctedCategoryId: String, originalSuggestedCategoryId: String?) -> Unit)? = null,
     initialType: String = "INCOME",
     initialAmount: String = "",
     initialNote: String = "",
@@ -156,7 +158,7 @@ fun AddTransactionBottomSheet(
         }
     }
 
-    LaunchedEffect(note, smartCategorizationEnabled) {
+    LaunchedEffect(note, smartCategorizationEnabled, correctionMemory) {
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -182,6 +184,27 @@ fun AddTransactionBottomSheet(
                 }
             }
             return@LaunchedEffect
+        }
+
+        val normalized = CategorySuggester.normalize(note)
+        correctionMemory[normalized]?.let { memoryCategoryId ->
+            val memCat = categories.find { it.id == memoryCategoryId }
+            if (memCat != null) {
+                categorySuggestion = CategorySuggestion(
+                    categoryId = memoryCategoryId,
+                    confidence = 0.95f,
+                    matchedOnExactPastDescription = false
+                )
+                if (memCat.parentCategoryId != null) {
+                    val parent = parentCategories.find { it.id == memCat.parentCategoryId }
+                    selectedParentCategory = parent
+                    selectedChildCategory = memCat
+                } else {
+                    selectedParentCategory = memCat
+                    selectedChildCategory = null
+                }
+                return@LaunchedEffect
+            }
         }
 
         if (smartCategorizationEnabled && categoryClassifier != null) {
@@ -244,6 +267,13 @@ fun AddTransactionBottomSheet(
     val parsedAmount = amountInput.toDoubleOrNull()
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 &&
         (selectedType != "TRANSFER" || selectedTransferFromId != selectedTransferToId)
+
+    fun fireCorrection() {
+        val suggestedId = categorySuggestion?.categoryId
+        if (suggestedId != null && resolvedCategoryId != null && resolvedCategoryId != suggestedId) {
+            onCategoryCorrected?.invoke(note, resolvedCategoryId, suggestedId)
+        }
+    }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
 
@@ -743,6 +773,7 @@ fun AddTransactionBottomSheet(
                                 commitHandler?.saveIgnoringDuplicate(
                                     entity = entity,
                                     onSave = { tx ->
+                                        fireCorrection()
                                         onSave(tx.amount, tx.type, tx.categoryId, tx.accountId, tx.note, tx.timestamp,
                                             if (tx.type == "TRANSFER") tx.fromAccountId else null,
                                             if (tx.type == "TRANSFER") tx.toAccountId else null)
@@ -785,9 +816,11 @@ fun AddTransactionBottomSheet(
                                 commitHandler.update(entity = updatedEntity, originalTransaction = editTransaction) {
                                     onUpdate(it)
                                 }
+                                fireCorrection()
                                 onDismiss()
                             } else {
                                 onUpdate(updatedEntity)
+                                fireCorrection()
                                 onDismiss()
                             }
                         } else {
@@ -805,6 +838,7 @@ fun AddTransactionBottomSheet(
                                 commitHandler.prepareSave(
                                     entity = entity,
                                     onSave = { tx ->
+                                        fireCorrection()
                                         onSave(tx.amount, tx.type, tx.categoryId, tx.accountId, tx.note, tx.timestamp,
                                             if (tx.type == "TRANSFER") tx.fromAccountId else null,
                                             if (tx.type == "TRANSFER") tx.toAccountId else null)
@@ -813,6 +847,7 @@ fun AddTransactionBottomSheet(
                                 )
                             } else {
                                 onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
+                                fireCorrection()
                                 onDismiss()
                             }
                         }

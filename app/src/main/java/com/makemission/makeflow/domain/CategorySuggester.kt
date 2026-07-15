@@ -62,12 +62,24 @@ object CategorySuggester {
         pastTransactions: List<PastTransactionForSuggestion>,
         classifier: CategoryClassifier?,
         categoryNameToId: Map<String, String>,
-        confidenceThreshold: Float = 0.6f
+        confidenceThreshold: Float = 0.6f,
+        correctionMemory: Map<String, String> = emptyMap()
     ): CategorySuggestion? {
         val exactOrPartial = suggest(inputDescription, pastTransactions)
         if (exactOrPartial != null && exactOrPartial.matchedOnExactPastDescription) {
             return exactOrPartial
         }
+
+        val normalized = normalize(inputDescription)
+        val memoryCategoryId = correctionMemory[normalized]
+        if (memoryCategoryId != null) {
+            return CategorySuggestion(
+                categoryId = memoryCategoryId,
+                confidence = 0.95f,
+                matchedOnExactPastDescription = false
+            )
+        }
+
         if (classifier != null) {
             val prediction = classifier.classify(inputDescription)
             if (prediction != null && prediction.confidence >= confidenceThreshold) {
@@ -84,6 +96,6 @@ object CategorySuggester {
         return exactOrPartial?.takeIf { it.confidence >= 0.5f }
     }
 
-    private fun normalize(description: String): String =
+    fun normalize(description: String): String =
         description.trim().lowercase().replace(Regex("\\s+"), " ")
 }

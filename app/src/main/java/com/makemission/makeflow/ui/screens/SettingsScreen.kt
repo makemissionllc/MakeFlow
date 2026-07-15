@@ -116,6 +116,7 @@ fun SettingsScreen(
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
     var showClearConfirm by remember { mutableStateOf(false) }
+    var showResetPersonalizationConfirm by remember { mutableStateOf(false) }
     var showPdfExportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val config = LocalAdaptiveConfig.current
@@ -261,7 +262,14 @@ fun SettingsScreen(
                 item {
                     StaggeredItem(index = 103) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
-                        Box(Modifier.weight(1f)) { }
+                        Box(Modifier.weight(1f)) {
+                        ResetPersonalizationRow(
+                            viewModel = viewModel,
+                            showConfirm = showResetPersonalizationConfirm,
+                            onShowConfirm = { showResetPersonalizationConfirm = true },
+                            onDismissConfirm = { showResetPersonalizationConfirm = false }
+                        )
+                        }
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                         }
@@ -269,17 +277,17 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 13) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 14) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 104) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 105) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 15) {
+                    StaggeredItem(index = 106) {
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 16) {
+                        StaggeredItem(index = 107) {
                         ReducedMotionRow()
                         }
                     }
@@ -393,21 +401,32 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 18) {
+                    ResetPersonalizationRow(
+                        viewModel = viewModel,
+                        showConfirm = showResetPersonalizationConfirm,
+                        onShowConfirm = { showResetPersonalizationConfirm = true },
+                        onDismissConfirm = { showResetPersonalizationConfirm = false }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 19) {
                     SettingsRow(icon=Icons.Outlined.Delete, title="Clear All Data", subtitle="Reset everything", onClick={ showClearConfirm = true })
                     }
                 }
 
-                item { StaggeredItem(index = 19) { Spacer(modifier = Modifier.height(16.dp)) } }
-                item { StaggeredItem(index = 20) { SectionHeader(text = "About") } }
+                item { StaggeredItem(index = 20) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 21) { SectionHeader(text = "About") } }
 
                 item {
-                    StaggeredItem(index = 21) {
+                    StaggeredItem(index = 22) {
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 22) {
+                        StaggeredItem(index = 23) {
                         ReducedMotionRow()
                         }
                     }
@@ -479,6 +498,32 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
+                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        )
+    }
+
+    if (showResetPersonalizationConfirm) {
+        AlertDialog(
+            onDismissRequest = { showResetPersonalizationConfirm = false },
+            containerColor = Color(0xFF1B1C1F),
+            title = {
+                Text("Reset Personalization?", color = Color.White, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text("This will clear all correction history and reset the ML model to its default state. Your transactions and categories will not be affected.", color = Color.White.copy(alpha = 0.7f))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.resetPersonalization()
+                    showResetPersonalizationConfirm = false
+                }) {
+                    Text("Reset", color = Color(0xFFEF5350))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetPersonalizationConfirm = false }) {
                     Text("Cancel", color = Color.White.copy(alpha = 0.5f))
                 }
             }
@@ -831,6 +876,49 @@ private fun isNotificationPermissionGranted(context: android.content.Context): B
             )
     } else {
         true
+    }
+}
+
+@Composable
+private fun ResetPersonalizationRow(
+    viewModel: SettingsViewModel,
+    showConfirm: Boolean,
+    onShowConfirm: () -> Unit,
+    onDismissConfirm: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onShowConfirm() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = null,
+                    tint = Color(0xFFEF5350),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Reset personalization", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = "Clear corrections & ML checkpoint", color = Color(0xFFEF5350), fontSize = 13.sp)
+            }
+        }
     }
 }
 

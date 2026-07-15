@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.repository.CorrectionRepository
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,7 @@ import java.util.Locale
 class SettingsViewModel(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val correctionRepository: CorrectionRepository? = null,
     private val backupManager: BackupManager? = null,
     private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModel() {
@@ -306,16 +308,24 @@ class SettingsViewModel(
             userPreferencesDataStore.clearProfile()
         }
     }
+
+    fun resetPersonalization() {
+        viewModelScope.launch {
+            correctionRepository?.resetCorrections()
+            correctionRepository?.clearCorrectionMemory()
+        }
+    }
 }
 
 class SettingsViewModelFactory(
     private val financeRepository: FinanceRepository,
     private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val correctionRepository: CorrectionRepository? = null,
     private val backupManager: BackupManager? = null,
     private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return SettingsViewModel(financeRepository, userPreferencesDataStore, backupManager, exchangeRateRepository) as T
+        return SettingsViewModel(financeRepository, userPreferencesDataStore, correctionRepository, backupManager, exchangeRateRepository) as T
     }
 }

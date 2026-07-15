@@ -152,6 +152,87 @@ class CategorySuggesterTest {
         assertNotNull(result)
         assertEquals("cafe", result!!.categoryId)
     }
+
+    // ==== Correction memory (tier 2) tests ====
+
+    @Test
+    fun correctionMemory_outranksMl() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.95f))
+        val idMap = mapOf("food" to "food_id")
+        val memory = mapOf("safari" to "transport_id")
+        val result = CategorySuggester.suggestWithClassifier(
+            "Safari", emptyList(), classifier, idMap,
+            correctionMemory = memory
+        )
+        assertNotNull(result)
+        assertEquals("transport_id", result!!.categoryId)
+        assertEquals(0.95f, result.confidence, 0.001f)
+    }
+
+    @Test
+    fun exactMatch_stillWinsOverCorrectionMemory() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.95f))
+        val idMap = mapOf("food" to "food_id")
+        val memory = mapOf("boda boda" to "fuel_id")
+        val result = CategorySuggester.suggestWithClassifier(
+            "boda boda", history, classifier, idMap,
+            correctionMemory = memory
+        )
+        assertNotNull(result)
+        assertEquals("transport", result!!.categoryId)
+        assertEquals(1.0f, result.confidence, 0.001f)
+        assertEquals(true, result.matchedOnExactPastDescription)
+    }
+
+    @Test
+    fun correctionMemory_usedWhenNoExactMatchAndNoClassifier() {
+        val memory = mapOf("safari" to "transport_id")
+        val result = CategorySuggester.suggestWithClassifier(
+            "Safari", emptyList(), null, emptyMap(),
+            correctionMemory = memory
+        )
+        assertNotNull(result)
+        assertEquals("transport_id", result!!.categoryId)
+        assertEquals(0.95f, result.confidence, 0.001f)
+    }
+
+    @Test
+    fun correctionMemory_notInMemory_doesNotFire() {
+        val result = CategorySuggester.suggestWithClassifier(
+            "boda boda", history, null, emptyMap(),
+            correctionMemory = mapOf("uber" to "fuel_id")
+        )
+        assertNotNull(result)
+        assertEquals("transport", result!!.categoryId)
+    }
+
+    @Test
+    fun correctionMemory_emptyMap_ignored() {
+        val classifier = FakeClassifier(CategoryPrediction("food", 0.85f))
+        val idMap = mapOf("food" to "food_id")
+        val substringHistory = listOf(
+            PastTransactionForSuggestion("cafe latte", "cafe"),
+            PastTransactionForSuggestion("cafe mocha", "cafe"),
+        )
+        val result = CategorySuggester.suggestWithClassifier(
+            "cafe", substringHistory, classifier, idMap,
+            correctionMemory = emptyMap()
+        )
+        assertNotNull(result)
+        assertEquals("food_id", result!!.categoryId)
+    }
+
+    @Test
+    fun normalize_removesExtraWhitespaceAndLowercases() {
+        val result = CategorySuggester.normalize("  Hello   World  ")
+        assertEquals("hello world", result)
+    }
+
+    @Test
+    fun normalize_emptyString() {
+        val result = CategorySuggester.normalize("")
+        assertEquals("", result)
+    }
 }
 
 private class FakeClassifier(private val prediction: CategoryPrediction) : CategoryClassifier {

@@ -31,6 +31,10 @@ import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.SavingsGoalEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.data.local.entity.CorrectionEntity
+import com.makemission.makeflow.data.local.entity.CorrectionMemoryEntity
+import com.makemission.makeflow.data.local.dao.CorrectionDao
+import com.makemission.makeflow.data.local.dao.CorrectionMemoryDao
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -49,9 +53,11 @@ import kotlinx.coroutines.runBlocking
         RecurringTransactionEntity::class,
         TransactionTemplateEntity::class,
         ExchangeRateEntity::class,
-        SavingsGoalEntity::class
+        SavingsGoalEntity::class,
+        CorrectionEntity::class,
+        CorrectionMemoryEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -68,6 +74,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun goalDao(): GoalDao
     abstract fun cardInteractionDao(): CardInteractionDao
     abstract fun queuedNotificationDao(): QueuedNotificationDao
+    abstract fun correctionDao(): CorrectionDao
+    abstract fun correctionMemoryDao(): CorrectionMemoryDao
 
     @androidx.room.Transaction
     open suspend fun atomicRestore(
@@ -367,6 +375,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS corrections (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        description TEXT NOT NULL,
+                        correctedLabelName TEXT NOT NULL,
+                        correctedLabelIndex INTEGER NOT NULL,
+                        originalSuggestedLabelName TEXT,
+                        isTrained INTEGER NOT NULL DEFAULT 0,
+                        createdAt INTEGER NOT NULL
+                    )"""
+                )
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS correction_memory (
+                        normalizedDescription TEXT PRIMARY KEY NOT NULL,
+                        categoryId TEXT NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -375,7 +406,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance

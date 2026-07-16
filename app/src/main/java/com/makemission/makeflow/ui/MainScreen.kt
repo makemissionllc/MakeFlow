@@ -427,11 +427,7 @@ fun MainScreen(
         if (uri != null) {
             scope.launch(Dispatchers.IO) {
                 try {
-                    settingsViewModel.exportBackup { json ->
-                        backupJson = json
-                    }
-                    // wait briefly for the json to be ready
-                    val json = backupJson
+                    val json = settingsViewModel.exportBackup()
                     if (json != null) {
                         context.contentResolver.openOutputStream(uri)?.use { out ->
                             out.write(json.toByteArray())
@@ -770,13 +766,18 @@ fun MainScreen(
                     backupJson = null
                     if (json != null) {
                         scope.launch(Dispatchers.IO) {
-                            settingsViewModel.importBackup(json) { error ->
-                                scope.launch {
+                            try {
+                                val error = settingsViewModel.importBackup(json)
+                                withContext(Dispatchers.Main) {
                                     if (error != null) {
                                         restoreError = error
                                     } else {
                                         Toast.makeText(context, "Restore completed successfully", Toast.LENGTH_SHORT).show()
                                     }
+                                }
+                            } catch (e: Exception) {
+                                withContext(Dispatchers.Main) {
+                                    restoreError = "Restore failed: ${e.message}"
                                 }
                             }
                         }

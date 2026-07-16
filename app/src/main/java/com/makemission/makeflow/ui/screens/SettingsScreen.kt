@@ -248,10 +248,10 @@ fun SettingsScreen(
                     StaggeredItem(index = 101) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
-                        SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup })
+                        SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup() })
                         }
                         Box(Modifier.weight(1f)) {
-                        SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore", subtitle="Replace from a file", onClick={ onRestore })
+                        SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore", subtitle="Replace from a file", onClick={ onRestore() })
                         }
                     }
                     }
@@ -389,13 +389,13 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 16) {
-                    SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup })
+                    SettingsRow(icon=Icons.Outlined.Save, title="Backup Now", subtitle="Save all data to a file", onClick={ onBackup() })
                     }
                 }
 
                 item {
                     StaggeredItem(index = 17) {
-                    SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore from Backup", subtitle="Replace all data from a file", onClick={ onRestore })
+                    SettingsRow(icon=Icons.Outlined.RestorePage, title="Restore from Backup", subtitle="Replace all data from a file", onClick={ onRestore() })
                     }
                 }
 

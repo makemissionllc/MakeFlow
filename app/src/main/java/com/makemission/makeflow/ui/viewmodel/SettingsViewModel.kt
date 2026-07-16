@@ -283,20 +283,14 @@ class SettingsViewModel(
         }
     }
 
-    fun exportBackup(block: suspend (String) -> Unit) {
-        viewModelScope.launch {
-            val mgr = backupManager ?: return@launch
-            val json = mgr.serializeBackup()
-            block(json)
-        }
+    suspend fun exportBackup(): String? {
+        val mgr = backupManager ?: return null
+        return mgr.serializeBackup()
     }
 
-    fun importBackup(json: String, onResult: (String?) -> Unit) {
-        viewModelScope.launch {
-            val mgr = backupManager ?: run { onResult("Backup manager not available"); return@launch }
-            val error = mgr.restoreBackup(json)
-            onResult(error)
-        }
+    suspend fun importBackup(json: String): String? {
+        val mgr = backupManager ?: return "Backup manager not available"
+        return mgr.restoreBackup(json)
     }
 
     fun clearAllData() {

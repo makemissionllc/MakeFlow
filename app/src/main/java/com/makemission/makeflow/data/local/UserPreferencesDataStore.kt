@@ -142,6 +142,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val lastSeenChangelogVersion: Flow<String> = dataStore.data.map { prefs ->
+        prefs[LAST_SEEN_CHANGELOG_KEY] ?: ""
+    }
+
+    suspend fun saveLastSeenChangelogVersion(version: String) {
+        dataStore.edit { prefs ->
+            prefs[LAST_SEEN_CHANGELOG_KEY] = version
+        }
+    }
+
     companion object {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
@@ -154,5 +164,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val MANUAL_CARD_ORDER_KEY = stringPreferencesKey("manual_card_order")
         private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
+        private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
     }
 }

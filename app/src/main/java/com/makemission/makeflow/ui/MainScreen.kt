@@ -112,7 +112,9 @@ import com.makemission.makeflow.ui.screens.InsightsScreen
 import com.makemission.makeflow.ui.screens.ManageTemplatesSheet
 import com.makemission.makeflow.ui.screens.RecurringTransactionsScreen
 import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
+import com.makemission.makeflow.ui.screens.ChangelogScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
+import com.makemission.makeflow.data.changelog.CURRENT_CHANGELOG_VERSION
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
@@ -131,6 +133,7 @@ import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -407,6 +410,7 @@ fun MainScreen(
     var showManageCategories by remember { mutableStateOf(false) }
     var showAddAccountSheet by remember { mutableStateOf(false) }
     var showExchangeRates by remember { mutableStateOf(false) }
+    var showChangelogScreen by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val previousTab = remember { mutableStateOf(activeTab) }
     LaunchedEffect(activeTab) {
@@ -415,6 +419,14 @@ fun MainScreen(
             previousTab.value = activeTab
         }
     }
+
+    LaunchedEffect(Unit) {
+        val lastSeen = userPrefDataStore.lastSeenChangelogVersion.first()
+        if (lastSeen != CURRENT_CHANGELOG_VERSION) {
+            showChangelogScreen = true
+        }
+    }
+
     val scope = rememberCoroutineScope()
 
     var backupJson by remember { mutableStateOf<String?>(null) }
@@ -585,6 +597,7 @@ fun MainScreen(
                         onOpenExchangeRates = { showExchangeRates = true },
                         onBackup = { performBackup() },
                         onRestore = { pickRestoreFile() },
+                        onOpenChangelog = { showChangelogScreen = true },
                         onDeleteAccount = { account ->
                             savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                                 .let { count ->
@@ -698,6 +711,7 @@ fun MainScreen(
                     onOpenExchangeRates = { showExchangeRates = true },
                     onBackup = { performBackup() },
                     onRestore = { pickRestoreFile() },
+                    onOpenChangelog = { showChangelogScreen = true },
                     onDeleteAccount = { account ->
                         savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                             .let { count ->
@@ -810,6 +824,29 @@ fun MainScreen(
                 }
             }
         )
+    }
+
+    if (showChangelogScreen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF121315))
+        ) {
+            BackHandler {
+                showChangelogScreen = false
+                scope.launch(Dispatchers.IO) {
+                    userPrefDataStore.saveLastSeenChangelogVersion(CURRENT_CHANGELOG_VERSION)
+                }
+            }
+            ChangelogScreen(
+                onBack = {
+                    showChangelogScreen = false
+                    scope.launch(Dispatchers.IO) {
+                        userPrefDataStore.saveLastSeenChangelogVersion(CURRENT_CHANGELOG_VERSION)
+                    }
+                }
+            )
+        }
     }
 
     AnimatedVisibility(
@@ -1150,6 +1187,7 @@ private fun OverlayPanels(
     onOpenExchangeRates: () -> Unit = {},
     onBackup: () -> Unit = {},
     onRestore: () -> Unit = {},
+    onOpenChangelog: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     AnimatedVisibility(
@@ -1245,7 +1283,8 @@ private fun OverlayPanels(
                 onOpenManageCategories = onOpenManageCategories,
                 onOpenExchangeRates = onOpenExchangeRates,
                 onBackup = onBackup,
-                onRestore = onRestore
+                onRestore = onRestore,
+                onOpenChangelog = onOpenChangelog
             )
         }
     }

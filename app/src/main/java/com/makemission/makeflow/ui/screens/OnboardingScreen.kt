@@ -24,15 +24,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.AccountBalance
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.TrendingUp
 import androidx.compose.material.icons.rounded.Wallet
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -83,7 +90,7 @@ fun OnboardingScreen(
     onOnboardingComplete: () -> Unit = {},
     hapticManager: HapticManager? = null
 ) {
-    val pagerState = rememberPagerState(pageCount = { 2 })
+    val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
 
     var username by remember { mutableStateOf("") }
@@ -110,13 +117,14 @@ fun OnboardingScreen(
         ) {
             HorizontalPager(
                 state = pagerState,
-                userScrollEnabled = username.isNotBlank(),
+                userScrollEnabled = pagerState.currentPage == 0 || username.isNotBlank(),
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) { page ->
                 when (page) {
-                    0 -> WelcomeStageView(
+                    0 -> FeaturesStageView()
+                    1 -> WelcomeStageView(
                         username = username,
                         onNameChange = {
                             username = it
@@ -126,7 +134,7 @@ fun OnboardingScreen(
                         onCurrencyChange = onCurrencyChange,
                         showNameError = showNameError
                     )
-                    1 -> AccountSetupStageView(
+                    2 -> AccountSetupStageView(
                         selectedCurrency = selectedCurrency,
                         transientAccounts = transientAccounts,
                         accountName = accountName,
@@ -166,7 +174,7 @@ fun OnboardingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val reducedMotion = LocalReducedMotion.current
-                    repeat(2) { index ->
+                    repeat(3) { index ->
                         val isSelected = pagerState.currentPage == index
                         val widthAnimSpec = if (reducedMotion) tween<Float>(100) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
                         val widthScale by animateFloatAsState(
@@ -186,27 +194,41 @@ fun OnboardingScreen(
 
                 Button(
                     onClick = {
-                        if (pagerState.currentPage == 0) {
-                            if (username.isNotBlank()) {
+                        when (pagerState.currentPage) {
+                            0 -> {
                                 coroutineScope.launch {
                                     pagerState.animateScrollToPage(1)
                                     hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
                                 }
-                            } else {
-                                showNameError = true
                             }
-                        } else {
-                            if (username.isNotBlank() && transientAccounts.isNotEmpty()) {
-                                coroutineScope.launch {
-                                    onSaveName(username.trim())
-                                    onSaveAccounts(transientAccounts.toList())
-                                    hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
-                                    onOnboardingComplete()
+                            1 -> {
+                                if (username.isNotBlank()) {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(2)
+                                        hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
+                                    }
+                                } else {
+                                    showNameError = true
+                                }
+                            }
+                            2 -> {
+                                if (username.isNotBlank() && transientAccounts.isNotEmpty()) {
+                                    coroutineScope.launch {
+                                        onSaveName(username.trim())
+                                        onSaveAccounts(transientAccounts.toList())
+                                        hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
+                                        onOnboardingComplete()
+                                    }
                                 }
                             }
                         }
                     },
-                    enabled = if (pagerState.currentPage == 0) true else transientAccounts.isNotEmpty(),
+                    enabled = when (pagerState.currentPage) {
+                        0 -> true
+                        1 -> true
+                        2 -> transientAccounts.isNotEmpty()
+                        else -> true
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -219,7 +241,12 @@ fun OnboardingScreen(
                         .height(54.dp)
                 ) {
                     Text(
-                        text = if (pagerState.currentPage == 0) "Get started" else "Done",
+                        text = when (pagerState.currentPage) {
+                            0 -> "Get started"
+                            1 -> "Continue"
+                            2 -> "Done"
+                            else -> ""
+                        },
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -537,6 +564,96 @@ fun OnboardingVisualCard(name: String, balance: String, icon: ImageVector, modif
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onSurface
             )
+        }
+    }
+}
+
+private data class FeatureItem(
+    val icon: ImageVector,
+    val title: String,
+    val description: String
+)
+
+@Composable
+fun FeaturesStageView(modifier: Modifier = Modifier) {
+    val features = remember {
+        listOf(
+            FeatureItem(Icons.Rounded.TrendingUp, "Spending Insights", "See where your money goes with smart spending breakdowns"),
+            FeatureItem(Icons.Rounded.AccountBalance, "Budget Forecasting", "Predict future expenses and stay ahead of your budget"),
+            FeatureItem(Icons.Rounded.AutoAwesome, "Smart Categories", "Learns from your corrections to sort transactions automatically"),
+            FeatureItem(Icons.Rounded.Savings, "Savings Goals", "Set goals with personalized feasibility insights"),
+            FeatureItem(Icons.Rounded.Sync, "M-PESA Import", "Auto-sync transactions from M-PESA messages"),
+            FeatureItem(Icons.Rounded.Warning, "Anomaly Detection", "Get alerts for duplicate transactions and unusual activity"),
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                text = "Mindful Wallet",
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Your intelligent finance companion",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        Text(
+            text = "What it can do for you",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            features.forEach { feature ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = feature.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = feature.title,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = feature.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
         }
     }
 }

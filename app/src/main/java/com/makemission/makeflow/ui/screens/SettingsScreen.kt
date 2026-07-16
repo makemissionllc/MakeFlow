@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lock
@@ -104,7 +105,8 @@ fun SettingsScreen(
     onOpenManageCategories: () -> Unit = {},
     onOpenExchangeRates: () -> Unit = {},
     onBackup: () -> Unit = {},
-    onRestore: () -> Unit = {}
+    onRestore: () -> Unit = {},
+    onOpenChangelog: () -> Unit = {}
 ) {
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
@@ -285,9 +287,14 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
+                item {
+                    StaggeredItem(index = 107) {
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
+                    }
+                }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 107) {
+                        StaggeredItem(index = 108) {
                         ReducedMotionRow()
                         }
                     }
@@ -424,9 +431,14 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
                     }
                 }
+                item {
+                    StaggeredItem(index = 23) {
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
+                    }
+                }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 23) {
+                        StaggeredItem(index = 24) {
                         ReducedMotionRow()
                         }
                     }

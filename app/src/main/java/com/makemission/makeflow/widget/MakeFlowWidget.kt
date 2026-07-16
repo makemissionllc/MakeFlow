@@ -23,6 +23,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.makemission.makeflow.MainActivity
+import com.makemission.makeflow.R
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.userPrefDataStore
@@ -94,12 +95,12 @@ private suspend fun loadWidgetData(context: Context): WidgetData {
 
 @androidx.compose.runtime.Composable
 private fun WidgetContent(data: WidgetData) {
-    val bgColor = ColorProvider(com.makemission.makeflow.R.color.widget_bg)
-    val textColor = ColorProvider(com.makemission.makeflow.R.color.widget_text)
-    val mutedColor = ColorProvider(com.makemission.makeflow.R.color.widget_muted)
-    val accentColor = ColorProvider(com.makemission.makeflow.R.color.widget_accent)
-    val warningColor = ColorProvider(com.makemission.makeflow.R.color.widget_warning)
-    val amberColor = ColorProvider(com.makemission.makeflow.R.color.widget_amber)
+    val bgColor = ColorProvider(R.color.widget_bg)
+    val textColor = ColorProvider(R.color.widget_text)
+    val mutedColor = ColorProvider(R.color.widget_muted)
+    val accentColor = ColorProvider(R.color.widget_accent)
+    val warningColor = ColorProvider(R.color.widget_warning)
+    val amberColor = ColorProvider(R.color.widget_amber)
 
     Column(
         modifier = GlanceModifier

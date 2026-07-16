@@ -37,6 +37,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -98,7 +99,7 @@ fun OnboardingScreen(
     }
 
     Scaffold(
-        containerColor = Color(0xFF121315),
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
         Column(
@@ -141,7 +142,7 @@ fun OnboardingScreen(
                                         name = accountName.trim(),
                                         balance = parsed,
                                         initialBalance = parsed,
-                                        colorHex = "#FFFFFF"
+                                        colorHex = "#6DD881"
                                     )
                                 )
                                 accountName = ""
@@ -178,7 +179,7 @@ fun OnboardingScreen(
                                 .height(8.dp)
                                 .width(widthScale.dp)
                                 .clip(CircleShape)
-                                .background(if (isSelected) Color.White else Color.White.copy(alpha = 0.2f))
+                                .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                         )
                     }
                 }
@@ -207,10 +208,10 @@ fun OnboardingScreen(
                     },
                     enabled = if (pagerState.currentPage == 0) true else transientAccounts.isNotEmpty(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF121315),
-                        disabledContainerColor = Color(0xFF1B1C1F),
-                        disabledContentColor = Color.White.copy(alpha = 0.2f)
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     ),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier
@@ -219,8 +220,7 @@ fun OnboardingScreen(
                 ) {
                     Text(
                         text = if (pagerState.currentPage == 0) "Get started" else "Done",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -271,8 +271,16 @@ fun WelcomeStageView(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(text = "Mindful Wallet", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Black, letterSpacing = (-1).sp)
-                Text(text = "Manage all your finances with ease.", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "Mindful Wallet",
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Manage all your finances with ease.",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             }
 
             OutlinedTextField(
@@ -282,14 +290,14 @@ fun WelcomeStageView(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color(0xFF1B1C1F),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
-                    focusedContainerColor = Color(0xFF1B1C1F),
-                    unfocusedContainerColor = Color(0xFF1B1C1F)
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -298,8 +306,8 @@ fun WelcomeStageView(
             if (showNameError) {
                 Text(
                     text = "Please enter your name to continue",
-                    color = Color(0xFFFF3B30),
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -312,13 +320,12 @@ fun WelcomeStageView(
                     val isSelected = code == selectedCurrency
                     Text(
                         text = code,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
                             )
                             .clickable { onCurrencyChange(code) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -326,7 +333,11 @@ fun WelcomeStageView(
                 }
             }
 
-            Text(text = "All your financial data is kept securely on your local device.", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp)
+            Text(
+                text = "All your financial data is kept securely on your local device.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+            )
         }
     }
 }
@@ -349,8 +360,16 @@ fun AccountSetupStageView(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = "Quick setup", color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp)
-            Text(text = "Seed initial trackers below. These form your account balance core.", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+            Text(
+                text = "Quick setup",
+                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Seed initial trackers below. These form your account balance core.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+            )
         }
 
         Row(
@@ -364,14 +383,12 @@ fun AccountSetupStageView(
                 label = { Text("Account Name") },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color(0xFF1B1C1F),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
-                    focusedContainerColor = Color(0xFF1B1C1F),
-                    unfocusedContainerColor = Color(0xFF1B1C1F)
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.weight(1.3f)
@@ -384,14 +401,12 @@ fun AccountSetupStageView(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White,
-                    unfocusedBorderColor = Color(0xFF1B1C1F),
-                    focusedLabelColor = Color.White,
-                    unfocusedLabelColor = Color.White.copy(alpha = 0.4f),
-                    focusedContainerColor = Color(0xFF1B1C1F),
-                    unfocusedContainerColor = Color(0xFF1B1C1F)
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
                 shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.weight(1f)
@@ -401,13 +416,17 @@ fun AccountSetupStageView(
                 onClick = onAddAccount,
                 modifier = Modifier
                     .size(52.dp)
-                    .background(Color.White, RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
             ) {
-                Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = Color(0xFF121315))
+                Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
 
-        Text(text = "Accounts Ledger Topology", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(
+            text = "Accounts Ledger Topology",
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+        )
 
         Box(
             modifier = Modifier
@@ -436,7 +455,7 @@ fun AccountSetupStageView(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF1B1C1F), RoundedCornerShape(18.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(18.dp))
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -448,18 +467,26 @@ fun AccountSetupStageView(
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(Color(0xFF121315), CircleShape),
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                                Icon(imageVector = Icons.Rounded.AccountBalanceWallet, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
-                            Text(text = item.name, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                            Text(
+                                text = item.name,
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = CurrencyFormatter.format(item.balance, selectedCurrency), color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = CurrencyFormatter.format(item.balance, selectedCurrency),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
@@ -469,7 +496,7 @@ fun AccountSetupStageView(
                                 Icon(
                                     imageVector = Icons.Rounded.Close,
                                     contentDescription = "Discard",
-                                    tint = Color.White.copy(alpha = 0.3f),
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -486,7 +513,7 @@ fun OnboardingVisualCard(name: String, balance: String, icon: ImageVector, modif
     Row(
         modifier = modifier
             .width(230.dp)
-            .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
             .padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -494,14 +521,22 @@ fun OnboardingVisualCard(name: String, balance: String, icon: ImageVector, modif
         Box(
             modifier = Modifier
                 .size(42.dp)
-                .background(Color(0xFF121315), CircleShape),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(imageVector = icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
         }
         Column {
-            Text(text = name, color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
-            Text(text = balance, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            Text(
+                text = balance,
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

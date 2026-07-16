@@ -1,21 +1,15 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+-keepattributes SourceFile,LineNumberFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# --- Room (reflection: _Impl classes loaded by RoomDatabase.Builder.build()) ---
+-keep class **.*_Impl { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# --- TFLite / LiteRT (JNI: native libtensorflowlite_jni.so calls into Java) ---
+-keep class org.tensorflow.lite.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# --- Glance (reflection: widget subclasses and ActionCallbacks loaded by framework) ---
+-keep class com.makemission.makeflow.widget.** extends androidx.glance.appwidget.GlanceAppWidget { *; }
+-keep class com.makemission.makeflow.widget.** extends androidx.glance.appwidget.action.ActionCallback { *; }
+
+# --- Gson (reflection: backup/restore JSON serialization) ---
+-keepclassmembers class com.makemission.makeflow.data.backup.BackupData { *; }
+-keepclassmembers class com.makemission.makeflow.data.local.entity.** { *; }

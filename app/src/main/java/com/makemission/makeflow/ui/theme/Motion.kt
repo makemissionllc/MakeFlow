@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 // ── Expressive Easing Engine ─────────────────────────────────────────
@@ -59,3 +60,47 @@ data class ExpressiveMotionSpec(
 }
 
 val LocalExpressiveMotion = staticCompositionLocalOf { ExpressiveMotionSpec.Default }
+
+// ── Shared Overlay / Screen Transition Specs ──────────────────────────
+object OverlayTransition {
+
+    // ── Float specs (fade, scale, progress) ──
+    val enterSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+    val exitSpring = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+    val reducedEnter = tween<Float>(durationMillis = 200)
+    val reducedExit = tween<Float>(durationMillis = 150)
+    val bouncyEnter = spring<Float>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+    val bouncyExit = spring<Float>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+
+    // ── IntOffset specs (slide) ──
+    val enterSlide = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+    val exitSlide = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessLow
+    )
+    val reducedEnterSlide = tween<IntOffset>(durationMillis = 200)
+    val reducedExitSlide = tween<IntOffset>(durationMillis = 150)
+    val bouncyEnterSlide = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioMediumBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+    val bouncyExitSlide = spring<IntOffset>(
+        dampingRatio = Spring.DampingRatioNoBouncy,
+        stiffness = Spring.StiffnessMedium
+    )
+}

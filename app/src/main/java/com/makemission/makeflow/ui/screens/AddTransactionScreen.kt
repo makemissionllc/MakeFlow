@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -473,10 +474,11 @@ fun AddTransactionScreen(
     }
 
     // === Anomaly banner ===
+    val reducedMotion = LocalReducedMotion.current
     AnimatedVisibility(
         visible = anomalyResult != null,
-        enter = slideInVertically { -it } + fadeIn(),
-        exit = slideOutVertically { -it } + fadeOut()
+        enter = if (reducedMotion) fadeIn() else slideInVertically { -it } + fadeIn(),
+        exit = if (reducedMotion) fadeOut() else slideOutVertically { -it } + fadeOut()
     ) {
         anomalyResult?.let { result ->
             val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"

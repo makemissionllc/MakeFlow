@@ -73,12 +73,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.device.LocalReducedMotion
+import kotlin.math.abs
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.makemission.makeflow.ui.components.pressScale
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -115,6 +117,7 @@ fun OnboardingScreen(
                 .padding(paddingValues)
                 .systemBarsPadding()
         ) {
+            val reducedMotion = LocalReducedMotion.current
             HorizontalPager(
                 state = pagerState,
                 userScrollEnabled = pagerState.currentPage == 0 || username.isNotBlank(),
@@ -122,9 +125,29 @@ fun OnboardingScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) { page ->
-                when (page) {
-                    0 -> FeaturesStageView()
-                    1 -> WelcomeStageView(
+                val pageOffset = (page - pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                    .coerceIn(-1f, 1f)
+                val pageAlpha: Float
+                val pageScale: Float
+                if (reducedMotion) {
+                    pageAlpha = 1f
+                    pageScale = 1f
+                } else {
+                    pageAlpha = (1f - abs(pageOffset) * 0.3f).coerceIn(0.7f, 1f)
+                    pageScale = (1f - abs(pageOffset) * 0.05f).coerceIn(0.95f, 1f)
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = pageAlpha
+                            scaleX = pageScale
+                            scaleY = pageScale
+                        }
+                ) {
+                    when (page) {
+                        0 -> FeaturesStageView()
+                        1 -> WelcomeStageView(
                         username = username,
                         onNameChange = {
                             username = it
@@ -159,6 +182,7 @@ fun OnboardingScreen(
                         },
                         onRemoveAccount = { transientAccounts.remove(it) }
                     )
+                }
                 }
             }
 
@@ -354,6 +378,7 @@ fun WelcomeStageView(
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
                             )
+                            .pressScale()
                             .clickable { onCurrencyChange(code) }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     )

@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.ui.components.pressScale
 
 @Composable
 fun AccountPickerScreen(
@@ -88,6 +89,7 @@ fun AccountPickerScreen(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(if (isSelected) Color(0xFF2C2C2E) else Color(0xFF1B1C1F))
+                        .pressScale()
                         .clickable { onAccountSelected(account.id) }
                         .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically

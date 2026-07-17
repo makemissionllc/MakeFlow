@@ -51,6 +51,7 @@ import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -414,6 +415,7 @@ private fun MergeTargetDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
+                            .pressScale()
                             .clickable { onConfirm(target) }
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically

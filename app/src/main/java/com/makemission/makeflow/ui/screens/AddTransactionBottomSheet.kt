@@ -52,6 +52,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.ml.CategoryClassifier
@@ -301,10 +302,11 @@ fun AddTransactionBottomSheet(
     AdaptiveSheetDialog(
         onDismiss = onDismiss
     ) {
+        val reducedMotion = LocalReducedMotion.current
         AnimatedVisibility(
                 visible = commitHandler?.anomalyResult != null,
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = slideOutVertically { -it } + fadeOut()
+                enter = if (reducedMotion) fadeIn() else slideInVertically { -it } + fadeIn(),
+                exit = if (reducedMotion) fadeOut() else slideOutVertically { -it } + fadeOut()
             ) {
                 commitHandler?.anomalyResult?.let { result ->
                     val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"

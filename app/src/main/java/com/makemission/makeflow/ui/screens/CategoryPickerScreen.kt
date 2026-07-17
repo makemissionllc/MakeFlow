@@ -40,7 +40,8 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
-
+import com.makemission.makeflow.ui.components.pressScale
+ 
 private data class CategoryListItem(
     val entity: CategoryEntity,
     val indentLevel: Int
@@ -150,6 +151,7 @@ private fun AccountRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(if (isSelected) Color(0xFF2C2C2E) else Color(0xFF1B1C1F))
+            .pressScale()
             .clickable(onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -205,6 +207,7 @@ private fun CategoryRow(
                     else -> Color(0xFF1B1C1F)
                 }
             )
+            .pressScale()
             .clickable(onClick = onClick)
             .padding(start = 12.dp + (indentLevel * 24).dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -54,6 +54,7 @@ import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModel
 import kotlinx.coroutines.launch
@@ -254,6 +255,7 @@ private fun RecurringTransactionCard(
             .animateContentSize()
             .clip(RoundedCornerShape(14.dp))
             .background(Color(0xFF1B1C1F))
+            .pressScale()
             .clickable(onClick = onEdit)
             .padding(14.dp)
     ) {

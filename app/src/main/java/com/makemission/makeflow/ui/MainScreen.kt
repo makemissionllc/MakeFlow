@@ -115,6 +115,7 @@ import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
 import com.makemission.makeflow.ui.screens.ChangelogScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.data.changelog.CURRENT_CHANGELOG_VERSION
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
@@ -494,6 +495,10 @@ fun MainScreen(
 
     val config = rememberAdaptiveConfig()
     val reducedMotion = LocalReducedMotion.current
+    val slideEnter = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
+    val slideExit = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
+    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring
+    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring
     val layoutMode = LocalDeviceLayoutMode.current
     val isNavRail = layoutMode != DeviceLayoutMode.COMPACT
 
@@ -655,13 +660,19 @@ fun MainScreen(
                                 dampingRatio = Spring.DampingRatioMediumBouncy,
                                 stiffness = Spring.StiffnessMedium
                             )
-                        ) + fadeIn(tween(150)),
+                        ) + fadeIn(animationSpec = if (reducedMotion) tween(150) else spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )),
                         exit = scaleOut(
                             animationSpec = if (reducedMotion) tween(100) else spring(
                                 dampingRatio = Spring.DampingRatioNoBouncy,
                                 stiffness = Spring.StiffnessMedium
                             )
-                        ) + fadeOut(tween(100)) + slideOutVertically(
+                        ) + fadeOut(animationSpec = if (reducedMotion) tween(100) else spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            )) + slideOutVertically(
                             animationSpec = if (reducedMotion) tween(100) else spring(
                                 dampingRatio = Spring.DampingRatioNoBouncy,
                                 stiffness = Spring.StiffnessMedium
@@ -676,8 +687,8 @@ fun MainScreen(
                     }
                     AnimatedVisibility(
                         visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
-                        enter = fadeIn(tween(150)),
-                        exit = fadeOut(tween(100))
+                        enter = if (reducedMotion) fadeIn() else fadeIn(tween(150)),
+                        exit = if (reducedMotion) fadeOut() else fadeOut(tween(100))
                     ) {
                         Spacer(modifier = Modifier.height(16.dp))
                     }
@@ -723,7 +734,13 @@ fun MainScreen(
         }
     }
 
-    if (showExchangeRates) {
+    AnimatedVisibility(
+        visible = showExchangeRates,
+        enter = slideInVertically(animationSpec = slideEnter, initialOffsetY = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutVertically(animationSpec = slideExit, targetOffsetY = { it }) +
+            fadeOut(animationSpec = fadeExit)
+    ) {
         ExchangeRatesSheet(
             rates = exchangeRates,
             displayCurrency = currencyCode,
@@ -736,7 +753,13 @@ fun MainScreen(
         )
     }
 
-    if (showManageCategories) {
+    AnimatedVisibility(
+        visible = showManageCategories,
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -851,20 +874,10 @@ fun MainScreen(
 
     AnimatedVisibility(
         visible = showAddTransaction,
-        enter = slideInHorizontally(
-            animationSpec = if (reducedMotion) tween(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetX = { it }
-        ) + fadeIn(tween(200)),
-        exit = slideOutHorizontally(
-            animationSpec = if (reducedMotion) tween(150) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            targetOffsetX = { it }
-        ) + fadeOut(tween(150))
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
     ) {
         Box(
             modifier = Modifier
@@ -995,7 +1008,13 @@ fun MainScreen(
         }
     }
 
-    if (showManageTemplates) {
+    AnimatedVisibility(
+        visible = showManageTemplates,
+        enter = slideInVertically(animationSpec = slideEnter, initialOffsetY = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutVertically(animationSpec = slideExit, targetOffsetY = { it }) +
+            fadeOut(animationSpec = fadeExit)
+    ) {
         ManageTemplatesSheet(
             templates = templates,
             onDismiss = { showManageTemplates = false },
@@ -1014,7 +1033,13 @@ fun MainScreen(
         )
     }
 
-    if (showSavingsGoalsScreen) {
+    AnimatedVisibility(
+        visible = showSavingsGoalsScreen,
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
+    ) {
         SavingsGoalsScreen(
             onBack = { showSavingsGoalsScreen = false },
             viewModel = savingsGoalsViewModel,
@@ -1190,22 +1215,17 @@ private fun OverlayPanels(
     onOpenChangelog: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
+    val slideEnter = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
+    val slideExit = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
+    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring
+    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring
+
     AnimatedVisibility(
         visible = showBudgetScreen,
-        enter = slideInVertically(
-            animationSpec = if (reducedMotion) tween(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetY = { it }
-        ) + fadeIn(tween(200)),
-        exit = slideOutVertically(
-            animationSpec = if (reducedMotion) tween(150) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            targetOffsetY = { it }
-        ) + fadeOut(tween(150))
+        enter = slideInVertically(animationSpec = slideEnter, initialOffsetY = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutVertically(animationSpec = slideExit, targetOffsetY = { it }) +
+            fadeOut(animationSpec = fadeExit)
     ) {
         Box(Modifier.fillMaxSize()) {
             BackHandler { onHideBudget() }
@@ -1220,20 +1240,10 @@ private fun OverlayPanels(
 
     AnimatedVisibility(
         visible = showAccountsScreen,
-        enter = slideInHorizontally(
-            animationSpec = if (reducedMotion) tween(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetX = { it }
-        ) + fadeIn(tween(200)),
-        exit = slideOutHorizontally(
-            animationSpec = if (reducedMotion) tween(150) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            targetOffsetX = { it }
-        ) + fadeOut(tween(150))
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
     ) {
         Box(
             modifier = Modifier
@@ -1251,20 +1261,10 @@ private fun OverlayPanels(
 
     AnimatedVisibility(
         visible = showSettingsScreen,
-        enter = slideInHorizontally(
-            animationSpec = if (reducedMotion) tween(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetX = { it }
-        ) + fadeIn(tween(200)),
-        exit = slideOutHorizontally(
-            animationSpec = if (reducedMotion) tween(150) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            targetOffsetX = { it }
-        ) + fadeOut(tween(150))
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
     ) {
         Box(
             modifier = Modifier
@@ -1291,20 +1291,10 @@ private fun OverlayPanels(
 
     AnimatedVisibility(
         visible = showRecurringTransactionsScreen,
-        enter = slideInHorizontally(
-            animationSpec = if (reducedMotion) tween(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            initialOffsetX = { it }
-        ) + fadeIn(tween(200)),
-        exit = slideOutHorizontally(
-            animationSpec = if (reducedMotion) tween(150) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            ),
-            targetOffsetX = { it }
-        ) + fadeOut(tween(150))
+        enter = slideInHorizontally(animationSpec = slideEnter, initialOffsetX = { it }) +
+            fadeIn(animationSpec = fadeEnter),
+        exit = slideOutHorizontally(animationSpec = slideExit, targetOffsetX = { it }) +
+            fadeOut(animationSpec = fadeExit)
     ) {
         Box(
             modifier = Modifier

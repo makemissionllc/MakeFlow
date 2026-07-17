@@ -102,7 +102,7 @@ fun AccountsScreen(
                         .verticalFadingEdge(
                             topFadeHeight = config.fadingEdgeHeight,
                             bottomFadeHeight = config.fadingEdgeHeight
-                        ),
+                            ),
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding, end = config.horizontalPadding,
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
@@ -320,7 +320,7 @@ fun AccountsScreen(
                         .verticalFadingEdge(
                             topFadeHeight = config.fadingEdgeHeight,
                             bottomFadeHeight = config.fadingEdgeHeight
-                        ),
+                            ),
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding, end = config.horizontalPadding,
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,

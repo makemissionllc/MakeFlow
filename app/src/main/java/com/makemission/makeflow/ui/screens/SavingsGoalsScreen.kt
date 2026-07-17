@@ -2,6 +2,7 @@ package com.makemission.makeflow.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import com.makemission.makeflow.domain.SavingsGoalWithProgress
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.GoalWithFeasibility
 import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModel
 import kotlinx.coroutines.launch
@@ -254,6 +256,7 @@ private fun GoalCard(
             .padding(bottom = 12.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(cardBackground)
+            .pressScale()
             .clickable { onEdit() }
             .padding(16.dp)
     ) {

@@ -33,6 +33,7 @@ import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Composable
@@ -52,7 +53,9 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
     }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
 
-    val isProfiled by userPrefDataStore.isProfiled.collectAsState(initial = false)
+    val isProfiled by userPrefDataStore.isProfiled
+        .map { it as Boolean? }
+        .collectAsState(initial = null)
     val username by userPrefDataStore.userName.collectAsState(initial = "")
     val currency by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
     val selectedTheme by userPrefDataStore.selectedTheme.collectAsState(initial = "forest")
@@ -155,8 +158,10 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
                 onUnlocked = { isUnlocked = true }
             )
         } else {
+        val currentIsProfiled = isProfiled
+        if (currentIsProfiled != null) {
         Crossfade(
-            targetState = isProfiled,
+            targetState = currentIsProfiled,
             animationSpec = tween(durationMillis = 400),
             label = "AppNavigationEngineCrossfade"
         ) { profiled ->
@@ -191,6 +196,7 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
                     },
                     hapticManager = hapticManager
                 )
+            }
         }
     }
     }

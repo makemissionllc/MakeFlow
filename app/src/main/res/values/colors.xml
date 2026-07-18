@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="splash_background">#FF121315</color>
     <color name="widget_bg">#FF111411</color>
     <color name="widget_text">#FFE1E3DE</color>
     <color name="widget_muted">#FF8B938A</color>

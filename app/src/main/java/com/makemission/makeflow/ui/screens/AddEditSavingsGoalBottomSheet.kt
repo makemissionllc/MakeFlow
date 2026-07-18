@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material3.DatePicker
@@ -59,11 +57,11 @@ fun AddEditSavingsGoalBottomSheet(
     currencySymbol: String,
     onDismiss: () -> Unit,
     onSave: (name: String, targetAmount: Double, targetDate: Long?, linkedAccountId: String) -> Unit,
-    onAddAccount: () -> Unit
+    onAddAccount: () -> Unit,
+    focusedAccountId: String? = null
 ) {
     val scope = rememberCoroutineScope()
     val isEdit = existingGoal != null
-    val scrollState = rememberScrollState()
 
     var name by remember { mutableStateOf(existingGoal?.name ?: "") }
     var amountInput by remember {
@@ -71,8 +69,12 @@ fun AddEditSavingsGoalBottomSheet(
             if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
         } ?: "")
     }
-    var selectedAccountId by remember {
-        mutableStateOf(existingGoal?.linkedAccountId ?: accounts.firstOrNull()?.id ?: "")
+    var selectedAccountId by remember(existingGoal?.id, focusedAccountId) {
+        val initialId = existingGoal?.linkedAccountId
+            ?: focusedAccountId
+            ?: accounts.firstOrNull()?.id
+            ?: ""
+        mutableStateOf(initialId)
     }
     var targetDate by remember { mutableStateOf(existingGoal?.targetDate) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -104,7 +106,6 @@ fun AddEditSavingsGoalBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(scrollState)
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Text(

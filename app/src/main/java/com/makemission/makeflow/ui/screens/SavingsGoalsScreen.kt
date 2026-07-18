@@ -35,6 +35,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,7 +85,22 @@ fun SavingsGoalsScreen(
     var editingGoal by remember { mutableStateOf<GoalWithFeasibility?>(null) }
     var goalToDelete by remember { mutableStateOf<com.makemission.makeflow.data.local.entity.SavingsGoalEntity?>(null) }
     var goalToAbandon by remember { mutableStateOf<com.makemission.makeflow.data.local.entity.SavingsGoalEntity?>(null) }
+    var shouldReopenSheet by remember { mutableStateOf(false) }
+    var createdAccountId by remember { mutableStateOf<String?>(null) }
+    var previousAccountIds by remember { mutableStateOf(setOf<String>()) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(shouldReopenSheet, accounts) {
+        if (shouldReopenSheet) {
+            val currentIds = accounts.map { it.id }.toSet()
+            if (currentIds.size > previousAccountIds.size) {
+                val newId = (currentIds - previousAccountIds).firstOrNull()
+                createdAccountId = newId
+                shouldReopenSheet = false
+                showAddSheet = true
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF121315))) {
         LazyColumn(
@@ -152,7 +168,11 @@ fun SavingsGoalsScreen(
                 }
             },
             actions = {
-                IconButton(onClick = { showAddSheet = true }) {
+                IconButton(onClick = {
+                    showAddSheet = true
+                    shouldReopenSheet = false
+                    createdAccountId = null
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "Add goal", tint = Color.White)
                 }
             }
@@ -180,7 +200,13 @@ fun SavingsGoalsScreen(
                     showAddSheet = false
                     editingGoal = null
                 },
-                onAddAccount = onAddAccount
+                onAddAccount = {
+                    previousAccountIds = accounts.map { it.id }.toSet()
+                    showAddSheet = false
+                    shouldReopenSheet = true
+                    onAddAccount()
+                },
+                focusedAccountId = createdAccountId
             )
         }
     }

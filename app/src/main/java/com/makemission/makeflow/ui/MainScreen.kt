@@ -1054,17 +1054,15 @@ fun MainScreen(
         AddEditAccountBottomSheet(
             onDismiss = { showAddAccountSheet = false },
             onSave = { name, balance, colorHex ->
-                scope.launch(Dispatchers.IO) {
-                    val account = com.makemission.makeflow.data.local.entity.AccountEntity(
-                        id = java.util.UUID.randomUUID().toString(),
-                        name = name,
-                        balance = balance,
-                        initialBalance = balance,
-                        colorHex = colorHex,
-                        currencyCode = null
-                    )
-                    repository.insertAccount(account)
-                }
+                val account = com.makemission.makeflow.data.local.entity.AccountEntity(
+                    id = java.util.UUID.randomUUID().toString(),
+                    name = name,
+                    balance = balance,
+                    initialBalance = balance,
+                    colorHex = colorHex,
+                    currencyCode = null
+                )
+                repository.insertAccount(account)
             },
             currencySymbol = currencySymbol
         )

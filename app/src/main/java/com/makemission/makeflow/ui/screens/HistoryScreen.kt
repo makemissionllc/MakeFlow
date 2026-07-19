@@ -71,6 +71,7 @@ import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.text.SimpleDateFormat
@@ -368,6 +369,24 @@ private fun HistoryListContent(
                             )
                             .clickable { viewModel.selectedFilter.value = "EXPENSE" }
                             .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
+                    )
+                }
+            }
+            item {
+                val historyFocusedState by viewModel.focusedAccountState.collectAsState()
+                val historyFocusedReady by viewModel.focusedAccountReady.collectAsState()
+                if (historyFocusedReady) {
+                    Text(
+                        text = "Account: ${
+                            when (val state = historyFocusedState) {
+                                is FocusedAccountState.Loading -> ""
+                                is FocusedAccountState.ShowAll -> "All Accounts"
+                                is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name ?: "All Accounts"
+                            }
+                        }",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(start = 4.dp)
                     )
                 }
             }

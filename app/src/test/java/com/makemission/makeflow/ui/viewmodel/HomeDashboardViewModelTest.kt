@@ -444,4 +444,40 @@ class HomeDashboardViewModelTest {
         assertEquals("GBP", currCollected2.last())
         currJob2.cancel()
     }
+
+    @Test
+    fun `cold start preserves focused account when accounts load asynchronously`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val dao = FakeCardInteractionDao()
+        val userPrefs = createTestUserPrefs()
+
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50")
+
+        // Pre-save focused account to DataStore (simulating previous session)
+        userPrefs.saveFocusedAccountId("acc_a")
+        runCurrent()
+
+        // Create ViewModel WITHOUT setting repo accounts
+        // (simulating accounts still loading from DB on cold start).
+        val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
+        advanceUntilIdle()
+
+        // Stale cleanup must NOT have cleared the focus — accts.isNotEmpty()
+        // guard should prevent firing when accounts list is still empty.
+        val collected = mutableListOf<String?>()
+        val job = launch { viewModel.focusedAccountId.collect { collected.add(it) } }
+        runCurrent()
+        assertEquals("acc_a", collected.last())
+        job.cancel()
+
+        // Once accounts load, the stale cleanup must still leave the focus intact
+        repo.setAccounts(listOf(accountA))
+        advanceUntilIdle()
+
+        val afterLoad = mutableListOf<String?>()
+        val afterJob = launch { viewModel.focusedAccountId.collect { afterLoad.add(it) } }
+        runCurrent()
+        assertEquals("acc_a", afterLoad.last())
+        afterJob.cancel()
+    }
 }

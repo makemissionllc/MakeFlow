@@ -71,6 +71,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
+import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
@@ -100,8 +101,9 @@ fun HomeDashboard(
 ) {
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
+    val focusedAccountReady by viewModel.focusedAccountReady.collectAsState()
     val focusedAccountId by viewModel.focusedAccountId.collectAsState()
-    val focusedAccount by viewModel.focusedAccount.collectAsState()
+    val focusedAccountState by viewModel.focusedAccountState.collectAsState()
     val balanceCurrencyCode by viewModel.balanceCurrencyCode.collectAsState()
     val monthlyIncome by viewModel.monthlyIncome.collectAsState()
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
@@ -120,6 +122,12 @@ fun HomeDashboard(
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val config = LocalAdaptiveConfig.current
+    val focusedAccountName = when (val state = focusedAccountState) {
+        is FocusedAccountState.Loading -> null
+        is FocusedAccountState.ShowAll -> null
+        is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name
+    }
+
     val formattedBalance = CurrencyFormatter.format(totalBalance, balanceCurrencyCode)
     val formattedIncome = CurrencyFormatter.format(monthlyIncome, selectedCurrency)
     val formattedExpenses = CurrencyFormatter.format(monthlyExpenses, selectedCurrency)
@@ -162,18 +170,39 @@ fun HomeDashboard(
             item {
                 LargeTitleItem(title = "Home", scrollState = listState)
             }
-            item {
-                AccountFocusSelector(
-                    focusedAccountName = focusedAccount?.name,
-                    onClick = { showAccountFocusSheet = true }
-                )
-            }
-            item {
-                TotalBalanceCard(
-                    balance = formattedBalance,
-                    monthLabel = currentMonthLabel,
-                    label = focusedAccount?.name ?: "Total balance"
-                )
+            if (focusedAccountReady) {
+                item {
+                    AccountFocusSelector(
+                        focusedAccountName = focusedAccountName,
+                        onClick = { showAccountFocusSheet = true }
+                    )
+                }
+                item {
+                    TotalBalanceCard(
+                        balance = formattedBalance,
+                        monthLabel = currentMonthLabel,
+                        label = focusedAccountName ?: "Total balance"
+                    )
+                }
+            } else {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                    )
+                }
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainer)
+                    )
+                }
             }
             cardOrder.forEach { cardType ->
                 when (cardType) {

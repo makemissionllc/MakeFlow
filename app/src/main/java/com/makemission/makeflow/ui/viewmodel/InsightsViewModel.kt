@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.domain.BudgetForecast
@@ -66,6 +67,51 @@ class InsightsViewModel(
     private val allTransactions = financeRepository.getAllTransactions()
     private val allCategories = financeRepository.getAllCategories()
 
+    private val _focusedAccountReady = MutableStateFlow(false)
+    val focusedAccountReady: StateFlow<Boolean> = _focusedAccountReady.asStateFlow()
+
+    private val _focusedAccountState = MutableStateFlow<FocusedAccountState>(FocusedAccountState.Loading)
+    val focusedAccountState: StateFlow<FocusedAccountState> = _focusedAccountState.asStateFlow()
+
+    val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val focusedAccount: StateFlow<AccountEntity?> = combine(
+        accounts, focusedAccountId
+    ) { accts, focusedId ->
+        if (focusedId != null) accts.find { it.id == focusedId } else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val accountFilteredTransactions = combine(
+        allTransactions, focusedAccountId
+    ) { txs, focusedId ->
+        if (focusedId != null) {
+            txs.filter { tx ->
+                tx.accountId == focusedId ||
+                    tx.fromAccountId == focusedId ||
+                    tx.toAccountId == focusedId
+            }
+        } else {
+            txs
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            userPreferencesDataStore.focusedAccountId.collect { id ->
+                if (!_focusedAccountReady.value) _focusedAccountReady.value = true
+                _focusedAccountState.value = if (id != null) {
+                    FocusedAccountState.Focused(id)
+                } else {
+                    FocusedAccountState.ShowAll
+                }
+            }
+        }
+    }
+
     private fun getMonthRangeMillis(month: YearMonth): Pair<Long, Long> {
         val start = month.atDay(1)
             .atStartOfDay(ZoneId.systemDefault())
@@ -110,13 +156,13 @@ class InsightsViewModel(
     }
 
     val categorySpending: StateFlow<List<CategorySpendingItem>> = combine(
-        allTransactions, allCategories, selectedMonth.asStateFlow()
+        accountFilteredTransactions, allCategories, selectedMonth.asStateFlow()
     ) { txs, cats, month ->
         computeCategorySpending(txs, cats, month)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val monthlyBarData: StateFlow<List<MonthlyBarItem>> = combine(
-        allTransactions, selectedMonth.asStateFlow()
+        accountFilteredTransactions, selectedMonth.asStateFlow()
     ) { txs, month ->
         (0L until 6L).map { offset ->
             val m = month.minusMonths(offset)
@@ -140,7 +186,7 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val totalIncome: StateFlow<Double> = combine(
-        allTransactions, selectedMonth.asStateFlow()
+        accountFilteredTransactions, selectedMonth.asStateFlow()
     ) { txs, month ->
         val (start, end) = getMonthRangeMillis(month)
         txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { it.amount }
@@ -154,7 +200,7 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val momItems: StateFlow<List<MomComparisonItem>> = combine(
-        allTransactions, allCategories, selectedMonth.asStateFlow()
+        accountFilteredTransactions, allCategories, selectedMonth.asStateFlow()
     ) { txs, cats, month ->
         val priorMonth = month.minusMonths(1)
 
@@ -221,7 +267,7 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val savingsSuggestion: StateFlow<SavingsCapacitySuggestion?> = combine(
-        allTransactions, userPreferencesDataStore.dismissedSuggestions
+        accountFilteredTransactions, userPreferencesDataStore.dismissedSuggestions
     ) { txs, dismissed ->
         if ("savings_capacity" in dismissed) null
         else {
@@ -238,7 +284,7 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val frugalStreaks: StateFlow<List<FrugalStreak>> = combine(
-        allTransactions, allCategories, userPreferencesDataStore.dismissedSuggestions
+        accountFilteredTransactions, allCategories, userPreferencesDataStore.dismissedSuggestions
     ) { txs, cats, dismissed ->
         val expenseCategories = cats.filter { it.parentCategoryId == null }
         val childToParent = cats.filter { it.parentCategoryId != null }
@@ -262,7 +308,7 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val upcomingSeasonalExpenses: StateFlow<List<SeasonalPattern>> = combine(
-        allTransactions, allCategories
+        accountFilteredTransactions, allCategories
     ) { txs, cats ->
         val expenseCategories = cats.filter { it.parentCategoryId == null }
         val childToParent = cats.filter { it.parentCategoryId != null }
@@ -307,6 +353,18 @@ class InsightsViewModel(
         val next = selectedMonth.value.plusMonths(1)
         if (!next.isAfter(YearMonth.now())) {
             selectedMonth.value = next
+        }
+    }
+
+    fun setFocusedAccountId(accountId: String?) {
+        _focusedAccountState.value = if (accountId != null) {
+            FocusedAccountState.Focused(accountId)
+        } else {
+            FocusedAccountState.ShowAll
+        }
+        if (!_focusedAccountReady.value) _focusedAccountReady.value = true
+        viewModelScope.launch {
+            userPreferencesDataStore.saveFocusedAccountId(accountId)
         }
     }
 }

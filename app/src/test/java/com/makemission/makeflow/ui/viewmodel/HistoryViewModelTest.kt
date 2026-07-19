@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -284,5 +285,41 @@ class HistoryViewModelTest {
             }
         }
         return UserPreferencesDataStore(dataStore)
+    }
+
+    @Test
+    fun `filteredTransactions scopes to focused account`() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val txA = TransactionEntity(
+            id = "tx_a", amount = 100.0, type = "EXPENSE", categoryId = "cat1",
+            accountId = "acc_a", note = "coffee", timestamp = 1000L
+        )
+        val txB = TransactionEntity(
+            id = "tx_b", amount = 200.0, type = "EXPENSE", categoryId = "cat1",
+            accountId = "acc_b", note = "tea", timestamp = 2000L
+        )
+        repo.addTransaction(txA)
+        repo.addTransaction(txB)
+
+        val userPrefs = createTestUserPrefs()
+        val viewModel = HistoryViewModel(repo, userPrefs)
+
+        // Default: all transactions
+        val allCollected = mutableListOf<List<TransactionEntity>>()
+        val allJob = launch { viewModel.filteredTransactions.collect { allCollected.add(it) } }
+        runCurrent()
+        assertEquals(2, allCollected.last().size)
+        allJob.cancel()
+
+        // Set focused account via DataStore (ViewModel doesn't expose setter directly)
+        userPrefs.saveFocusedAccountId("acc_a")
+        advanceUntilIdle()
+
+        val focusedCollected = mutableListOf<List<TransactionEntity>>()
+        val focusedJob = launch { viewModel.filteredTransactions.collect { focusedCollected.add(it) } }
+        runCurrent()
+        assertEquals(1, focusedCollected.last().size)
+        assertEquals("tx_a", focusedCollected.last()[0].id)
+        focusedJob.cancel()
     }
 }

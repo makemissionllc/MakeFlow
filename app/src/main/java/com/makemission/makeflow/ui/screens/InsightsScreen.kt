@@ -61,6 +61,7 @@ import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
+import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
 import com.makemission.makeflow.domain.FrugalStreak
 import com.makemission.makeflow.domain.PatternType
@@ -104,6 +105,9 @@ fun InsightsScreen(
     val savingsSuggestion by viewModel.savingsSuggestion.collectAsState()
     val frugalStreaks by viewModel.frugalStreaks.collectAsState()
     val upcomingSeasonalExpenses by viewModel.upcomingSeasonalExpenses.collectAsState()
+    val accounts by viewModel.accounts.collectAsState()
+    val insightsFocusedState by viewModel.focusedAccountState.collectAsState()
+    val insightsFocusedReady by viewModel.focusedAccountReady.collectAsState()
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -154,6 +158,22 @@ fun InsightsScreen(
     ) {
         item {
             LargeTitleItem(title = "Insights", scrollState = listState)
+        }
+        item {
+            if (insightsFocusedReady) {
+                Text(
+                    text = "Account: ${
+                        when (val state = insightsFocusedState) {
+                            is FocusedAccountState.Loading -> ""
+                            is FocusedAccountState.ShowAll -> "All Accounts"
+                            is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name ?: "All Accounts"
+                        }
+                    }",
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
         }
         item {
             StaggeredItem(index = 1) {

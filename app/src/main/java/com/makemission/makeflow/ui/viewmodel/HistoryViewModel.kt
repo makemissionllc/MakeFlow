@@ -43,17 +43,54 @@ class HistoryViewModel(
 
     val selectedFilter = MutableStateFlow("ALL")
 
+    val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _focusedAccountReady = MutableStateFlow(false)
+    val focusedAccountReady: StateFlow<Boolean> = _focusedAccountReady.asStateFlow()
+
+    private val _focusedAccountState = MutableStateFlow<FocusedAccountState>(FocusedAccountState.Loading)
+    val focusedAccountState: StateFlow<FocusedAccountState> = _focusedAccountState.asStateFlow()
+
+    val focusedAccount: StateFlow<AccountEntity?> = combine(
+        accounts, focusedAccountId
+    ) { accts, focusedId ->
+        if (focusedId != null) accts.find { it.id == focusedId } else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     val filteredTransactions: StateFlow<List<TransactionEntity>> = combine(
-        _transactions, selectedFilter.asStateFlow()
-    ) { allTxs, filter ->
-        when (filter) {
+        _transactions, selectedFilter.asStateFlow(), focusedAccountId
+    ) { allTxs, filter, focusedId ->
+        val typeFiltered = when (filter) {
             "INCOME" -> allTxs.filter { it.type == "INCOME" }
             "EXPENSE" -> allTxs.filter { it.type == "EXPENSE" }
             else -> allTxs
         }
+        if (focusedId != null) {
+            typeFiltered.filter { tx ->
+                tx.accountId == focusedId ||
+                    tx.fromAccountId == focusedId ||
+                    tx.toAccountId == focusedId
+            }
+        } else {
+            typeFiltered
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val recentlyDeleted = MutableStateFlow<TransactionEntity?>(null)
+
+    init {
+        viewModelScope.launch {
+            userPreferencesDataStore.focusedAccountId.collect { id ->
+                if (!_focusedAccountReady.value) _focusedAccountReady.value = true
+                _focusedAccountState.value = if (id != null) {
+                    FocusedAccountState.Focused(id)
+                } else {
+                    FocusedAccountState.ShowAll
+                }
+            }
+        }
+    }
 
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {

@@ -30,8 +30,7 @@ import com.makemission.makeflow.domain.VelocityAlert
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -59,8 +58,14 @@ class HomeDashboardViewModel(
     val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _focusedAccountReady = MutableStateFlow(false)
+    val focusedAccountReady: StateFlow<Boolean> = _focusedAccountReady.asStateFlow()
+
     val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    private val _focusedAccountState = MutableStateFlow<FocusedAccountState>(FocusedAccountState.Loading)
+    val focusedAccountState: StateFlow<FocusedAccountState> = _focusedAccountState.asStateFlow()
 
     val focusedAccount: StateFlow<AccountEntity?> = combine(
         accounts, focusedAccountId
@@ -80,7 +85,7 @@ class HomeDashboardViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val totalBalance: StateFlow<Double> = combine(
-        financeRepository.getAllAccounts(),
+        accounts,
         focusedAccountId,
         selectedCurrency,
         exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
@@ -217,6 +222,12 @@ class HomeDashboardViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setFocusedAccountId(accountId: String?) {
+        _focusedAccountState.value = if (accountId != null) {
+            FocusedAccountState.Focused(accountId)
+        } else {
+            FocusedAccountState.ShowAll
+        }
+        if (!_focusedAccountReady.value) _focusedAccountReady.value = true
         viewModelScope.launch {
             userPreferencesDataStore.saveFocusedAccountId(accountId)
         }
@@ -295,10 +306,21 @@ class HomeDashboardViewModel(
             }
         }
         viewModelScope.launch {
+            userPreferencesDataStore.focusedAccountId.collect { id ->
+                if (!_focusedAccountReady.value) _focusedAccountReady.value = true
+                _focusedAccountState.value = if (id != null) {
+                    FocusedAccountState.Focused(id)
+                } else {
+                    FocusedAccountState.ShowAll
+                }
+            }
+        }
+        viewModelScope.launch {
             combine(accounts, focusedAccountId) { accts, focusedId ->
-                if (focusedId != null && accts.none { it.id == focusedId }) focusedId else null
+                if (accts.isNotEmpty() && focusedId != null && accts.none { it.id == focusedId }) focusedId else null
             }.collect { staleId ->
                 if (staleId != null) {
+                    _focusedAccountState.value = FocusedAccountState.ShowAll
                     userPreferencesDataStore.saveFocusedAccountId(null)
                 }
             }

@@ -152,6 +152,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val logMpesaCosts: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[LOG_MPESA_COSTS_KEY] ?: true
+    }
+
+    suspend fun saveLogMpesaCosts(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[LOG_MPESA_COSTS_KEY] = enabled
+        }
+    }
+
     companion object {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
@@ -165,5 +175,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
         private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
+        private val LOG_MPESA_COSTS_KEY = booleanPreferencesKey("log_mpesa_costs")
     }
 }

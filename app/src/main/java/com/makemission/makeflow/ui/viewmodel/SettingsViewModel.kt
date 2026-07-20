@@ -53,6 +53,9 @@ class SettingsViewModel(
     val smartCategorizationEnabled: StateFlow<Boolean> = userPreferencesDataStore.smartCategorizationEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val logMpesaCosts: StateFlow<Boolean> = userPreferencesDataStore.logMpesaCosts
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val hasPromptedNotificationPermission: StateFlow<Boolean> = userPreferencesDataStore.hasPromptedNotificationPermission
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -87,6 +90,12 @@ class SettingsViewModel(
     fun saveSmartCategorizationEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveSmartCategorizationEnabled(enabled)
+        }
+    }
+
+    fun saveLogMpesaCosts(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveLogMpesaCosts(enabled)
         }
     }
 

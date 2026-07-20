@@ -94,6 +94,7 @@ fun AddTransactionBottomSheet(
     onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
     commitHandler: TransactionCommitHandler? = null,
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
+    onGetCategoryUsages: (suspend () -> List<com.makemission.makeflow.domain.CategoryUsage>)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
     correctionMemory: Map<String, String> = emptyMap(),

@@ -35,6 +35,8 @@ import com.makemission.makeflow.data.local.entity.CorrectionEntity
 import com.makemission.makeflow.data.local.entity.CorrectionMemoryEntity
 import com.makemission.makeflow.data.local.dao.CorrectionDao
 import com.makemission.makeflow.data.local.dao.CorrectionMemoryDao
+import com.makemission.makeflow.data.local.dao.AppLogDao
+import com.makemission.makeflow.data.local.entity.AppLogEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -55,9 +57,10 @@ import kotlinx.coroutines.runBlocking
         ExchangeRateEntity::class,
         SavingsGoalEntity::class,
         CorrectionEntity::class,
-        CorrectionMemoryEntity::class
+        CorrectionMemoryEntity::class,
+        AppLogEntity::class
     ],
-    version = 18,
+    version = 20,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -76,6 +79,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun queuedNotificationDao(): QueuedNotificationDao
     abstract fun correctionDao(): CorrectionDao
     abstract fun correctionMemoryDao(): CorrectionMemoryDao
+    abstract fun appLogDao(): AppLogDao
 
     @androidx.room.Transaction
     open suspend fun atomicRestore(
@@ -398,6 +402,32 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget)
+                        SELECT hex(randomblob(16)), 'Transaction Fees', 'EXPENSE', id, 'receipt', '#78909C', 0.0
+                        FROM categories WHERE name = 'Bills' AND parentCategoryId IS NULL AND type = 'EXPENSE'
+                        AND NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Transaction Fees' AND parentCategoryId IS NOT NULL)"""
+                )
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS app_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        timestamp INTEGER NOT NULL,
+                        level TEXT NOT NULL,
+                        tag TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        stackTrace TEXT
+                    )"""
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 INSTANCE ?: try {
@@ -406,7 +436,7 @@ abstract class AppDatabase : RoomDatabase() {
                         AppDatabase::class.java,
                         "makeflow_database"
                     )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
                     .fallbackToDestructiveMigration(dropAllTables = true)
                     .build()
                     INSTANCE = instance

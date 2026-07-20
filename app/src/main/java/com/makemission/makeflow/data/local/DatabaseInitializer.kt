@@ -57,6 +57,7 @@ object DatabaseInitializer {
         categoryDao.insertCategory(CategoryEntity(name = "Healthcare", type = "EXPENSE", parentCategoryId = bills.id, iconName = "local_hospital", colorHex = "#00897B"))
         categoryDao.insertCategory(CategoryEntity(name = "Taxes", type = "EXPENSE", parentCategoryId = bills.id, iconName = "account_balance_wallet", colorHex = "#558B2F"))
         categoryDao.insertCategory(CategoryEntity(name = "Services/Errands", type = "EXPENSE", parentCategoryId = bills.id, iconName = "assignment", colorHex = "#FFA726"))
+        categoryDao.insertCategory(CategoryEntity(name = "Transaction Fees", type = "EXPENSE", parentCategoryId = bills.id, iconName = "receipt", colorHex = "#78909C"))
 
         categoryDao.insertCategory(CategoryEntity(name = "Public", type = "EXPENSE", parentCategoryId = transport.id, iconName = "directions_bus", colorHex = "#81C784"))
         categoryDao.insertCategory(CategoryEntity(name = "Private", type = "EXPENSE", parentCategoryId = transport.id, iconName = "directions_car", colorHex = "#A5D6A7"))

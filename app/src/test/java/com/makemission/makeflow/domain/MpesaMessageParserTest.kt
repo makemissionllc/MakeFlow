@@ -101,6 +101,7 @@ class MpesaMessageParserTest {
         assertTrue("counterpartyName should contain JAMES OKELLO", r.counterpartyName!!.contains("JAMES OKELLO"))
         assertNull(r.counterpartyPhone)
         assertEquals(3235.07, r.balance!!, 0.001)
+        assertNull("RECEIVED messages should have null transactionCost", r.transactionCost)
     }
 
     @Test
@@ -114,6 +115,7 @@ class MpesaMessageParserTest {
         assertTrue("counterpartyName should contain DAVID MUTUA", r.counterpartyName!!.contains("DAVID MUTUA"))
         assertEquals("0733***333", r.counterpartyPhone)
         assertEquals(247.05, r.balance!!, 0.001)
+        assertNull("RECEIVED messages should have null transactionCost", r.transactionCost)
     }
 
     @Test
@@ -127,6 +129,48 @@ class MpesaMessageParserTest {
         assertTrue(r.counterpartyName!!.contains("SAFARICOM DATA BUNDLES"))
         assertEquals(9.07, r.balance!!, 0.001)
         assertEquals(0.00, r.transactionCost!!, 0.001)
+    }
+
+    // ── Transaction cost extraction variants ──
+
+    @Test
+    fun `sent message with no cost line returns null cost`() {
+        val msg = "UGE32B9V7H Confirmed. Ksh30.00 sent to JOHN KAMAU on 14/7/26 at 6:28 PM. New M-PESA balance is Ksh498.27."
+        val r = MpesaMessageParser.parse(msg)
+        assertNotNull(r)
+        assertNull("No cost line means null transactionCost", r!!.transactionCost)
+    }
+
+    @Test
+    fun `cost with comma separator extracts correctly`() {
+        val msg = "UGX1ABC123 Confirmed. Ksh5,000.00 sent to VODACOM TANZANIA on 20/7/26 at 10:00 AM. New M-PESA balance is Ksh10,000.00. Transaction cost, Ksh1,500.00."
+        val r = MpesaMessageParser.parse(msg)
+        assertNotNull(r)
+        assertEquals(1500.0, r!!.transactionCost!!, 0.001)
+    }
+
+    @Test
+    fun `cost with no decimal returns correctly`() {
+        val msg = "UGX1ABC123 Confirmed. Ksh500.00 sent to JOHN on 20/7/26 at 10:00 AM. New M-PESA balance is Ksh1,000.00. Transaction cost, Ksh22."
+        val r = MpesaMessageParser.parse(msg)
+        assertNotNull(r)
+        assertEquals(22.0, r!!.transactionCost!!, 0.001)
+    }
+
+    @Test
+    fun `zero cost with no comma extracts as zero`() {
+        val msg = "UGE32B9V7H Confirmed. Ksh30.00 sent to JOHN KAMAU on 14/7/26 at 6:28 PM. New M-PESA balance is Ksh498.27. Transaction cost Ksh0.00."
+        val r = MpesaMessageParser.parse(msg)
+        assertNotNull(r)
+        assertEquals(0.0, r!!.transactionCost!!, 0.001)
+    }
+
+    @Test
+    fun `ratiba cost without comma extracts correctly`() {
+        val msg = "UGE32B7KXZ Confirmed M-PESA Ratiba. Ksh15.00 sent to ETICA CAPITAL LTD for account 221013FA on 14/7/26 at 9:15 AM New M-PESA balance is Ksh925.77. Transaction cost Ksh5.00."
+        val r = MpesaMessageParser.parse(msg)
+        assertNotNull(r)
+        assertEquals(5.0, r!!.transactionCost!!, 0.001)
     }
 
     // ── Existing graceful-failure tests ──

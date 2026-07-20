@@ -86,6 +86,7 @@ import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.DuplicateCheckResult
+import com.makemission.makeflow.domain.CategoryUsage
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -111,6 +112,7 @@ fun AddTransactionScreen(
     onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
     onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
+    onGetCategoryUsages: (suspend () -> List<CategoryUsage>)? = null,
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
@@ -124,7 +126,9 @@ fun AddTransactionScreen(
     initialTransferFromId: String? = null,
     initialTransferToId: String? = null,
     editTransaction: TransactionEntity? = null,
-    onUpdate: (suspend (TransactionEntity) -> Unit)? = null
+    onUpdate: (suspend (TransactionEntity) -> Unit)? = null,
+    mpesaTransactionCost: Double? = null,
+    logMpesaCosts: Boolean = true
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -153,6 +157,7 @@ fun AddTransactionScreen(
     var pendingEntity by remember { mutableStateOf<TransactionEntity?>(null) }
     var templateNameInput by remember { mutableStateOf("") }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
+    val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
 
     // === Category state ===
     val parentCategories = remember(categories, selectedType) {
@@ -235,6 +240,9 @@ fun AddTransactionScreen(
     LaunchedEffect(Unit) {
         if (onGetPastTransactions != null) {
             pastTransactions.value = onGetPastTransactions()
+        }
+        if (onGetCategoryUsages != null) {
+            categoryUsages.value = onGetCategoryUsages()
         }
     }
 
@@ -442,6 +450,7 @@ fun AddTransactionScreen(
             accounts = accounts,
             selectedAccountId = selectedTransferToId,
             currencyCode = currencyCode,
+            categoryUsages = categoryUsages.value,
             onItemSelected = { id ->
                 if (selectedType == "TRANSFER") {
                     selectedTransferToId = id
@@ -772,6 +781,25 @@ fun AddTransactionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { showDateTimePicker = true }
             )
+
+            // === M-PESA fee note ===
+            val showFeeNote = mpesaTransactionCost != null && mpesaTransactionCost > 0 && logMpesaCosts
+            if (showFeeNote) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E2A1E), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "+ ${CurrencyFormatter.format(mpesaTransactionCost!!, currencyCode)} fee will also be logged separately",
+                        color = Color(0xFF81C784),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
 
             // === Save as Template link ===
             if (!isEditMode && onSaveAsTemplate != null) {

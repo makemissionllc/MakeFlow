@@ -77,6 +77,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.logging.AppLogger
 import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.ml.RetrainableCategoryClassifier
 import com.makemission.makeflow.data.repository.CorrectionRepository
@@ -213,6 +214,7 @@ fun MainScreen(
     )
     val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
     val smartCategorizationEnabled by settingsViewModel.smartCategorizationEnabled.collectAsState()
+    val logMpesaCosts by settingsViewModel.logMpesaCosts.collectAsState()
 
     val hapticManager = rememberHapticManager()
     hapticManager.isEnabled = hapticsEnabled
@@ -268,6 +270,7 @@ fun MainScreen(
     var mpesaInitialAccountId by remember { mutableStateOf<String?>(null) }
     var mpesaInitialTransferFromId by remember { mutableStateOf<String?>(null) }
     var mpesaInitialTransferToId by remember { mutableStateOf<String?>(null) }
+    var mpesaTransactionCost by remember { mutableStateOf<Double?>(null) }
 
     LaunchedEffect(sharedMpesaData) {
         val data = sharedMpesaData ?: return@LaunchedEffect
@@ -275,6 +278,11 @@ fun MainScreen(
             val isDuplicate = repository.hasExternalReference(data.code)
             if (isDuplicate) {
                 mpesaDuplicateMessage = "This M-PESA transaction has already been logged"
+                return@LaunchedEffect
+            }
+            val isFeeDuplicate = repository.hasExternalReference("${data.code}-fee")
+            if (isFeeDuplicate) {
+                mpesaDuplicateMessage = "This M-PESA transaction fee has already been logged"
                 return@LaunchedEffect
             }
         }
@@ -331,6 +339,7 @@ fun MainScreen(
             fmt.parse("$normalizedDate ${data.time}")?.time
         } catch (_: Exception) { null }
         mpesaExternalReference = data.code
+        mpesaTransactionCost = data.transactionCost
         showAddTransaction = true
     }
 
@@ -450,6 +459,7 @@ fun MainScreen(
                         }
                     }
                 } catch (e: Exception) {
+                    AppLogger.error("MainScreen", "Backup failed", e)
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
                     }
@@ -477,6 +487,7 @@ fun MainScreen(
                         backupJson = json
                     }
                 } catch (e: Exception) {
+                    AppLogger.error("MainScreen", "Failed to read backup", e)
                     withContext(Dispatchers.Main) {
                         Toast.makeText(context, "Failed to read backup: ${e.message}", Toast.LENGTH_LONG).show()
                     }
@@ -813,6 +824,7 @@ fun MainScreen(
                                     }
                                 }
                             } catch (e: Exception) {
+                                AppLogger.error("MainScreen", "Restore failed", e)
                                 withContext(Dispatchers.Main) {
                                     restoreError = "Restore failed: ${e.message}"
                                 }
@@ -892,6 +904,7 @@ fun MainScreen(
                 mpesaInitialNote = ""
                 mpesaInitialTimestamp = null
                 mpesaExternalReference = null
+                mpesaTransactionCost = null
                 mpesaInitialAccountId = null
                 mpesaInitialTransferFromId = null
                 mpesaInitialTransferToId = null
@@ -922,8 +935,26 @@ fun MainScreen(
                                 externalReference = mpesaExternalReference
                             )
                         )
+                        val cost = mpesaTransactionCost
+                        if (mpesaExternalReference != null && logMpesaCosts && cost != null && cost > 0) {
+                            val feeCategoryId = categories.find {
+                                it.name == "Transaction Fees" && it.parentCategoryId != null
+                            }?.id
+                            repository.insertTransaction(
+                                TransactionEntity(
+                                    amount = cost,
+                                    type = "EXPENSE",
+                                    categoryId = feeCategoryId,
+                                    accountId = accountId,
+                                    note = "M-PESA transaction cost for ${mpesaExternalReference}",
+                                    timestamp = timestamp,
+                                    externalReference = "${mpesaExternalReference}-fee"
+                                )
+                            )
+                        }
                         WidgetUpdateHelper.updateWidgets(context)
                         mpesaExternalReference = null
+                        mpesaTransactionCost = null
                         showAddTransaction = false
                     }
                 },
@@ -958,6 +989,17 @@ fun MainScreen(
                 onGetPastTransactions = {
                     val pairs = repository.getRecentDescriptionsAndCategories()
                     pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
+                },
+                onGetCategoryUsages = {
+                    val cutoff = System.currentTimeMillis() - (90L * 24 * 60 * 60 * 1000)
+                    val txs = repository.getTransactionsInRange(cutoff, System.currentTimeMillis())
+                    txs.first().map { tx ->
+                        com.makemission.makeflow.domain.CategoryUsage(
+                            categoryId = tx.categoryId ?: "",
+                            type = tx.type,
+                            timestamp = tx.timestamp
+                        )
+                    }
                 },
                 categoryClassifier = categoryClassifier,
                 smartCategorizationEnabled = smartCategorizationEnabled,
@@ -1003,7 +1045,9 @@ fun MainScreen(
                         editingTransaction = null
                         showAddTransaction = false
                     }
-                }
+                },
+                mpesaTransactionCost = mpesaTransactionCost,
+                logMpesaCosts = logMpesaCosts
             )
         }
     }

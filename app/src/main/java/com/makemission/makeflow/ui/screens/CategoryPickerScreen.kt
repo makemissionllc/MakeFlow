@@ -40,6 +40,9 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.domain.CategoryUsage
+import com.makemission.makeflow.domain.CategoryUsageRanker
+import com.makemission.makeflow.domain.RankedCategory
 import com.makemission.makeflow.ui.components.pressScale
  
 private data class CategoryListItem(
@@ -56,9 +59,20 @@ fun CategoryPickerScreen(
     selectedAccountId: String?,
     currencyCode: String,
     onItemSelected: (String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    categoryUsages: List<CategoryUsage> = emptyList()
 ) {
     val isTransfer = selectedType == "TRANSFER"
+
+    val rankedCategories = remember(categoryUsages, selectedType) {
+        if (isTransfer) emptyList()
+        else {
+            val ranked = CategoryUsageRanker.rank(categoryUsages)
+            ranked[selectedType] ?: emptyList()
+        }
+    }
+
+    val categoryMap = remember(categories) { categories.associateBy { it.id } }
 
     val categoryItems = remember(categories, selectedType) {
         if (isTransfer) emptyList()
@@ -124,6 +138,39 @@ fun CategoryPickerScreen(
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                if (rankedCategories.isNotEmpty()) {
+                    item(key = "frequent_header") {
+                        Text(
+                            text = "Frequently Used",
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)
+                        )
+                    }
+                    items(rankedCategories, key = { "freq_${it.categoryId}" }) { ranked ->
+                        val cat = categoryMap[ranked.categoryId]
+                        if (cat != null) {
+                            val isSelected = cat.id == selectedCategoryId
+                            CategoryRow(
+                                category = cat,
+                                indentLevel = 0,
+                                isSelected = isSelected,
+                                onClick = { onItemSelected(cat.id) }
+                            )
+                        }
+                    }
+                    item(key = "frequent_divider") {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(Color.White.copy(alpha = 0.08f))
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
                 items(categoryItems, key = { it.entity.id }) { item ->
                     val isSelected = item.entity.id == selectedCategoryId
                     CategoryRow(

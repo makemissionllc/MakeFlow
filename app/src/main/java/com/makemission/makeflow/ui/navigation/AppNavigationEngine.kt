@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.makemission.makeflow.core.device.InterruptionFilterProvider
+import com.makemission.makeflow.core.logging.AppLogger
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.device.rememberPowerState
 import com.makemission.makeflow.core.haptics.rememberHapticManager
@@ -103,14 +104,16 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
                     }
                 }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.error("AppNav", "Failed to update recurring pattern lastNotifiedNextDate", e)
         }
     }
 
     LaunchedEffect(Unit) {
         try {
             repository.processDueRecurringTransactions()
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            AppLogger.error("AppNav", "Failed to process due recurring transactions", e)
         }
     }
 
@@ -140,9 +143,11 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
             if (result != null) {
                 parsedMpesa = result
                 shareParseError = null
+                AppLogger.info("AppNav", "M-PESA message parsed: ${result.type} Ksh${result.amount}")
             } else {
                 parsedMpesa = null
                 shareParseError = "Message not recognized as M-PESA. You can enter it manually."
+                AppLogger.warn("AppNav", "M-PESA share text not recognized: ${sharedText?.take(100)}")
             }
             onSharedTextConsumed()
         }

@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.RestorePage
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -113,6 +114,7 @@ fun SettingsScreen(
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
     val smartCategorizationEnabled by viewModel.smartCategorizationEnabled.collectAsState()
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
+    val logMpesaCosts by viewModel.logMpesaCosts.collectAsState()
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
@@ -217,9 +219,18 @@ fun SettingsScreen(
                     }
                 }
 
+                item {
+                    StaggeredItem(index = 10) {
+                    MpesaCostsToggleRow(
+                        enabled = logMpesaCosts,
+                        onToggle = { viewModel.saveLogMpesaCosts(it) }
+                    )
+                    }
+                }
+
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
-                        StaggeredItem(index = 10) {
+                        StaggeredItem(index = 11) {
                         Box(Modifier.fillMaxWidth()) {
                             NotificationEnableRow()
                         }
@@ -367,6 +378,15 @@ fun SettingsScreen(
                     AppLockToggleRow(
                         enabled = appLockEnabled,
                         onToggle = { viewModel.saveAppLockEnabled(it) }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 11) {
+                    MpesaCostsToggleRow(
+                        enabled = logMpesaCosts,
+                        onToggle = { viewModel.saveLogMpesaCosts(it) }
                     )
                     }
                 }
@@ -776,6 +796,57 @@ private fun SmartCategorizationToggleRow(
             Column {
                 Text(text = "Smart categorization", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                 Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+            }
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Color(0xFF4CAF50),
+                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
+                uncheckedTrackColor = Color(0xFF2C2C2C)
+            )
+        )
+    }
+}
+
+@Composable
+private fun MpesaCostsToggleRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF1B1C1F))
+            .clickable { onToggle(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Receipt,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "Log M-PESA fees", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "Create separate fee transactions" else "Ignore transaction costs", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
             }
         }
         Switch(

@@ -81,6 +81,7 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -92,6 +93,7 @@ fun OnboardingScreen(
     onOnboardingComplete: () -> Unit = {},
     hapticManager: HapticManager? = null
 ) {
+    val dimens = LocalAppDimens.current
     val pagerState = rememberPagerState(pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
 
@@ -194,7 +196,7 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val reducedMotion = LocalReducedMotion.current
@@ -259,7 +261,7 @@ fun OnboardingScreen(
                         disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     ),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(dimens.shapeCornerMedium),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp)
@@ -287,12 +289,13 @@ fun WelcomeStageView(
     onCurrencyChange: (String) -> Unit = {},
     showNameError: Boolean = false
 ) {
+    val dimens = LocalAppDimens.current
     val currencies = listOf("KES", "USD", "EUR", "GBP", "UGX", "TZS")
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = dimens.paddingLarge),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Box(
@@ -319,7 +322,7 @@ fun WelcomeStageView(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -350,7 +353,7 @@ fun WelcomeStageView(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(dimens.shapeCornerMedium),
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -365,7 +368,7 @@ fun WelcomeStageView(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 currencies.forEach { code ->
                     val isSelected = code == selectedCurrency
@@ -374,7 +377,7 @@ fun WelcomeStageView(
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                         modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                             .background(
                                 if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
                             )
@@ -405,13 +408,14 @@ fun AccountSetupStageView(
     onAddAccount: () -> Unit,
     onRemoveAccount: (AccountEntity) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
             Text(
                 text = "Quick setup",
                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold, letterSpacing = (-0.5).sp),
@@ -426,7 +430,7 @@ fun AccountSetupStageView(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
@@ -442,7 +446,7 @@ fun AccountSetupStageView(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(dimens.cornerRadiusMedium),
                 modifier = Modifier.weight(1.3f)
             )
 
@@ -460,7 +464,7 @@ fun AccountSetupStageView(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 ),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(dimens.cornerRadiusMedium),
                 modifier = Modifier.weight(1f)
             )
 
@@ -468,7 +472,7 @@ fun AccountSetupStageView(
                 onClick = onAddAccount,
                 modifier = Modifier
                     .size(52.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(dimens.cornerRadiusMedium))
             ) {
                 Icon(imageVector = Icons.Rounded.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
             }
@@ -531,7 +535,7 @@ fun AccountSetupStageView(
                             )
                         }
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
@@ -562,11 +566,12 @@ fun AccountSetupStageView(
 
 @Composable
 fun OnboardingVisualCard(name: String, balance: String, icon: ImageVector, modifier: Modifier = Modifier) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = modifier
             .width(230.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
-            .padding(16.dp),
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(dimens.cornerRadiusLarge))
+            .padding(dimens.paddingMedium),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -601,6 +606,7 @@ private data class FeatureItem(
 
 @Composable
 fun FeaturesStageView(modifier: Modifier = Modifier) {
+    val dimens = LocalAppDimens.current
     val features = remember {
         listOf(
             FeatureItem(Icons.Rounded.TrendingUp, "Spending Insights", "See where your money goes with smart spending breakdowns"),
@@ -615,10 +621,10 @@ fun FeaturesStageView(modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = dimens.paddingLarge),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
             Text(
                 text = "Mindful Wallet",
                 style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
@@ -647,7 +653,7 @@ fun FeaturesStageView(modifier: Modifier = Modifier) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(dimens.shapeCornerMedium))
                         .padding(14.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     verticalAlignment = Alignment.CenterVertically

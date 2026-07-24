@@ -69,6 +69,8 @@ import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
@@ -99,6 +101,7 @@ fun HomeDashboard(
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
+    val dimens = LocalAppDimens.current
     val totalBalance by viewModel.totalBalance.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val focusedAccountReady by viewModel.focusedAccountReady.collectAsState()
@@ -190,7 +193,7 @@ fun HomeDashboard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
-                            .clip(RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                             .background(MaterialTheme.colorScheme.surfaceContainer)
                     )
                 }
@@ -199,7 +202,7 @@ fun HomeDashboard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(dimens.shapeCornerMedium))
                             .background(MaterialTheme.colorScheme.surfaceContainer)
                     )
                 }
@@ -288,7 +291,7 @@ fun HomeDashboard(
                 }
             }
             item {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                 Text(
                     text = "Edit cards",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
@@ -368,6 +371,7 @@ fun TotalBalanceCard(
     monthLabel: String = "June 2026",
     label: String = "Total balance"
 ) {
+    val dimens = LocalAppDimens.current
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -388,7 +392,7 @@ fun TotalBalanceCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
         Text(
             text = balance,
@@ -397,11 +401,11 @@ fun TotalBalanceCard(
             fontWeight = FontWeight.Bold
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {
             Box(
                 modifier = Modifier
@@ -424,6 +428,7 @@ fun AccountsCard(
     onOpenAccounts: () -> Unit = {},
     onOpenSavingsGoals: () -> Unit = {}
 ) {
+    val dimens = LocalAppDimens.current
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -486,7 +491,7 @@ fun AccountsCard(
             accounts.forEach { account ->
                 Row(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                         .padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -523,6 +528,7 @@ fun CashFlowCard(
     monthLabel: String = "June 2026",
     onTap: (() -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     Box(
         modifier = if (onTap != null) Modifier.clickable { onTap() } else Modifier
     ) {
@@ -553,7 +559,7 @@ fun CashFlowCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -561,19 +567,19 @@ fun CashFlowCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(28.dp)
-                            .background(Color(0xFF34C759).copy(alpha = 0.15f), CircleShape),
+                            .background(LocalMakeFlowColors.current.colorSuccess.copy(alpha = 0.15f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.ArrowUpward,
                             contentDescription = "Income",
-                            tint = Color(0xFF34C759),
+                            tint = LocalMakeFlowColors.current.colorSuccess,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -585,13 +591,13 @@ fun CashFlowCard(
                 }
                 Text(
                     text = income,
-                    color = Color(0xFF34C759),
+                    color = LocalMakeFlowColors.current.colorSuccess,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -599,7 +605,7 @@ fun CashFlowCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
@@ -629,14 +635,14 @@ fun CashFlowCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 thickness = 0.5.dp
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -665,6 +671,7 @@ fun CategoriesCard(
     categories: List<CategoryLegend> = emptyList(),
     monthLabel: String = "June 2026"
 ) {
+    val dimens = LocalAppDimens.current
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -692,11 +699,11 @@ fun CategoriesCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(20.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingXXLarge)
         ) {
             Box(
                 modifier = Modifier
@@ -708,7 +715,7 @@ fun CategoriesCard(
                     Text(
                         text = "Expense",
                         color = MaterialTheme.colorScheme.error,
-                        fontSize = 12.sp,
+                        fontSize = dimens.textS,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -725,7 +732,7 @@ fun CategoriesCard(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -759,6 +766,7 @@ fun BudgetsCard(
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
+    val dimens = LocalAppDimens.current
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
         budgets.forEach { budget ->
@@ -837,11 +845,11 @@ fun BudgetsCard(
                 val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                 val progressColor = when {
                     progress >= 1f -> MaterialTheme.colorScheme.error
-                    progress >= 0.7f -> Color(0xFFFFA726)
-                    else -> Color(0xFF4CAF50)
+                    progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+                    else -> LocalMakeFlowColors.current.colorSuccess
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -856,7 +864,7 @@ fun BudgetsCard(
                         Text(
                             text = "${CurrencyFormatter.format(budget.spentAmount, currencyCode)} / ${CurrencyFormatter.format(budget.amount, currencyCode)}",
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            fontSize = dimens.textS
                         )
                     }
 
@@ -874,7 +882,7 @@ fun BudgetsCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
     }
 }
 
@@ -883,6 +891,7 @@ fun RecurringCard(
     patterns: List<RecurringPattern>,
     currencyCode: String
 ) {
+    val dimens = LocalAppDimens.current
     CardContainer {
         Text(
             text = "Upcoming",
@@ -915,7 +924,7 @@ fun RecurringCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = "estimated",
-                                color = Color(0xFFFFA726),
+                                color = LocalMakeFlowColors.current.colorWarning,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Normal
                             )
@@ -929,7 +938,7 @@ fun RecurringCard(
                 }
                 Text(
                     text = relativeDate,
-                    color = if (relativeDate == "Tomorrow") Color(0xFFFFA726) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    color = if (relativeDate == "Tomorrow") LocalMakeFlowColors.current.colorWarning else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -965,6 +974,7 @@ fun PendingRecurringCard(
     onConfirm: (RecurringTransactionEntity) -> Unit,
     onSkip: (RecurringTransactionEntity) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val dateFormat = remember { SimpleDateFormat("MMM d", Locale.getDefault()) }
     CardContainer {
         Text(
@@ -992,28 +1002,28 @@ fun PendingRecurringCard(
                     Text(
                         text = "${CurrencyFormatter.format(item.amount, currencyCode)} \u00B7 Due ${dateFormat.format(Date(item.nextDueDate))}",
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        fontSize = 12.sp
+                        fontSize = dimens.textS
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
                     Text(
                         text = "Confirm",
-                        color = Color(0xFF4CAF50),
+                        color = LocalMakeFlowColors.current.colorSuccess,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .clickable { onConfirm(item) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                     Text(
                         text = "Skip",
-                        color = Color(0xFFFFA726),
+                        color = LocalMakeFlowColors.current.colorWarning,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .clickable { onSkip(item) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
@@ -1029,10 +1039,11 @@ fun PendingRecurringCard(
 
 @Composable
 fun CardContainer(content: @Composable () -> Unit) {
+    val dimens = LocalAppDimens.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(dimens.cornerRadiusLarge))
             .padding(16.dp)
     ) {
         content()
@@ -1044,6 +1055,7 @@ private fun VelocityAlertsCard(
     alerts: List<VelocityAlert>,
     currencyCode: String
 ) {
+    val dimens = LocalAppDimens.current
     CardContainer {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1052,7 +1064,7 @@ private fun VelocityAlertsCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                 contentDescription = null,
-                tint = Color(0xFFFFA726),
+                tint = LocalMakeFlowColors.current.colorWarning,
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
@@ -1063,18 +1075,18 @@ private fun VelocityAlertsCard(
                 fontWeight = FontWeight.Medium
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingLarge))
         alerts.forEach { alert ->
             val severityColor = when (alert.severity) {
                 com.makemission.makeflow.domain.VelocitySeverity.CRITICAL -> MaterialTheme.colorScheme.error
-                com.makemission.makeflow.domain.VelocitySeverity.HIGH -> Color(0xFFFF7043)
-                com.makemission.makeflow.domain.VelocitySeverity.ELEVATED -> Color(0xFFFFA726)
+                com.makemission.makeflow.domain.VelocitySeverity.HIGH -> MaterialTheme.colorScheme.error
+                com.makemission.makeflow.domain.VelocitySeverity.ELEVATED -> LocalMakeFlowColors.current.colorWarning
                 com.makemission.makeflow.domain.VelocitySeverity.NONE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             }
             val formattedPct = "${(alert.percentAhead * 100).toInt()}%"
             val projectedFormatted = CurrencyFormatter.format(alert.projectedMonthEndAmount, currencyCode)
             val actualFormatted = CurrencyFormatter.format(alert.actualCumulativeSpend, currencyCode)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1096,7 +1108,7 @@ private fun VelocityAlertsCard(
                 Text(
                     text = "$actualFormatted spent \u00B7 at this pace: $projectedFormatted by month end",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    fontSize = dimens.textS
                 )
             }
             if (alert != alerts.last()) {
@@ -1113,6 +1125,7 @@ private fun ProjectionCard(
     projection: CashFlowProjection,
     currencyCode: String
 ) {
+    val dimens = LocalAppDimens.current
     val dateFormat = remember { SimpleDateFormat("d MMMM", Locale.getDefault()) }
     val endOfMonth = remember {
         val cal = java.util.Calendar.getInstance()
@@ -1140,10 +1153,10 @@ private fun ProjectionCard(
                 Text(
                     text = "Projected balance",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    fontSize = 12.sp,
+                    fontSize = dimens.textS,
                     fontWeight = FontWeight.Medium
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                 Text(
                     text = "At this pace, you'll have $formattedProjected by $endOfMonth",
                     color = if (isNegative) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
@@ -1160,10 +1173,11 @@ fun AccountFocusSelector(
     focusedAccountName: String?,
     onClick: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -1192,6 +1206,7 @@ fun AccountFocusSheet(
     onSelectAccount: (String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     AdaptiveSheetDialog(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
@@ -1201,14 +1216,14 @@ fun AccountFocusSheet(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spacingXLarge))
 
             val allAccountsItem = @Composable {
                 val isSelected = focusedAccountId == null
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(dimens.shapeCornerSmall))
                         .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .clickable { onSelectAccount(null) }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1226,7 +1241,7 @@ fun AccountFocusSheet(
 
             allAccountsItem()
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
 
             accounts.forEach { account ->
                 val isSelected = focusedAccountId == account.id
@@ -1238,7 +1253,7 @@ fun AccountFocusSheet(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(dimens.shapeCornerSmall))
                         .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .clickable { onSelectAccount(account.id) }
                         .padding(horizontal = 16.dp, vertical = 14.dp),
@@ -1263,11 +1278,11 @@ fun AccountFocusSheet(
                     }
                 }
                 if (account != accounts.last()) {
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(dimens.spacingXSmall))
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
         }
     }
 }

@@ -62,6 +62,8 @@ import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
@@ -73,6 +75,7 @@ fun AccountsScreen(
     viewModel: AccountsViewModel,
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val accounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
@@ -92,7 +95,7 @@ fun AccountsScreen(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             Box(modifier = Modifier.weight(0.4f).fillMaxHeight()) {
                 LazyColumn(
@@ -120,14 +123,14 @@ fun AccountsScreen(
                                 Text(
                                     text = "Total balance",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                                 AnimatedCounter(
                                     targetValue = totalBalance,
                                     formatter = { CurrencyFormatter.format(it, selectedCurrency) },
                                     style = MaterialTheme.typography.titleLarge,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -143,7 +146,7 @@ fun AccountsScreen(
                             ) {
                                 chunk.forEach { account ->
                                     Box(modifier = Modifier.weight(1f)) {
-                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
                                         CardContainer {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ selectedAccount = account; showEditAccount = null }, onLongClick={ accountToDelete = account }),
@@ -152,10 +155,10 @@ fun AccountsScreen(
                                                 Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
                                                 Spacer(Modifier.width(14.dp))
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                 }
-                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                             }
                                         }
                                     }
@@ -166,7 +169,7 @@ fun AccountsScreen(
                         }
                     } else {
                         itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
-                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
                             StaggeredItem(index = index + 2) {
                             CardContainer {
                                 Row(
@@ -176,10 +179,10 @@ fun AccountsScreen(
                                     Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
                                     Spacer(Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                     }
-                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                 }
                             }
                             }
@@ -198,7 +201,7 @@ fun AccountsScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back",
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     },
@@ -207,7 +210,7 @@ fun AccountsScreen(
                             Icon(
                                 imageVector = Icons.Filled.Add,
                                 contentDescription = "Add account",
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -217,12 +220,12 @@ fun AccountsScreen(
                 modifier = Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
             )
             Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
                 if (selectedAccount != null) {
                     val acct = selectedAccount!!
-                    val dotColor = try { Color(android.graphics.Color.parseColor(acct.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                    val dotColor = try { Color(android.graphics.Color.parseColor(acct.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -235,7 +238,7 @@ fun AccountsScreen(
                             Text(
                                 text = "Account Details",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Box(
                                 modifier = Modifier
@@ -245,17 +248,17 @@ fun AccountsScreen(
                             Text(
                                 text = acct.name,
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = CurrencyFormatter.format(acct.balance, selectedCurrency),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Initial balance: ${CurrencyFormatter.format(acct.initialBalance, selectedCurrency)}",
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
@@ -267,7 +270,7 @@ fun AccountsScreen(
                     ) {
                         Text(
                             text = "Select an account to see details",
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -278,7 +281,7 @@ fun AccountsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             if (accounts.isEmpty()) {
                 Box(
@@ -292,23 +295,23 @@ fun AccountsScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.AccountBalanceWallet,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.4f),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
                             text = "No accounts yet",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                         Text(
                             text = "Tap + to add your first account",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.4f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
                     }
                 }
@@ -338,14 +341,14 @@ fun AccountsScreen(
                                 Text(
                                     text = "Total balance",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                                 AnimatedCounter(
                                     targetValue = totalBalance,
                                     formatter = { CurrencyFormatter.format(it, selectedCurrency) },
                                     style = MaterialTheme.typography.titleLarge,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -362,7 +365,7 @@ fun AccountsScreen(
                             ) {
                                 chunk.forEach { account ->
                                     Box(modifier = Modifier.weight(1f)) {
-                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
                                         CardContainer {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ showEditAccount = account }, onLongClick={ accountToDelete = account }),
@@ -371,10 +374,10 @@ fun AccountsScreen(
                                                 Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
                                                 Spacer(Modifier.width(14.dp))
                                                 Column(modifier = Modifier.weight(1f)) {
-                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                 }
-                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                             }
                                         }
                                     }
@@ -385,7 +388,7 @@ fun AccountsScreen(
                         }
                     } else {
                         itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
-                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { Color(0xFF4CAF50) }
+                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
 
                             StaggeredItem(index = index + 2) {
                             CardContainer {
@@ -396,10 +399,10 @@ fun AccountsScreen(
                                     Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
                                     Spacer(Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=Color.White)
-                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                     }
-                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=Color.White, textAlign=TextAlign.End)
+                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                 }
                             }
                             }
@@ -421,7 +424,7 @@ fun AccountsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
@@ -430,7 +433,7 @@ fun AccountsScreen(
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = "Add account",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -469,18 +472,18 @@ fun AccountsScreen(
     accountToDelete?.let { account ->
         AlertDialog(
             onDismissRequest = { accountToDelete = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
                 Text(
                     text = "Delete Account",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
                     text = "This will remove the account. Transactions linked to it will remain but will show no account.",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -495,12 +498,12 @@ fun AccountsScreen(
                         accountToDelete = null
                     }
                 }) {
-                    Text("Confirm", color = Color(0xFFEF5350))
+                    Text("Confirm", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { accountToDelete = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
@@ -509,10 +512,10 @@ fun AccountsScreen(
     deleteError?.let { msg ->
         AlertDialog(
             onDismissRequest = { deleteError = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Cannot Delete", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text(msg, color = Color.White.copy(alpha = 0.7f)) },
-            confirmButton = { TextButton(onClick = { deleteError = null }) { Text("OK", color = Color.White) } }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Cannot Delete", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = { Text(msg, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+            confirmButton = { TextButton(onClick = { deleteError = null }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) } }
         )
     }
 }

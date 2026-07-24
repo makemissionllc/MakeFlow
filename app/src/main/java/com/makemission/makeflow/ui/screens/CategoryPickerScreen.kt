@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -44,6 +45,7 @@ import com.makemission.makeflow.domain.CategoryUsage
 import com.makemission.makeflow.domain.CategoryUsageRanker
 import com.makemission.makeflow.domain.RankedCategory
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
  
 private data class CategoryListItem(
     val entity: CategoryEntity,
@@ -62,6 +64,7 @@ fun CategoryPickerScreen(
     onBack: () -> Unit,
     categoryUsages: List<CategoryUsage> = emptyList()
 ) {
+    val dimens = LocalAppDimens.current
     val isTransfer = selectedType == "TRANSFER"
 
     val rankedCategories = remember(categoryUsages, selectedType) {
@@ -90,7 +93,7 @@ fun CategoryPickerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0A))
+            .background(MaterialTheme.colorScheme.surfaceDim)
     ) {
         Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
@@ -104,13 +107,13 @@ fun CategoryPickerScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             Text(
                 text = if (isTransfer) "Select Account" else "Select Category",
-                color = Color.White,
-                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXxl,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -119,7 +122,7 @@ fun CategoryPickerScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 items(accounts, key = { it.id }) { account ->
                     val isSelected = account.id == selectedAccountId
@@ -136,14 +139,14 @@ fun CategoryPickerScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
             ) {
                 if (rankedCategories.isNotEmpty()) {
                     item(key = "frequent_header") {
                         Text(
                             text = "Frequently Used",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = dimens.textS,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 2.dp)
                         )
@@ -161,14 +164,14 @@ fun CategoryPickerScreen(
                         }
                     }
                     item(key = "frequent_divider") {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(dimens.spacingMedium))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(1.dp)
-                                .background(Color.White.copy(alpha = 0.08f))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                     }
                 }
                 items(categoryItems, key = { it.entity.id }) { item ->
@@ -192,45 +195,46 @@ private fun AccountRow(
     currencyCode: String,
     isSelected: Boolean,
     onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) Color(0xFF2C2C2E) else Color(0xFF1B1C1F))
+    ) {
+        val dimens = LocalAppDimens.current
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(dimens.shapeCornerMedium))
+            .background(if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHigh)
             .pressScale()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(dimens.paddingMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF2C2C2E)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = name.take(1).uppercase(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = dimens.textXl
             )
         }
         Spacer(modifier = Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 15.sp,
+                fontSize = dimens.textMl,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = CurrencyFormatter.format(balance, currencyCode),
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 13.sp
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                fontSize = dimens.textSm
             )
         }
     }
@@ -242,16 +246,17 @@ private fun CategoryRow(
     indentLevel: Int,
     isSelected: Boolean,
     onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+    ) {
+        val dimens = LocalAppDimens.current
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
             .background(
                 when {
-                    isSelected -> Color(0xFF2C2C2E)
-                    indentLevel == 1 -> Color(0xFF161618)
-                    else -> Color(0xFF1B1C1F)
+                    isSelected -> MaterialTheme.colorScheme.surfaceContainerHigh
+                    indentLevel == 1 -> MaterialTheme.colorScheme.surfaceContainerLow
+                    else -> MaterialTheme.colorScheme.surfaceContainerHigh
                 }
             )
             .pressScale()
@@ -263,21 +268,21 @@ private fun CategoryRow(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(Color(0xFF2C2C2E)),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = category.name.take(1).uppercase(),
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
-                fontSize = 15.sp
+                fontSize = dimens.textMl
             )
         }
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(dimens.spacingLarge))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = category.name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = if (indentLevel == 0) FontWeight.SemiBold else FontWeight.Normal,
                 fontSize = if (indentLevel == 0) 15.sp else 14.sp,
                 maxLines = 1,
@@ -289,8 +294,8 @@ private fun CategoryRow(
                 } else {
                     category.type.lowercase().replaceFirstChar { it.uppercase() }
                 },
-                color = Color.White.copy(alpha = 0.45f),
-                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                fontSize = dimens.textS,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

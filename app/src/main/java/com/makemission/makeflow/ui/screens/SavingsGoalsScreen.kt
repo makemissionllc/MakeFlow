@@ -32,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,6 +61,8 @@ import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.GoalWithFeasibility
 import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModel
 import kotlinx.coroutines.launch
@@ -77,6 +80,7 @@ fun SavingsGoalsScreen(
     currencySymbol: String,
     onAddAccount: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val goalItems by viewModel.goalsWithFeasibility.collectAsState()
 
     val config = LocalAdaptiveConfig.current
@@ -102,7 +106,7 @@ fun SavingsGoalsScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF121315))) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         LazyColumn(
             state = listState,
             modifier = Modifier
@@ -125,20 +129,20 @@ fun SavingsGoalsScreen(
                             Icon(
                                 imageVector = Icons.Outlined.EmojiEvents,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 modifier = Modifier.size(64.dp)
                             )
-                            Spacer(Modifier.height(16.dp))
+                            Spacer(Modifier.height(dimens.spacingXLarge))
                             Text(
                                 "No goals yet",
-                                color = Color.White.copy(alpha = 0.5f),
-                                fontSize = 16.sp
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                fontSize = dimens.textL
                             )
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(dimens.spacingXSmall))
                             Text(
                                 "Create a savings goal and link it to an account",
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                fontSize = dimens.textSm,
                                 textAlign = TextAlign.Center
                             )
                         }
@@ -173,7 +177,7 @@ fun SavingsGoalsScreen(
                     shouldReopenSheet = false
                     createdAccountId = null
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add goal", tint = Color.White)
+                    Icon(Icons.Default.Add, contentDescription = "Add goal", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
         )
@@ -214,17 +218,17 @@ fun SavingsGoalsScreen(
     goalToDelete?.let { goal ->
         AlertDialog(
             onDismissRequest = { goalToDelete = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Delete Goal", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text("Delete \"${goal.name}\"? This cannot be undone.", color = Color.White.copy(alpha = 0.7f)) },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Delete Goal", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = { Text("Delete \"${goal.name}\"? This cannot be undone.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch { viewModel.deleteGoal(goal) }
                     goalToDelete = null
-                }) { Text("Delete", color = Color(0xFFEF5350)) }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { goalToDelete = null }) { Text("Cancel", color = Color.White.copy(alpha = 0.5f)) }
+                TextButton(onClick = { goalToDelete = null }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) }
             }
         )
     }
@@ -232,17 +236,17 @@ fun SavingsGoalsScreen(
     goalToAbandon?.let { goal ->
         AlertDialog(
             onDismissRequest = { goalToAbandon = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Abandon Goal", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text("Mark \"${goal.name}\" as abandoned? You can create a new goal later.", color = Color.White.copy(alpha = 0.7f)) },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Abandon Goal", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = { Text("Mark \"${goal.name}\" as abandoned? You can create a new goal later.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
             confirmButton = {
                 TextButton(onClick = {
                     scope.launch { viewModel.abandonGoal(goal) }
                     goalToAbandon = null
-                }) { Text("Abandon", color = Color(0xFFFFA726)) }
+                }) { Text("Abandon", color = LocalMakeFlowColors.current.colorWarning) }
             },
             dismissButton = {
-                TextButton(onClick = { goalToAbandon = null }) { Text("Cancel", color = Color.White.copy(alpha = 0.5f)) }
+                TextButton(onClick = { goalToAbandon = null }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)) }
             }
         )
     }
@@ -256,6 +260,7 @@ private fun GoalCard(
     onDelete: () -> Unit,
     onAbandon: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val gwp = item.goalWithProgress
     val goal = gwp.goal
     val config = LocalAdaptiveConfig.current
@@ -263,16 +268,16 @@ private fun GoalCard(
     val isAbandoned = goal.status == "ABANDONED"
 
     val cardBackground = when {
-        isAchieved -> Color(0xFF1E2810)
-        isAbandoned -> Color(0xFF1B1C1F)
-        else -> Color(0xFF1B1C1F)
+        isAchieved -> MaterialTheme.colorScheme.surfaceContainerLow
+        isAbandoned -> MaterialTheme.colorScheme.surfaceContainerHigh
+        else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
 
     val progressColor = when {
-        isAchieved -> Color(0xFFFFD700)
-        gwp.percentage >= 1f -> Color(0xFF4CAF50)
-        gwp.percentage >= 0.7f -> Color(0xFFFFA726)
-        else -> Color(0xFF42A5F5)
+        isAchieved -> MaterialTheme.colorScheme.tertiary
+        gwp.percentage >= 1f -> LocalMakeFlowColors.current.colorSuccess
+        gwp.percentage >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+        else -> MaterialTheme.colorScheme.primary
     }
 
     Column(
@@ -280,11 +285,11 @@ private fun GoalCard(
             .fillMaxWidth()
             .padding(horizontal = config.horizontalPadding)
             .padding(bottom = 12.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(dimens.shapeCornerMedium))
             .background(cardBackground)
             .pressScale()
             .clickable { onEdit() }
-            .padding(16.dp)
+            .padding(dimens.paddingMedium)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -293,9 +298,9 @@ private fun GoalCard(
         ) {
             Text(
                 text = goal.name,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
+                fontSize = dimens.textL,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
@@ -305,14 +310,14 @@ private fun GoalCard(
                 Icon(
                     imageVector = Icons.Filled.CheckCircle,
                     contentDescription = "Achieved",
-                    tint = Color(0xFFFFD700),
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(18.dp)
                 )
-                Spacer(Modifier.width(4.dp))
+                Spacer(Modifier.width(dimens.spacingXSmall))
                 Text(
                     text = "Achieved",
-                    color = Color(0xFFFFD700),
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    fontSize = dimens.textS,
                     fontWeight = FontWeight.Bold
                 )
             } else {
@@ -320,7 +325,7 @@ private fun GoalCard(
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(dimens.spacingMedium))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -328,25 +333,25 @@ private fun GoalCard(
         ) {
             Text(
                 text = CurrencyFormatter.format(gwp.progress, currencyCode),
-                color = if (isAchieved) Color(0xFFFFD700) else progressColor,
+                color = if (isAchieved) MaterialTheme.colorScheme.tertiary else progressColor,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = dimens.textXl
             )
             Text(
                 text = CurrencyFormatter.format(goal.targetAmount, currencyCode),
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 14.sp
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                fontSize = dimens.textM
             )
         }
 
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(dimens.spacingMedium))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color.White.copy(alpha = 0.1f))
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
         ) {
             Box(
                 modifier = Modifier
@@ -358,11 +363,11 @@ private fun GoalCard(
         }
 
         if (isAchieved) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
             Text(
                 text = "Goal completed! You reached your target of ${CurrencyFormatter.format(goal.targetAmount, currencyCode)}.",
-                color = Color(0xFFFFD700).copy(alpha = 0.8f),
-                fontSize = 12.sp
+                color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
+                fontSize = dimens.textS
             )
         }
 
@@ -377,8 +382,8 @@ private fun GoalCard(
             Spacer(Modifier.height(6.dp))
             Text(
                 text = "Abandoned",
-                color = Color(0xFF757575),
-                fontSize = 12.sp
+                color = MaterialTheme.colorScheme.outline,
+                fontSize = dimens.textS
             )
         }
 
@@ -387,24 +392,24 @@ private fun GoalCard(
             val df = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
             Text(
                 text = "Target: ${df.format(Date(goal.targetDate))}",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 12.sp
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                fontSize = dimens.textS
             )
         }
 
         if (!isAbandoned) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
                 if (!isAchieved) {
                     TextButton(onClick = onAbandon) {
-                        Text("Abandon", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+                        Text("Abandon", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textS)
                     }
                 }
                 TextButton(onClick = onDelete) {
-                    Text("Delete", color = Color(0xFFEF5350).copy(alpha = 0.6f), fontSize = 12.sp)
+                    Text("Delete", color = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), fontSize = dimens.textS)
                 }
             }
         }
@@ -416,12 +421,13 @@ private fun FeasibilityRow(
     feasibility: GoalFeasibilityResult?,
     currencyCode: String
 ) {
+    val dimens = LocalAppDimens.current
     if (feasibility == null || feasibility.status == FeasibilityStatus.INSUFFICIENT_DATA) {
         Spacer(Modifier.height(6.dp))
         Text(
             text = "Track more spending to see goal feasibility",
-            color = Color.White.copy(alpha = 0.3f),
-            fontSize = 11.sp
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+            fontSize = dimens.textXs
         )
         return
     }
@@ -429,7 +435,7 @@ private fun FeasibilityRow(
     Spacer(Modifier.height(6.dp))
     HorizontalDivider(
         thickness = 0.5.dp,
-        color = Color.White.copy(alpha = 0.06f)
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
     )
     Spacer(Modifier.height(6.dp))
 
@@ -438,15 +444,15 @@ private fun FeasibilityRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "On track",
-                    color = Color(0xFF4CAF50),
-                    fontSize = 12.sp,
+                    color = LocalMakeFlowColors.current.colorSuccess,
+                    fontSize = dimens.textS,
                     fontWeight = FontWeight.Medium
                 )
                 if (feasibility.monthsRemaining != null) {
                     Text(
                         text = " \u00B7 ${feasibility.monthsRemaining} months to go",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 11.sp
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = dimens.textXs
                     )
                 }
             }
@@ -460,8 +466,8 @@ private fun FeasibilityRow(
                     val pct = (suggestion.reductionPercent * 100).toInt()
                     Text(
                         text = "Reduce ${suggestion.categoryName} by $pct% to hit your date",
-                        color = Color(0xFFFFA726),
-                        fontSize = 12.sp,
+                        color = LocalMakeFlowColors.current.colorWarning,
+                        fontSize = dimens.textS,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -476,8 +482,8 @@ private fun FeasibilityRow(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = timelineText,
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 11.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textXs
                 )
             }
         }
@@ -486,8 +492,8 @@ private fun FeasibilityRow(
             if (feasibility.revisedTimelineMonths != null) {
                 Text(
                     text = "Estimated ${feasibility.revisedTimelineMonths} month${if (feasibility.revisedTimelineMonths > 1) "s" else ""} at current savings rate",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 11.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textXs
                 )
             }
         }
@@ -498,16 +504,17 @@ private fun FeasibilityRow(
 
 @Composable
 private fun StatusBadge(status: String) {
+    val dimens = LocalAppDimens.current
     val (label, color) = when (status) {
-        "ACTIVE" -> "Active" to Color(0xFF4CAF50)
-        "ACHIEVED" -> "Achieved" to Color(0xFF66BB6A)
-        "ABANDONED" -> "Abandoned" to Color(0xFF757575)
-        else -> status to Color.White.copy(alpha = 0.5f)
+        "ACTIVE" -> "Active" to LocalMakeFlowColors.current.colorSuccess
+        "ACHIEVED" -> "Achieved" to LocalMakeFlowColors.current.colorSuccess
+        "ABANDONED" -> "Abandoned" to MaterialTheme.colorScheme.outline
+        else -> status to MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
     }
     Text(
         text = label,
         color = color,
-        fontSize = 11.sp,
+        fontSize = dimens.textXs,
         fontWeight = FontWeight.Medium
     )
 }

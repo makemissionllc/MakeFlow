@@ -45,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import kotlinx.coroutines.launch
 
 private val accountColors = listOf(
@@ -59,6 +61,7 @@ fun AddEditAccountBottomSheet(
     account: AccountEntity? = null,
     currencySymbol: String
 ) {
+    val dimens = LocalAppDimens.current
     val isEdit = account != null
     val scope = rememberCoroutineScope()
 
@@ -80,31 +83,31 @@ fun AddEditAccountBottomSheet(
             Text(
                 text = if (isEdit) "Edit Account" else "New Account",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     decorationBox = { innerTextField ->
                         Box {
                             if (name.isEmpty()) {
                                 Text(
                                     text = "Account name",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 14.sp
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    fontSize = dimens.textM
                                 )
                             }
                             innerTextField()
@@ -113,16 +116,16 @@ fun AddEditAccountBottomSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
                 HorizontalDivider(
-                    color = Color.White.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                     thickness = 0.5.dp
                 )
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Current balance",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
 
                 Row(
@@ -132,11 +135,11 @@ fun AddEditAccountBottomSheet(
                 ) {
                     Text(
                         text = currencySymbol,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(dimens.spacingMedium))
                     BasicTextField(
                         value = balanceInput,
                         onValueChange = { newValue ->
@@ -145,20 +148,20 @@ fun AddEditAccountBottomSheet(
                             }
                         },
                         textStyle = TextStyle(
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
-                        cursorBrush = SolidColor(Color.White),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                         decorationBox = { innerTextField ->
                             Box {
                                 if (balanceInput.isEmpty()) {
                                     Text(
                                         text = "0.00",
-                                        color = Color.White.copy(alpha = 0.3f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -171,19 +174,19 @@ fun AddEditAccountBottomSheet(
                 }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Color",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)) {
                     accountColors.forEach { colorHex ->
                         val isSelected = colorHex == selectedColorHex
                         val dotColor = try {
                             Color(android.graphics.Color.parseColor(colorHex))
                         } catch (_: Exception) {
-                            Color(0xFF4CAF50)
+                            LocalMakeFlowColors.current.colorSuccess
                         }
 
                         Box(
@@ -193,7 +196,7 @@ fun AddEditAccountBottomSheet(
                                     if (isSelected) {
                                         Modifier.border(
                                             width = 2.dp,
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             shape = CircleShape
                                         )
                                     } else Modifier
@@ -218,19 +221,19 @@ fun AddEditAccountBottomSheet(
                 },
                 enabled = isSaveEnabled,
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315),
-                    disabledContainerColor = Color(0xFF1B1C1F),
-                    disabledContentColor = Color.White.copy(alpha = 0.2f)
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.background,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(dimens.shapeCornerMedium),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
             ) {
                 Text(
                     text = if (isEdit) "Update Account" else "Save Account",
-                    fontSize = 16.sp,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Bold
                 )
             }

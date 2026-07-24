@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.domain.DashboardCardType
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -46,6 +48,7 @@ fun ReorderCardsSheet(
     onReset: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     var items by remember { mutableStateOf(currentOrder) }
     var draggedIndex by remember { mutableStateOf<Int?>(null) }
     var dragOffset by remember { mutableStateOf(0f) }
@@ -60,12 +63,12 @@ fun ReorderCardsSheet(
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "Edit Cards",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spacingXLarge))
 
             val draggedIdx = draggedIndex
             val slotsCrossed = if (draggedIdx != null) {
@@ -136,11 +139,11 @@ fun ReorderCardsSheet(
                             .height(itemHeight)
                             .then(
                                 if (elevation > 0.dp) {
-                                    Modifier.shadow(elevation, RoundedCornerShape(12.dp))
+                                    Modifier.shadow(elevation, RoundedCornerShape(dimens.shapeCornerSmall))
                                 } else Modifier
                             )
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF121315))
+                            .clip(RoundedCornerShape(dimens.shapeCornerSmall))
+                            .background(MaterialTheme.colorScheme.background)
                             .graphicsLayer {
                                 translationY = visualTranslation
                                 if (isDragged) {
@@ -152,22 +155,22 @@ fun ReorderCardsSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 16.dp),
+                                .padding(horizontal = dimens.paddingMedium),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Menu,
                                 contentDescription = "Drag to reorder",
-                                tint = Color.White.copy(alpha = 0.4f),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                 modifier = Modifier
                                     .width(24.dp)
                                     .height(24.dp)
                             )
-                            Spacer(Modifier.width(12.dp))
+                            Spacer(Modifier.width(dimens.spacingLarge))
                             Text(
                                 text = cardType.displayName(),
-                                color = Color.White,
-                                fontSize = 16.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = dimens.textL,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -175,7 +178,7 @@ fun ReorderCardsSheet(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(dimens.spacingXXLarge))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -184,8 +187,8 @@ fun ReorderCardsSheet(
             ) {
                 Text(
                     text = "Reset to automatic",
-                    color = Color(0xFFEF5350),
-                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = dimens.textM,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .clickable {
@@ -197,8 +200,8 @@ fun ReorderCardsSheet(
 
                 Text(
                     text = "Done",
-                    color = Color(0xFF007AFF),
-                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = dimens.textM,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .clickable {
@@ -209,7 +212,7 @@ fun ReorderCardsSheet(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
         }
     }
 }

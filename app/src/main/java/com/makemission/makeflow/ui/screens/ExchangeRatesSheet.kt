@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardOptions
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 private val ALL_CURRENCIES = listOf("KES", "USD", "EUR", "GBP", "UGX", "TZS")
 
@@ -48,6 +49,7 @@ fun ExchangeRatesSheet(
     onDismiss: () -> Unit,
     onSaveRate: (ExchangeRateEntity) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     var editValues by remember {
         mutableStateOf(rates.associate { it.currencyCode to it.rateToDisplayCurrency.toString() })
     }
@@ -61,7 +63,7 @@ fun ExchangeRatesSheet(
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
                 .padding(bottom = 32.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
         ) {
             item {
                 Row(
@@ -72,13 +74,13 @@ fun ExchangeRatesSheet(
                     Text(
                         text = "Exchange Rates",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = "Close",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -87,8 +89,8 @@ fun ExchangeRatesSheet(
             item {
                 Text(
                     text = "1 $selectedBase = ? (enter rate to convert to $selectedBase)",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    fontSize = dimens.textSm,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
             }
@@ -101,14 +103,14 @@ fun ExchangeRatesSheet(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = currency,
-                            color = Color.White,
-                            fontSize = 15.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textMl,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(0.3f)
                         )
@@ -121,17 +123,17 @@ fun ExchangeRatesSheet(
                                     onSaveRate(ExchangeRateEntity(currencyCode = currency, rateToDisplayCurrency = parsed))
                                 }
                             },
-                            textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                             singleLine = true,
-                            cursorBrush = SolidColor(Color.White),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             decorationBox = { innerTextField ->
                                 Box {
                                     if (editText.isEmpty()) {
                                         Text(
                                             text = "e.g. 150.0",
-                                            color = Color.White.copy(alpha = 0.3f),
-                                            fontSize = 14.sp
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                            fontSize = dimens.textM
                                         )
                                     }
                                     innerTextField()
@@ -139,13 +141,13 @@ fun ExchangeRatesSheet(
                             },
                             modifier = Modifier
                                 .weight(0.5f)
-                                .background(Color(0xFF2C2C2C), RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerXSmall))
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                         Text(
                             text = selectedBase,
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = dimens.textSm,
                             modifier = Modifier.weight(0.2f).padding(start = 8.dp)
                         )
                     }

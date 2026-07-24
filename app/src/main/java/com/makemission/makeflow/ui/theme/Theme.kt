@@ -2,6 +2,7 @@ package com.makemission.makeflow.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -9,9 +10,34 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+
+// ── Semantic extra colors (success / warning / gold) ──────────────────
+
+@Immutable
+data class MakeFlowColors(
+    val colorSuccess: Color,
+    val colorWarning: Color,
+    val colorGold: Color
+)
+
+private val LightMakeFlowColors = MakeFlowColors(
+    colorSuccess = Color(0xFF2E7D32),
+    colorWarning = Color(0xFFE65100),
+    colorGold = Color(0xFF7A6600)
+)
+
+private val DarkMakeFlowColors = MakeFlowColors(
+    colorSuccess = Color(0xFF4CAF50),
+    colorWarning = Color(0xFFFFA726),
+    colorGold = Color(0xFFFFD700)
+)
+
+val LocalMakeFlowColors = staticCompositionLocalOf { DarkMakeFlowColors }
 
 // ── Forest Green (Default) Color Schemes ─────────────────────────────
 private val ForestDarkColorScheme = darkColorScheme(
@@ -215,29 +241,60 @@ private val PurpleLightColorScheme = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE6E0E9)
 )
 
+// ── Testable theme resolution logic ─────────────────────────────────
+
+internal fun resolveDarkTheme(themeMode: String, isSystemDark: Boolean): Boolean = when (themeMode) {
+    "light" -> false
+    "dark" -> true
+    else -> isSystemDark
+}
+
+internal fun resolveColorScheme(themePalette: String, darkTheme: Boolean): ColorScheme {
+    return when (themePalette) {
+        "ocean" -> if (darkTheme) OceanDarkColorScheme else OceanLightColorScheme
+        "sunset" -> if (darkTheme) SunsetDarkColorScheme else SunsetLightColorScheme
+        "purple" -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
+        else -> if (darkTheme) ForestDarkColorScheme else ForestLightColorScheme
+    }
+}
+
+internal fun ColorScheme.applyAmoledOverlay(): ColorScheme = copy(
+    background = Color(0xFF000000),
+    onBackground = Color(0xFFFFFFFF),
+    surface = Color(0xFF000000),
+    onSurface = Color(0xFFFFFFFF),
+    surfaceDim = Color(0xFF000000),
+    surfaceContainerLowest = Color(0xFF000000),
+    surfaceContainerLow = Color(0xFF000000),
+    surfaceContainer = Color(0xFF000000),
+    surfaceContainerHigh = Color(0xFF0D0D0D),
+    surfaceContainerHighest = Color(0xFF141414),
+    surfaceVariant = Color(0xFF0D0D0D),
+    onSurfaceVariant = Color(0xFFCACACA),
+    outline = Color(0xFF6E6E6E),
+    outlineVariant = Color(0xFF282828),
+    inverseSurface = Color(0xFFE8E8E8),
+    inverseOnSurface = Color(0xFF1A1A1A),
+)
+
 @Composable
 fun MakeFlowTheme(
-    themeMode: String = "dark",
+    themeMode: String = "system",
     themePalette: String = "forest",
+    amoledMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = when (themeMode) {
-        "light" -> false
-        "dark" -> true
-        else -> isSystemInDarkTheme()
-    }
+    val darkTheme = resolveDarkTheme(themeMode, isSystemInDarkTheme())
 
     val context = LocalContext.current
-    val colorScheme = if (themePalette == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val baseScheme = if (themePalette == "dynamic" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        when (themePalette) {
-            "ocean" -> if (darkTheme) OceanDarkColorScheme else OceanLightColorScheme
-            "sunset" -> if (darkTheme) SunsetDarkColorScheme else SunsetLightColorScheme
-            "purple" -> if (darkTheme) PurpleDarkColorScheme else PurpleLightColorScheme
-            else -> if (darkTheme) ForestDarkColorScheme else ForestLightColorScheme
-        }
+        resolveColorScheme(themePalette, darkTheme)
     }
+
+    val colorScheme = if (amoledMode && darkTheme) baseScheme.applyAmoledOverlay() else baseScheme
+    val makeFlowColors = if (darkTheme) DarkMakeFlowColors else LightMakeFlowColors
 
     val config = LocalConfiguration.current
     val screenWidth = config.screenWidthDp
@@ -249,7 +306,8 @@ fun MakeFlowTheme(
 
     CompositionLocalProvider(
         LocalAppDimens provides dimens,
-        LocalExpressiveMotion provides ExpressiveMotionSpec.Default
+        LocalExpressiveMotion provides ExpressiveMotionSpec.Default,
+        LocalMakeFlowColors provides makeFlowColors
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

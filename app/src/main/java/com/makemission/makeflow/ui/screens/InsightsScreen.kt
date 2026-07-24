@@ -45,6 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,6 +68,8 @@ import com.makemission.makeflow.domain.FrugalStreak
 import com.makemission.makeflow.domain.PatternType
 import com.makemission.makeflow.domain.SeasonalPattern
 import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
@@ -88,6 +91,7 @@ fun InsightsScreen(
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
+    val dimens = LocalAppDimens.current
     // AnomalyDetector is intentionally save-time-only per original spec
     // (in-the-moment callout in AddTransactionScreen via MainScreen).
     // Insights is a retrospective monthly summary and does not need it.
@@ -144,7 +148,7 @@ fun InsightsScreen(
         state = listState,
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
             .verticalFadingEdge(
                 topFadeHeight = config.fadingEdgeHeight,
                 bottomFadeHeight = config.fadingEdgeHeight
@@ -169,8 +173,8 @@ fun InsightsScreen(
                             is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name ?: "All Accounts"
                         }
                     }",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = dimens.textS,
                     modifier = Modifier.padding(start = 4.dp)
                 )
             }
@@ -186,13 +190,13 @@ fun InsightsScreen(
                     Icon(
                         imageVector = Icons.Rounded.ChevronLeft,
                         contentDescription = "Previous month",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Text(
                     text = selectedMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + selectedMonth.year,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 IconButton(
@@ -202,7 +206,7 @@ fun InsightsScreen(
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
                         contentDescription = "Next month",
-                        tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) Color.White else Color.White.copy(alpha = 0.2f)
+                        tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                     )
                 }
             }
@@ -213,43 +217,43 @@ fun InsightsScreen(
             StaggeredItem(index = 2) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFF1B3A2A), RoundedCornerShape(16.dp))
+                        .background(LocalMakeFlowColors.current.colorSuccess.copy(alpha = 0.15f), RoundedCornerShape(dimens.shapeCornerMedium))
                         .padding(16.dp)
                 ) {
                     Column {
                         Text(
                             text = "Income",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         Text(
                             text = CurrencyFormatter.format(totalIncome, selectedCurrency),
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFF4CAF50)
+                            color = LocalMakeFlowColors.current.colorSuccess
                         )
                     }
                 }
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .background(Color(0xFF3A1B1B), RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.error.copy(alpha = 0.15f), RoundedCornerShape(dimens.shapeCornerMedium))
                         .padding(16.dp)
                 ) {
                     Column {
                         Text(
                             text = "Expenses",
                             style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.6f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                         Text(
                             text = CurrencyFormatter.format(totalExpenses, selectedCurrency),
                             style = MaterialTheme.typography.titleMedium,
-                            color = Color(0xFFEF5350)
+                            color = MaterialTheme.colorScheme.error
                         )
                     }
                 }
@@ -261,47 +265,47 @@ fun InsightsScreen(
             StaggeredItem(index = 3) {
             Column(
                 modifier = Modifier.fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
-                Text("vs previous month", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text("vs previous month", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL, fontWeight = FontWeight.Medium)
                 if (momItems.isEmpty()) {
-                    Text("No data for comparison", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
+                    Text("No data for comparison", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textM)
                 } else {
                     momItems.forEach { item ->
                         val (changeText, changeColor) = if (item.percentChange != null) {
                             val color = when {
-                                item.label == "Income" && item.percentChange >= 0 -> Color(0xFF4CAF50)
-                                item.label == "Income" -> Color(0xFFEF5350)
-                                item.label == "Expenses" && item.percentChange <= 0 -> Color(0xFF4CAF50)
-                                item.label == "Expenses" -> Color(0xFFEF5350)
-                                item.percentChange >= 0 -> Color(0xFFEF5350)
-                                else -> Color(0xFF4CAF50)
+                                item.label == "Income" && item.percentChange >= 0 -> LocalMakeFlowColors.current.colorSuccess
+                                item.label == "Income" -> MaterialTheme.colorScheme.error
+                                item.label == "Expenses" && item.percentChange <= 0 -> LocalMakeFlowColors.current.colorSuccess
+                                item.label == "Expenses" -> MaterialTheme.colorScheme.error
+                                item.percentChange >= 0 -> MaterialTheme.colorScheme.error
+                                else -> LocalMakeFlowColors.current.colorSuccess
                             }
                             val arrow = if (item.percentChange >= 0) "\u25B2" else "\u25BC"
                             Pair("$arrow ${String.format("%+.1f", item.percentChange)}%", color)
                         } else {
-                            Pair("New", Color(0xFFFFA726))
+                            Pair("New", LocalMakeFlowColors.current.colorWarning)
                         }
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(item.label, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                            Text(item.label, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = changeText,
                                     color = changeColor,
                                     fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp
+                                    fontSize = dimens.textM
                                 )
-                                Spacer(Modifier.width(8.dp))
+                                Spacer(Modifier.width(dimens.spacingMedium))
                                 Text(
                                     text = "vs ${String.format("%.0f", item.priorAmount)}",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 12.sp
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    fontSize = dimens.textS
                                 )
                             }
                         }
@@ -331,16 +335,18 @@ fun InsightsScreen(
                     Column(
                         modifier = Modifier
                             .weight(0.4f)
-                            .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
                         Text(
                             text = "Spending by category",
-                            color = Color.White,
-                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textL,
                             fontWeight = FontWeight.Medium
                         )
+                        val emptyArcColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        val fallbackArcColor = MaterialTheme.colorScheme.outline
                         Box(
                             modifier = Modifier.fillMaxWidth().height(280.dp),
                             contentAlignment = Alignment.Center
@@ -350,9 +356,9 @@ fun InsightsScreen(
                                     val outerR = 90.dp.toPx()
                                     val innerR = 60.dp.toPx()
                                     val strokeW = outerR - innerR
-                                    drawArc(color=Color(0xFF2C2C2C), startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
+                                    drawArc(color=emptyArcColor, startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
                                 }
-                                Text("No expenses", color=Color.White.copy(alpha=0.4f), fontSize=14.sp)
+                                Text("No expenses", color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.4f), fontSize=dimens.textM)
                             } else {
                                 Canvas(modifier = Modifier.fillMaxSize()) {
                                     val outerR = 90.dp.toPx()
@@ -365,7 +371,7 @@ fun InsightsScreen(
                                             val sweep = (item.percentage / 100f * 360f).coerceAtLeast(0f)
                                             val gapAngle = if (sweep > 0f) 2f else 0f
                                             val drawSweep = (sweep - gapAngle).coerceAtLeast(0f)
-                                            val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                                            val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { fallbackArcColor }
                                             if (drawSweep > 0f) {
                                                 drawArc(color=arcColor, startAngle=startAngle, sweepAngle=drawSweep, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW,cap=StrokeCap.Butt))
                                                 startAngle += sweep
@@ -374,8 +380,8 @@ fun InsightsScreen(
                                     }
                                 }
                                 Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                                    Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
-                                    Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                    Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=MaterialTheme.colorScheme.onSurface, fontSize=dimens.textXl, fontWeight=FontWeight.Bold)
+                                    Text("Total", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                 }
                             }
                         }
@@ -383,34 +389,34 @@ fun InsightsScreen(
                     Column(
                         modifier = Modifier
                             .weight(0.6f)
-                            .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                             .padding(16.dp)
                     ) {
                         Text(
                             text = "Breakdown",
-                            color = Color.White,
-                            fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textL,
                             fontWeight = FontWeight.Medium
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(dimens.spacingLarge))
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             displayItems.forEach { item ->
                                 Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) {
-                                    val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                                    val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { MaterialTheme.colorScheme.outline }
                                     Box(Modifier.size(10.dp).background(dotColor, CircleShape))
                                     Spacer(Modifier.width(10.dp))
-                                    Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                                    Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface, modifier=Modifier.weight(1f))
                                     val dailyAvg = dailyAverageSpends.find { it.categoryName == item.categoryName }?.dailyAverage ?: 0.0
                                     Text(
                                         text = "${CurrencyFormatter.format(dailyAvg, selectedCurrency)}/day",
                                         style=MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                         textAlign=TextAlign.End
                                     )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
+                                    Spacer(Modifier.width(dimens.spacingMedium))
+                                    Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                                    Spacer(Modifier.width(dimens.spacingMedium))
+                                    Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f), textAlign=TextAlign.End)
                                 }
                             }
                         }
@@ -420,17 +426,19 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Text(
                     text = "Spending by category",
-                    color = Color.White,
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Medium
                 )
 
+                val emptyArcColor2 = MaterialTheme.colorScheme.surfaceContainerHigh
+                val fallbackArcColor2 = MaterialTheme.colorScheme.outline
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -442,9 +450,9 @@ fun InsightsScreen(
                             val outerR = 80.dp.toPx()
                             val innerR = 52.dp.toPx()
                             val strokeW = outerR - innerR
-                            drawArc(color=Color(0xFF2C2C2C), startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
+                            drawArc(color=emptyArcColor2, startAngle=-90f, sweepAngle=360f, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW))
                         }
-                        Text("No expenses", color=Color.White.copy(alpha=0.4f), fontSize=14.sp)
+                        Text("No expenses", color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.4f), fontSize=dimens.textM)
                     } else {
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             val outerR = 80.dp.toPx()
@@ -457,7 +465,7 @@ fun InsightsScreen(
                                     val sweep = (item.percentage / 100f * 360f).coerceAtLeast(0f)
                                     val gapAngle = if (sweep > 0f) 2f else 0f
                                     val drawSweep = (sweep - gapAngle).coerceAtLeast(0f)
-                                    val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                                    val arcColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { fallbackArcColor2 }
                                     if (drawSweep > 0f) {
                                         drawArc(color=arcColor, startAngle=startAngle, sweepAngle=drawSweep, useCenter=false, topLeft=Offset((size.width-outerR*2)/2f,(size.height-outerR*2)/2f), size=Size(outerR*2,outerR*2), style=Stroke(width=strokeW,cap=StrokeCap.Butt))
                                         startAngle += sweep
@@ -466,30 +474,30 @@ fun InsightsScreen(
                             }
                         }
                         Column(horizontalAlignment=Alignment.CenterHorizontally) {
-                            Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=Color.White, fontSize=18.sp, fontWeight=FontWeight.Bold)
-                            Text("Total", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                            Text(CurrencyFormatter.format(totalExpenses, selectedCurrency), color=MaterialTheme.colorScheme.onSurface, fontSize=dimens.textXl, fontWeight=FontWeight.Bold)
+                            Text("Total", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                         }
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     displayItems.forEach { item ->
                         Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically) {
-                            val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { Color(0xFF9E9E9E) }
+                            val dotColor = try { Color(android.graphics.Color.parseColor(item.color)) } catch (_: Exception) { MaterialTheme.colorScheme.outline }
                             Box(Modifier.size(8.dp).background(dotColor, CircleShape))
-                            Spacer(Modifier.width(8.dp))
-                            Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=Color.White, modifier=Modifier.weight(1f))
+                            Spacer(Modifier.width(dimens.spacingMedium))
+                            Text(item.categoryName, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface, modifier=Modifier.weight(1f))
                             val dailyAvg = dailyAverageSpends.find { it.categoryName == item.categoryName }?.dailyAverage ?: 0.0
                             Text(
                                 text = "${CurrencyFormatter.format(dailyAvg, selectedCurrency)}/day",
                                 style=MaterialTheme.typography.labelSmall,
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 textAlign=TextAlign.End
                             )
-                            Spacer(Modifier.width(6.dp))
-                            Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=Color.White, textAlign=TextAlign.End)
-                            Spacer(Modifier.width(6.dp))
-                            Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f), textAlign=TextAlign.End)
+                            Spacer(Modifier.width(dimens.spacingSmall))
+                            Text(CurrencyFormatter.format(item.amount, selectedCurrency), style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                            Spacer(Modifier.width(dimens.spacingSmall))
+                            Text("${String.format("%.1f", item.percentage)}%", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f), textAlign=TextAlign.End)
                         }
                     }
                 }
@@ -503,14 +511,14 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Text(
                     text = "Cash flow — last 6 months",
-                    color = Color.White,
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Medium
                 )
 
@@ -525,15 +533,17 @@ fun InsightsScreen(
                     ) {
                         Text(
                             text = "No data yet",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 14.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            fontSize = dimens.textM
                         )
                     }
                 } else {
+                    val incomeArgb = LocalMakeFlowColors.current.colorSuccess.toArgb()
+                    val expenseArgb = MaterialTheme.colorScheme.error.toArgb()
                     val columnProvider = remember {
                         ColumnCartesianLayer.ColumnProvider.series(
-                            LineComponent(color = 0xFF4CAF50.toInt()),
-                            LineComponent(color = 0xFFFF5252.toInt())
+                            LineComponent(color = incomeArgb),
+                            LineComponent(color = expenseArgb)
                         )
                     }
 
@@ -570,27 +580,27 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Text(
                     text = "Savings Capacity",
-                    color = Color.White,
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "You could save ${CurrencyFormatter.format(suggestion.suggestedAmount, selectedCurrency)} per month",
-                    color = Color.White,
-                    fontSize = 14.sp
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textM
                 )
                 Text(
                     text = "Based on your lowest surplus month (${CurrencyFormatter.format(suggestion.safeFloor, selectedCurrency)})",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = dimens.textS
                 )
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                     val confidencePercent = (suggestion.confidence * 100).toInt()
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -598,19 +608,19 @@ fun InsightsScreen(
                     ) {
                         Text(
                             text = "Confidence",
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 12.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = dimens.textS
                         )
                         Text(
                             text = "$confidencePercent%",
-                            color = Color.White,
-                            fontSize = 12.sp
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textS
                         )
                     }
                     val confidenceColor = when {
-                        suggestion.confidence >= 0.7f -> Color(0xFF4CAF50)
-                        suggestion.confidence >= 0.4f -> Color(0xFFFFA726)
-                        else -> Color(0xFFEF5350)
+                        suggestion.confidence >= 0.7f -> LocalMakeFlowColors.current.colorSuccess
+                        suggestion.confidence >= 0.4f -> LocalMakeFlowColors.current.colorWarning
+                        else -> MaterialTheme.colorScheme.error
                     }
                     AnimatedProgressBar(
                         progress = suggestion.confidence.coerceIn(0f, 1f),
@@ -618,23 +628,23 @@ fun InsightsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
-                            .background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp))
                     )
                 }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                 ) {
                     TextButton(onClick = { viewModel.dismissSavingsSuggestion() }) {
-                        Text("Dismiss", color = Color.White.copy(alpha = 0.5f))
+                        Text("Dismiss", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                     }
                     Button(
                         onClick = { onSetUpRecurring(suggestion.suggestedAmount) },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF121315)
+                            containerColor = MaterialTheme.colorScheme.onSurface,
+                            contentColor = MaterialTheme.colorScheme.background
                         ),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(dimens.shapeCornerSmall)
                     ) {
                         Text("Set up recurring transfer")
                     }
@@ -650,9 +660,9 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B3A2A), RoundedCornerShape(20.dp))
+                    .background(LocalMakeFlowColors.current.colorSuccess.copy(alpha = 0.15f), RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -661,14 +671,14 @@ fun InsightsScreen(
                 ) {
                     Text(
                         text = "Frugality Streaks",
-                        color = Color.White,
-                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = dimens.textL,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "2 months and counting",
-                        color = Color(0xFF4CAF50),
-                        fontSize = 12.sp,
+                        color = LocalMakeFlowColors.current.colorSuccess,
+                        fontSize = dimens.textS,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -691,14 +701,14 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2C241B), RoundedCornerShape(20.dp))
+                    .background(LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.15f), RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Text(
                     text = "Upcoming seasonal expenses",
-                    color = Color.White,
-                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Medium
                 )
                 upcomingSeasonalExpenses.forEach { pattern ->
@@ -718,9 +728,9 @@ fun InsightsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -729,15 +739,15 @@ fun InsightsScreen(
                 ) {
                     Text(
                         text = "Budgets",
-                        color = Color.White,
-                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = dimens.textL,
                         fontWeight = FontWeight.Medium
                     )
                     IconButton(onClick = onOpenBudgets) {
                         Icon(
                             imageVector = Icons.Rounded.ChevronRight,
                             contentDescription = "View budgets",
-                            tint = Color.White.copy(alpha = 0.5f)
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -748,30 +758,30 @@ fun InsightsScreen(
                             .fillMaxWidth()
                             .clickable { onOpenBudgets() },
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(Color(0xFF121315), CircleShape),
+                                .background(MaterialTheme.colorScheme.background, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.TrackChanges,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.4f),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Text(
                             text = "No active budgets",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 14.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            fontSize = dimens.textM
                         )
                         Text(
                             text = "Tap + to set a spending limit",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 14.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            fontSize = dimens.textM
                         )
                     }
                 } else {
@@ -786,34 +796,34 @@ fun InsightsScreen(
                                     Box(modifier = Modifier.weight(1f)) {
                                         val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                                         val progressColor = when {
-                                            progress >= 1f -> Color(0xFFEF5350)
-                                            progress >= 0.7f -> Color(0xFFFFA726)
-                                            else -> Color(0xFF4CAF50)
+                                            progress >= 1f -> MaterialTheme.colorScheme.error
+                                            progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+                                            else -> LocalMakeFlowColors.current.colorSuccess
                                         }
-                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                                Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface)
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     val forecast = budgetForecasts.find { it.budgetId == budget.id }
                                                     if (forecast != null) {
                                                         val (statusColor, statusText) = when (forecast.status) {
-                                                            com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> Color(0xFF4CAF50) to "On track"
-                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> Color(0xFFFFA726) to "Off track"
-                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> Color(0xFFEF5350) to "Overspent"
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> LocalMakeFlowColors.current.colorSuccess to "On track"
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> LocalMakeFlowColors.current.colorWarning to "Off track"
+                                                            com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> MaterialTheme.colorScheme.error to "Overspent"
                                                         }
                                                         Text(statusText, color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                                                        Spacer(Modifier.width(6.dp))
+                                                        Spacer(Modifier.width(dimens.spacingSmall))
                                                     }
-                                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                 }
                                             }
-                                            AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                            AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
                                         }
-                                        Spacer(modifier = Modifier.height(12.dp))
+                                        Spacer(modifier = Modifier.height(dimens.spacingLarge))
                                     }
                                 }
                                 if (chunk.size == 1) {
@@ -825,37 +835,37 @@ fun InsightsScreen(
                         budgets.forEach { budget ->
                             val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                             val progressColor = when {
-                                progress >= 1f -> Color(0xFFEF5350)
-                                progress >= 0.7f -> Color(0xFFFFA726)
-                                else -> Color(0xFF4CAF50)
+                                progress >= 1f -> MaterialTheme.colorScheme.error
+                                progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+                                else -> LocalMakeFlowColors.current.colorSuccess
                             }
 
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=Color.White)
+                                    Text(budget.displayName, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurface)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         val forecast = budgetForecasts.find { it.budgetId == budget.id }
                                         if (forecast != null) {
                                             val (statusColor, statusText) = when (forecast.status) {
-                                                com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> Color(0xFF4CAF50) to "On track"
-                                                com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> Color(0xFFFFA726) to "Off track"
-                                                com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> Color(0xFFEF5350) to "Overspent"
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.ON_TRACK -> LocalMakeFlowColors.current.colorSuccess to "On track"
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.OFF_TRACK -> LocalMakeFlowColors.current.colorWarning to "Off track"
+                                                com.makemission.makeflow.domain.BudgetForecastStatus.OVERSPENT -> MaterialTheme.colorScheme.error to "Overspent"
                                             }
                                             Text(statusText, color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                                            Spacer(Modifier.width(6.dp))
+                                            Spacer(Modifier.width(dimens.spacingSmall))
                                         }
-                                        Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                        Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} / ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                     }
                                 }
 
-                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(dimens.spacingLarge))
                         }
                     }
                 }
@@ -879,12 +889,13 @@ private fun FrugalStreakRow(
     selectedCurrency: String,
     onDismiss: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
             .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -892,33 +903,33 @@ private fun FrugalStreakRow(
         ) {
             Text(
                 text = streak.categoryName,
-                color = Color.White,
-                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textM,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = "Streak!",
-                color = Color(0xFF4CAF50),
+                color = LocalMakeFlowColors.current.colorSuccess,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )
         }
         Text(
             text = "Saved ${CurrencyFormatter.format(streak.totalSavedVsAverage, selectedCurrency)} vs your average",
-            color = Color(0xFF81C784),
+            color = LocalMakeFlowColors.current.colorSuccess,
             fontSize = 13.sp
         )
         Text(
             text = "Projected ${CurrencyFormatter.format(streak.projectedAnnualSavings, selectedCurrency)}/year",
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 12.sp
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            fontSize = dimens.textS
         )
         TextButton(
             onClick = onDismiss,
             modifier = Modifier.align(Alignment.End)
         ) {
-            Text("Dismiss", color = Color.White.copy(alpha = 0.4f), fontSize = 12.sp)
+            Text("Dismiss", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textS)
         }
     }
 }
@@ -929,6 +940,7 @@ private fun SeasonalPatternRow(
     currencySymbol: String,
     selectedCurrency: String
 ) {
+    val dimens = LocalAppDimens.current
     val monthNames = pattern.peakMonths.map { month ->
         java.time.Month.of(month).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())
     }
@@ -937,15 +949,15 @@ private fun SeasonalPatternRow(
         PatternType.SEASONAL_SPIKE -> "Seasonal spike"
     }
     val typeBadgeColor = when (pattern.patternType) {
-        PatternType.ANNUAL_BILL -> Color(0xFFFFA726)
-        PatternType.SEASONAL_SPIKE -> Color(0xFFEF5350)
+        PatternType.ANNUAL_BILL -> LocalMakeFlowColors.current.colorWarning
+        PatternType.SEASONAL_SPIKE -> MaterialTheme.colorScheme.error
     }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
             .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -953,8 +965,8 @@ private fun SeasonalPatternRow(
         ) {
             Text(
                 text = pattern.categoryName,
-                color = Color.White,
-                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textM,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.weight(1f)
             )
@@ -967,12 +979,12 @@ private fun SeasonalPatternRow(
         }
         Text(
             text = monthNames.joinToString(", "),
-            color = Color.White.copy(alpha = 0.6f),
-            fontSize = 12.sp
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            fontSize = dimens.textS
         )
         Text(
             text = "Expect ~${CurrencyFormatter.format(pattern.avgPeakAmount, selectedCurrency)}",
-            color = Color(0xFFFFCC80),
+            color = LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.7f),
             fontSize = 13.sp
         )
     }

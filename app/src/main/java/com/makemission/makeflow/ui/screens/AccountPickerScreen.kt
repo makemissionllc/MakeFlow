@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
 fun AccountPickerScreen(
@@ -47,12 +49,13 @@ fun AccountPickerScreen(
     onAccountSelected: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     BackHandler(onBack = onBack)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0A0A0A))
+            .background(MaterialTheme.colorScheme.surfaceDim)
     ) {
         Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
@@ -66,13 +69,13 @@ fun AccountPickerScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             Text(
                 text = "Select Account",
-                color = Color.White,
-                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXxl,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -80,48 +83,48 @@ fun AccountPickerScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {
             items(accounts, key = { it.id }) { account ->
                 val isSelected = account.id == selectedAccountId
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSelected) Color(0xFF2C2C2E) else Color(0xFF1B1C1F))
+                        .clip(RoundedCornerShape(dimens.shapeCornerMedium))
+                        .background(if (isSelected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHigh)
                         .pressScale()
                         .clickable { onAccountSelected(account.id) }
-                        .padding(16.dp),
+                        .padding(dimens.paddingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF2C2C2E)),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = account.name.take(1).uppercase(),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
+                            fontSize = dimens.textXl
                         )
                     }
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = account.name,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp,
+                            fontSize = dimens.textMl,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = CurrencyFormatter.format(account.balance, currencyCode),
-                            color = Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = dimens.textSm
                         )
                     }
                 }

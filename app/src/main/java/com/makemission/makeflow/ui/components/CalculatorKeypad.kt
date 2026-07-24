@@ -29,14 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.MaterialTheme
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.domain.CalculatorEngine
-
-private val ButtonBg = Color(0xFF2C2C2E)
-private val OperatorBg = Color(0xFF3A3A3C)
-private val ActionBg = Color(0xFF3A3A3C)
-private val AccentGreen = Color(0xFF6DD881)
-private val KeypadBg = Color(0xFF1B1C1F)
-private val DisplayBg = Color(0xFF111411)
 
 private val btnShape = RoundedCornerShape(18.dp)
 private val ROW_HEIGHT = 76.dp
@@ -63,6 +59,7 @@ fun CalculatorKeypadOverlay(
     modifier: Modifier = Modifier,
     onHaptic: (() -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val engine = remember { CalculatorEngine() }
 
     // Seed the engine when initialAmount changes (e.g. keypad reopens for editing).
@@ -89,10 +86,17 @@ fun CalculatorKeypadOverlay(
     @Suppress("UNUSED_VARIABLE")
     val tickUsed = displayTick
 
+    val ButtonBg = MaterialTheme.colorScheme.surfaceContainerHigh
+    val OperatorBg = MaterialTheme.colorScheme.surfaceContainerHighest
+    val ActionBg = MaterialTheme.colorScheme.surfaceContainerHighest
+    val AccentGreen = MaterialTheme.colorScheme.primary
+    val KeypadBg = MaterialTheme.colorScheme.surfaceContainerHigh
+    val DisplayBg = MaterialTheme.colorScheme.surfaceDim
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(KeypadBg, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+            .background(KeypadBg, RoundedCornerShape(topStart = dimens.cornerRadiusLarge, topEnd = dimens.cornerRadiusLarge))
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
     ) {
@@ -112,8 +116,8 @@ fun CalculatorKeypadOverlay(
             }
             Text(
                 text = formatted,
-                color = if (dv == "Error") Color(0xFFFFB4A5) else Color.White,
-                fontSize = 32.sp,
+                color = if (dv == "Error") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textDisplay,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.End,
                 maxLines = 1,
@@ -127,10 +131,10 @@ fun CalculatorKeypadOverlay(
             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
         ) {
             CalcBtn("÷", OperatorBg, AccentGreen, Modifier.weight(1f), onClick = { engine.onOperator(CalculatorEngine.Operator.DIVIDE); refresh() })
-            CalcBtn("7", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(7); refresh() })
-            CalcBtn("8", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(8); refresh() })
-            CalcBtn("9", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(9); refresh() })
-            CalcBtn("⌫", ActionBg, Color.White, Modifier.weight(1f),
+            CalcBtn("7", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(7); refresh() })
+            CalcBtn("8", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(8); refresh() })
+            CalcBtn("9", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(9); refresh() })
+            CalcBtn("⌫", ActionBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f),
                 onClick = { engine.onBackspace(); refresh() },
                 onLongClick = { engine.onClear(); refresh(); onHaptic?.invoke() })
         }
@@ -141,10 +145,10 @@ fun CalculatorKeypadOverlay(
             horizontalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
         ) {
             CalcBtn("×", OperatorBg, AccentGreen, Modifier.weight(1f), onClick = { engine.onOperator(CalculatorEngine.Operator.MULTIPLY); refresh() })
-            CalcBtn("4", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(4); refresh() })
-            CalcBtn("5", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(5); refresh() })
-            CalcBtn("6", ButtonBg, Color.White, Modifier.weight(1f), onClick = { engine.onDigit(6); refresh() })
-            CalcBtn("📋", ActionBg, Color.White, Modifier.weight(1f), onClick = { onCopy(engine.displayValue) })
+            CalcBtn("4", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(4); refresh() })
+            CalcBtn("5", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(5); refresh() })
+            CalcBtn("6", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { engine.onDigit(6); refresh() })
+            CalcBtn("📋", ActionBg, MaterialTheme.colorScheme.onSurface, Modifier.weight(1f), onClick = { onCopy(engine.displayValue) })
         }
 
         // ── Rows 3–4: checkmark spans full height ──
@@ -165,7 +169,7 @@ fun CalculatorKeypadOverlay(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
             ) {
-                CalcBtn("1", ButtonBg, Color.White, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(1); refresh() })
+                CalcBtn("1", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(1); refresh() })
                 CalcBtn("±", OperatorBg, AccentGreen, Modifier.fillMaxWidth().weight(1f), onClick = { engine.toggleSign(); refresh(); onHaptic?.invoke() })
             }
             // Col 3: 2 then 0
@@ -173,16 +177,16 @@ fun CalculatorKeypadOverlay(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
             ) {
-                CalcBtn("2", ButtonBg, Color.White, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(2); refresh() })
-                CalcBtn("0", ButtonBg, Color.White, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(0); refresh() })
+                CalcBtn("2", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(2); refresh() })
+                CalcBtn("0", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(0); refresh() })
             }
             // Col 4: 3 then .
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(BUTTON_SPACING)
             ) {
-                CalcBtn("3", ButtonBg, Color.White, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(3); refresh() })
-                CalcBtn(".", ButtonBg, Color.White, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDecimalPoint(); refresh() })
+                CalcBtn("3", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDigit(3); refresh() })
+                CalcBtn(".", ButtonBg, MaterialTheme.colorScheme.onSurface, Modifier.fillMaxWidth().weight(1f), onClick = { engine.onDecimalPoint(); refresh() })
             }
             // Col 5: ✓ (tall, spans both rows)
             Box(
@@ -202,8 +206,8 @@ fun CalculatorKeypadOverlay(
             ) {
                 Text(
                     text = "✓",
-                    color = Color(0xFF111411),
-                    fontSize = 28.sp,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = dimens.textXxl,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -221,6 +225,7 @@ private fun CalcBtn(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     Box(
         modifier = modifier
             .background(bgColor, btnShape)
@@ -245,7 +250,7 @@ private fun CalcBtn(
         Text(
             text = label,
             color = textColor,
-            fontSize = 22.sp,
+            fontSize = dimens.textXl,
             fontWeight = FontWeight.SemiBold
         )
     }

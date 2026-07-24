@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -38,15 +39,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.changelog.changelogEntries
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
 fun ChangelogScreen(onBack: () -> Unit) {
+    val dimens = LocalAppDimens.current
     val listState = rememberLazyListState()
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             state = listState,
@@ -63,33 +66,33 @@ fun ChangelogScreen(onBack: () -> Unit) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF1B1C1F)),
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.AutoAwesome,
                                 contentDescription = null,
-                                tint = Color(0xFF6DD881),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(26.dp)
                             )
                         }
                         Column {
                             Text(
                                 text = "What's New",
-                                color = Color.White,
-                                fontSize = 22.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = dimens.textXxl,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Latest updates and improvements",
-                                color = Color.White.copy(alpha = 0.4f),
-                                fontSize = 14.sp
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                fontSize = dimens.textM
                             )
                         }
                     }
@@ -104,12 +107,12 @@ fun ChangelogScreen(onBack: () -> Unit) {
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
                         Text(
                             text = "v" + entry.version,
-                            color = Color(0xFF6DD881),
-                            fontSize = 18.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = dimens.textXl,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(Modifier.width(4.dp))
@@ -117,13 +120,13 @@ fun ChangelogScreen(onBack: () -> Unit) {
                             modifier = Modifier
                                 .size(4.dp)
                                 .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             text = entry.date,
-                            color = Color.White.copy(alpha = 0.3f),
-                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                            fontSize = dimens.textSm,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -139,15 +142,15 @@ fun ChangelogScreen(onBack: () -> Unit) {
                         ) {
                             Text(
                                 text = "\u2022",
-                                color = Color(0xFF6DD881),
-                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = dimens.textM,
                                 lineHeight = 20.sp,
                                 modifier = Modifier.width(16.dp)
                             )
                             Text(
                                 text = change,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                fontSize = dimens.textM,
                                 lineHeight = 20.sp
                             )
                         }
@@ -155,7 +158,7 @@ fun ChangelogScreen(onBack: () -> Unit) {
                 }
 
                 HorizontalDivider(
-                    color = Color.White.copy(alpha = 0.06f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
@@ -169,7 +172,7 @@ fun ChangelogScreen(onBack: () -> Unit) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

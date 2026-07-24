@@ -42,6 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import kotlinx.coroutines.launch
 
 private val categoryColors = listOf(
@@ -67,6 +69,7 @@ fun CreateCategoryBottomSheet(
     parentCategories: List<CategoryEntity>,
     existingType: String = "EXPENSE"
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf("") }
@@ -87,24 +90,24 @@ fun CreateCategoryBottomSheet(
             Text(
                 text = "New Category",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDismiss) {
-                Icon(imageVector = Icons.Rounded.Close, contentDescription = "Close", tint = Color.White)
+                Icon(imageVector = Icons.Rounded.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
             BasicTextField(
                 value = name,
                 onValueChange = { name = it },
-                textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                 singleLine = true,
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 decorationBox = { innerTextField ->
                     Box {
                         if (name.isEmpty()) {
-                            Text("Category name", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
+                            Text("Category name", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textM)
                         }
                         innerTextField()
                     }
@@ -113,20 +116,20 @@ fun CreateCategoryBottomSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Type", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+            Text("Type", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 listOf("EXPENSE", "INCOME").forEach { t ->
                     val isSelected = type == t
                     Text(
                         text = t.lowercase().replaceFirstChar { it.uppercase() },
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
+                        fontSize = dimens.textSm,
                         modifier = Modifier
-                            .background(if (isSelected) Color.White else Color(0xFF1B1C1F), RoundedCornerShape(14.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                             .clickable {
                                 type = t
                                 parentCategoryId = null
@@ -137,19 +140,19 @@ fun CreateCategoryBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Parent category (optional)", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+            Text("Parent category (optional)", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 val noneSelected = parentCategoryId == null
                 Text(
                     text = "None (top-level)",
-                    color = if (noneSelected) Color(0xFF121315) else Color.White,
+                    color = if (noneSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
+                    fontSize = dimens.textSm,
                     modifier = Modifier
-                        .background(if (noneSelected) Color.White else Color(0xFF1B1C1F), RoundedCornerShape(14.dp))
+                        .background(if (noneSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                         .clickable { parentCategoryId = null }
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 )
@@ -157,11 +160,11 @@ fun CreateCategoryBottomSheet(
                     val isSelected = parentCategoryId == parent.id
                     Text(
                         text = parent.name,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
+                        fontSize = dimens.textSm,
                         modifier = Modifier
-                            .background(if (isSelected) Color.White else Color(0xFF1B1C1F), RoundedCornerShape(14.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                             .clickable { parentCategoryId = parent.id }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     )
@@ -169,23 +172,23 @@ fun CreateCategoryBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Color", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+            Text("Color", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)) {
                 categoryColors.forEach { colorHex ->
                     val isSelected = colorHex == selectedColorHex
                     val dotColor = try {
                         Color(android.graphics.Color.parseColor(colorHex))
                     } catch (_: Exception) {
-                        Color(0xFF4CAF50)
+                        LocalMakeFlowColors.current.colorSuccess
                     }
                     Box(
                         modifier = Modifier
                             .size(34.dp)
                             .then(
-                                if (isSelected) Modifier.border(width = 2.dp, color = Color.White, shape = CircleShape)
+                                if (isSelected) Modifier.border(width = 2.dp, color = MaterialTheme.colorScheme.onSurface, shape = CircleShape)
                                 else Modifier
                             )
                             .padding(if (isSelected) 3.dp else 0.dp)
@@ -198,21 +201,21 @@ fun CreateCategoryBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Icon", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+            Text("Icon", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 categoryIcons.forEach { icon ->
                     val isSelected = icon == selectedIcon
                     Text(
                         text = icon.removePrefix("Local").removePrefix("Directions").replace("([a-z])([A-Z])".toRegex(), "$1 $2"),
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
+                        fontSize = dimens.textS,
                         maxLines = 1,
                         modifier = Modifier
-                            .background(if (isSelected) Color.White else Color(0xFF1B1C1F), RoundedCornerShape(14.dp))
+                            .background(if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                             .clickable { selectedIcon = icon }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                     )
@@ -220,7 +223,7 @@ fun CreateCategoryBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
         TextButton(
             onClick = {
@@ -240,22 +243,22 @@ fun CreateCategoryBottomSheet(
             },
             enabled = isSaveEnabled,
             colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                contentColor = Color.White,
-                disabledContentColor = Color.White.copy(alpha = 0.2f)
+                contentColor = MaterialTheme.colorScheme.onSurface,
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             ),
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    if (isSaveEnabled) Color.White else Color(0xFF1B1C1F),
-                    RoundedCornerShape(16.dp)
+                    if (isSaveEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    RoundedCornerShape(dimens.shapeCornerMedium)
                 )
                 .height(54.dp)
         ) {
             Text(
                 text = "Create Category",
-                fontSize = 16.sp,
+                fontSize = dimens.textL,
                 fontWeight = FontWeight.Bold,
-                color = if (isSaveEnabled) Color(0xFF121315) else Color.White.copy(alpha = 0.2f)
+                color = if (isSaveEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             )
         }
     }

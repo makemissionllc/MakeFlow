@@ -69,6 +69,8 @@ import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,6 +111,7 @@ fun AddTransactionBottomSheet(
     editTransaction: TransactionEntity? = null,
     onUpdate: (suspend (TransactionEntity) -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
     val isEditMode = editTransaction != null
 
@@ -287,12 +290,12 @@ fun AddTransactionBottomSheet(
                     datePickerState.selectedDateMillis?.let { selectedDate = it }
                     showDatePicker = false
                 }) {
-                    Text("OK", color = Color.White)
+                    Text("OK", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
             }
         ) {
@@ -319,13 +322,13 @@ fun AddTransactionBottomSheet(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF2C2C1E), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
+                            .background(LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.15f), RoundedCornerShape(dimens.shapeCornerSmall))
+                            .padding(dimens.spacingLarge)
                     ) {
                         Text(
                             text = message,
-                            color = Color(0xFFFFA726),
-                            fontSize = 13.sp,
+                            color = LocalMakeFlowColors.current.colorWarning,
+                            fontSize = dimens.textSm,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -339,33 +342,33 @@ fun AddTransactionBottomSheet(
                 Text(
                     text = if (isEditMode) "Edit Transaction" else "Add Transaction",
                     style = MaterialTheme.typography.titleLarge,
-                    color = Color.White
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
                         contentDescription = "Close",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
 
             if (!isEditMode && templates.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
                     Text(
                         text = "Templates",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         templates.forEach { template ->
                             Text(
                                 text = template.name,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
-                                    .background(Color(0xFF2C2C1E), RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                                     .clickable {
                                         amountInput = if (template.amount == template.amount.toLong().toDouble())
                                             template.amount.toLong().toString() else template.amount.toString()
@@ -383,21 +386,21 @@ fun AddTransactionBottomSheet(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 listOf("Income" to "INCOME", "Expense" to "EXPENSE", "Transfer" to "TRANSFER").forEach { (label, value) ->
                     val isSelected = selectedType == value
                     Text(
                         text = label,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
+                        fontSize = dimens.textM,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.cornerRadiusMedium)
                             )
                             .clickable { selectedType = value }
                             .padding(vertical = 12.dp)
@@ -412,11 +415,11 @@ fun AddTransactionBottomSheet(
             ) {
                 Text(
                     text = currencySymbol,
-                    color = Color.White,
-                    fontSize = 32.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textDisplayLarge,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(dimens.spacingMedium))
                 BasicTextField(
                     value = amountInput,
                     onValueChange = { newValue ->
@@ -427,21 +430,21 @@ fun AddTransactionBottomSheet(
                         }
                     },
                     textStyle = TextStyle(
-                        color = Color.White,
-                        fontSize = 32.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = dimens.textDisplayLarge,
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center
                     ),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     decorationBox = { innerTextField ->
                         Box {
                             if (amountInput.isEmpty()) {
                                 Text(
                                     text = "0.00",
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 32.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    fontSize = dimens.textDisplayLarge,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -453,24 +456,24 @@ fun AddTransactionBottomSheet(
             }
 
             if (selectedType == "TRANSFER") {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
                         text = "From account",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferFromId
                             Text(
                                 text = account.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
                                     .clickable { selectedTransferFromId = account.id }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -478,24 +481,24 @@ fun AddTransactionBottomSheet(
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
                         text = "To account",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferToId
                             Text(
                                 text = account.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
                                     .clickable { selectedTransferToId = account.id }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -504,24 +507,24 @@ fun AddTransactionBottomSheet(
                     }
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
                         text = "Account",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedAccountId
                             Text(
                                 text = account.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
                                     .clickable { selectedAccountId = account.id }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -532,30 +535,30 @@ fun AddTransactionBottomSheet(
             }
 
             if (selectedType != "TRANSFER") {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     parentCategories.forEach { parent ->
                         val isSelected = parent.id == selectedParentCategory?.id
                         val isSuggested = !isSelected && categorySuggestion?.categoryId == parent.id
                         val bgColor = when {
-                            isSelected -> Color.White
-                            isSuggested -> Color(0xFF2C2C1E)
-                            else -> Color(0xFF1B1C1F)
+                            isSelected -> MaterialTheme.colorScheme.onSurface
+                            isSuggested -> MaterialTheme.colorScheme.surfaceContainerHigh
+                            else -> MaterialTheme.colorScheme.surfaceContainerHigh
                         }
-                        val textColor = if (isSelected) Color(0xFF121315) else Color.White
-                        val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(14.dp))
-                            else Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                        val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface
+                        val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
+                            else Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = parent.name,
                                 color = textColor,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .then(borderMod)
                                     .clickable {
@@ -567,7 +570,7 @@ fun AddTransactionBottomSheet(
                             if (isSuggested) {
                                 Text(
                                     text = "suggested",
-                                    color = Color(0xFFFFA726),
+                                    color = LocalMakeFlowColors.current.colorWarning,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -579,26 +582,26 @@ fun AddTransactionBottomSheet(
                     Text(
                         text = "Subcategory",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.35f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         childCategories.forEach { child ->
                             val isSelected = child.id == selectedChildCategory?.id
                             val isSuggested = !isSelected && categorySuggestion?.categoryId == child.id
                             val bgColor = when {
-                                isSelected -> Color.White
-                                isSuggested -> Color(0xFF2C2C1E)
-                                else -> Color(0xFF1B1C1F)
+                                isSelected -> MaterialTheme.colorScheme.onSurface
+                                isSuggested -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                else -> MaterialTheme.colorScheme.surfaceContainerHigh
                             }
-                            val textColor = if (isSelected) Color(0xFF121315) else Color.White
-                            val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(14.dp))
-                                else Modifier.background(bgColor, RoundedCornerShape(14.dp))
+                            val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface
+                            val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
+                                else Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = child.name,
                                     color = textColor,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
+                                    fontSize = dimens.textSm,
                                     modifier = Modifier
                                         .then(borderMod)
                                         .clickable { selectedChildCategory = child }
@@ -607,7 +610,7 @@ fun AddTransactionBottomSheet(
                                 if (isSuggested) {
                                     Text(
                                         text = "suggested",
-                                        color = Color(0xFFFFA726),
+                                        color = LocalMakeFlowColors.current.colorWarning,
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -619,20 +622,20 @@ fun AddTransactionBottomSheet(
             }
             }
 
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 BasicTextField(
                     value = note,
                     onValueChange = { note = it },
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     decorationBox = { innerTextField ->
                         Box {
                             if (note.isEmpty()) {
                                 Text(
                                     text = "Add a note (optional)",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 14.sp
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    fontSize = dimens.textM
                                 )
                             }
                             innerTextField()
@@ -641,7 +644,7 @@ fun AddTransactionBottomSheet(
                     modifier = Modifier.fillMaxWidth()
                 )
                 HorizontalDivider(
-                    color = Color.White.copy(alpha = 0.15f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                     thickness = 0.5.dp
                 )
             }
@@ -650,19 +653,19 @@ fun AddTransactionBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDatePicker = true },
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Rounded.DateRange,
                     contentDescription = "Select date",
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
                     text = dateFormat.format(Date(selectedDate)),
-                    color = Color.White,
-                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textM,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -677,8 +680,8 @@ fun AddTransactionBottomSheet(
                 ) {
                     Text(
                         text = "Save as template",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = dimens.textSm,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -690,30 +693,30 @@ fun AddTransactionBottomSheet(
                         showSaveTemplateDialog = false
                         templateNameInput = ""
                     },
-                    containerColor = Color(0xFF1B1C1F),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     title = {
-                        Text("Save as template", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Save as template", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                     },
                     text = {
                         Column {
                             Text(
                                 text = "Name",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color.White.copy(alpha = 0.5f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                             BasicTextField(
                                 value = templateNameInput,
                                 onValueChange = { templateNameInput = it },
-                                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
                                 singleLine = true,
-                                cursorBrush = SolidColor(Color.White),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                                 decorationBox = { innerTextField ->
                                     Box {
                                         if (templateNameInput.isEmpty()) {
                                             Text(
                                                 text = "e.g. Monthly Rent",
-                                                color = Color.White.copy(alpha = 0.3f),
-                                                fontSize = 16.sp
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                                fontSize = dimens.textL
                                             )
                                         }
                                         innerTextField()
@@ -721,7 +724,7 @@ fun AddTransactionBottomSheet(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF2C2C2C), RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                                     .padding(horizontal = 14.dp, vertical = 12.dp)
                             )
                         }
@@ -737,7 +740,7 @@ fun AddTransactionBottomSheet(
                             },
                             enabled = templateNameInput.isNotBlank()
                         ) {
-                            Text("Save", color = Color.White)
+                            Text("Save", color = MaterialTheme.colorScheme.onSurface)
                         }
                     },
                     dismissButton = {
@@ -747,7 +750,7 @@ fun AddTransactionBottomSheet(
                                 templateNameInput = ""
                             }
                         ) {
-                            Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                         }
                     }
                 )
@@ -758,15 +761,15 @@ fun AddTransactionBottomSheet(
                     onDismissRequest = {
                         commitHandler?.clearAlerts()
                     },
-                    containerColor = Color(0xFF1B1C1F),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     title = {
-                        Text("Possible duplicate", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Possible duplicate", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                     },
                     text = {
                         Text(
                             "This looks like a ${warning.reason} ÔÇö save anyway?",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            fontSize = dimens.textM
                         )
                     },
                     confirmButton = {
@@ -785,14 +788,14 @@ fun AddTransactionBottomSheet(
                                 )
                             }
                         }) {
-                            Text("Save Anyway", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Save Anyway", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                         }
                     },
                     dismissButton = {
                         androidx.compose.material3.TextButton(onClick = {
                             commitHandler?.clearAlerts()
                         }) {
-                            Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                         }
                     }
                 )
@@ -858,19 +861,19 @@ fun AddTransactionBottomSheet(
                 },
                 enabled = isSaveEnabled,
                 colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315),
-                    disabledContainerColor = Color(0xFF1B1C1F),
-                    disabledContentColor = Color.White.copy(alpha = 0.2f)
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.background,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(dimens.shapeCornerMedium),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
             ) {
                 Text(
                     text = if (isEditMode) "Update Transaction" else "Save Transaction",
-                    fontSize = 16.sp,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Bold
                 )
             }

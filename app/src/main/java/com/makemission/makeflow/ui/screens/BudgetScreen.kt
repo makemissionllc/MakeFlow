@@ -61,6 +61,8 @@ import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.domain.BudgetSuggestion
 import com.makemission.makeflow.domain.SuggestionReason
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
@@ -73,6 +75,7 @@ fun BudgetScreen(
     hapticManager: HapticManager,
     notificationGate: NotificationGate? = null
 ) {
+    val dimens = LocalAppDimens.current
     val budgets by viewModel.budgets.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
@@ -120,7 +123,7 @@ fun BudgetScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         if (budgets.isEmpty()) {
                 Box(
@@ -134,23 +137,23 @@ fun BudgetScreen(
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Savings,
                             contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.4f),
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
                             text = "No budgets yet",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                         )
                         Text(
                             text = "Tap + to set a spending limit",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color.White.copy(alpha = 0.4f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
                     }
                 }
@@ -191,36 +194,36 @@ fun BudgetScreen(
                                             onApply = { viewModel.applySuggestion(suggestion) },
                                             onDismiss = { viewModel.dismissSuggestion(suggestion) }
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                                     }
                                     Box(modifier = Modifier.weight(1f)) {
                                         val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                                         val progressColor = when {
-                                            progress >= 1f -> Color(0xFFEF5350)
-                                            progress >= 0.7f -> Color(0xFFFFA726)
-                                            else -> Color(0xFF4CAF50)
+                                            progress >= 1f -> MaterialTheme.colorScheme.error
+                                            progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+                                            else -> LocalMakeFlowColors.current.colorSuccess
                                         }
 
                                             CardContainer {
                                                 Column(
                                                     modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
-                                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                    verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                                                 ) {
                                                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
                                                         Column {
-                                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                                             if (budget.name != null) {
-                                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                             }
                                                         }
                                                         Text(
                                                         when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
-                                                        style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
-                                                        modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
+                                                        style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f),
+                                                        modifier=Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
                                                     )
                                                 }
-                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
-                                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
                                             }
                                         }
                                     }
@@ -246,31 +249,31 @@ fun BudgetScreen(
                             }
                             val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
                             val progressColor = when {
-                                progress >= 1f -> Color(0xFFEF5350)
-                                progress >= 0.7f -> Color(0xFFFFA726)
-                                else -> Color(0xFF4CAF50)
+                                progress >= 1f -> MaterialTheme.colorScheme.error
+                                progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+                                else -> LocalMakeFlowColors.current.colorSuccess
                             }
 
                             CardContainer {
                                 Column(
                                     modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                                 ) {
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
                                         Column {
-                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                             if (budget.name != null) {
-                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.5f))
+                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                             }
                                         }
                                         Text(
                                             when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
-                                            style=MaterialTheme.typography.labelSmall, color=Color.White.copy(alpha=0.6f),
-                                            modifier=Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
+                                            style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f),
+                                            modifier=Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
                                         )
                                     }
-                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.6f))
-                                    AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(Color(0xFF2C2C2C), RoundedCornerShape(3.dp)))
+                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
+                                    AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
                                 }
                             }
 
@@ -290,7 +293,7 @@ fun BudgetScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
@@ -299,7 +302,7 @@ fun BudgetScreen(
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = "Add budget",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -332,18 +335,18 @@ fun BudgetScreen(
     budgetToDelete?.let { budget ->
         AlertDialog(
             onDismissRequest = { budgetToDelete = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
                 Text(
                     text = "Delete Budget",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
                     text = "This will remove the budget but not your transactions.",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -351,12 +354,12 @@ fun BudgetScreen(
                     viewModel.deleteBudget(budget)
                     budgetToDelete = null
                 }) {
-                    Text("Confirm", color = Color(0xFFEF5350))
+                    Text("Confirm", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { budgetToDelete = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
@@ -370,6 +373,7 @@ fun SuggestionCard(
     onApply: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val lowConfidence = suggestion.confidence < 0.5f
     val alpha = if (lowConfidence) 0.6f else 1f
     val formattedAmount = CurrencyFormatter.format(suggestion.suggestedAmount, currencyCode)
@@ -382,29 +386,29 @@ fun SuggestionCard(
     CardContainer {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {
             Text(
                 text = message,
-                color = Color.White.copy(alpha = alpha),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
                 fontSize = if (lowConfidence) 12.sp else 13.sp,
                 fontWeight = FontWeight.Medium
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 TextButton(
                     onClick = onApply,
-                    modifier = Modifier.background(Color.White, RoundedCornerShape(10.dp))
+                    modifier = Modifier.background(MaterialTheme.colorScheme.onSurface, RoundedCornerShape(dimens.shapeCornerXSmall))
                 ) {
-                    Text("Apply", color = Color(0xFF121315), fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("Apply", color = MaterialTheme.colorScheme.background, fontWeight = FontWeight.SemiBold, fontSize = dimens.textSm)
                 }
                 TextButton(
                     onClick = onDismiss,
-                    modifier = Modifier.background(Color(0xFF2C2C2C), RoundedCornerShape(10.dp))
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerXSmall))
                 ) {
-                    Text("Dismiss", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+                    Text("Dismiss", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontSize = dimens.textSm)
                 }
             }
         }

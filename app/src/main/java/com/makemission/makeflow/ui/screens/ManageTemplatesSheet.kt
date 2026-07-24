@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
 fun ManageTemplatesSheet(
@@ -50,6 +51,7 @@ fun ManageTemplatesSheet(
     onRename: (id: String, newName: String) -> Unit,
     onDelete: (TransactionTemplateEntity) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     var editingId by remember { mutableStateOf<String?>(null) }
     var editName by remember { mutableStateOf("") }
     var deleteTarget by remember { mutableStateOf<TransactionTemplateEntity?>(null) }
@@ -71,13 +73,13 @@ fun ManageTemplatesSheet(
                     Text(
                         text = "Templates",
                         style = MaterialTheme.typography.titleLarge,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = "Close",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -88,8 +90,8 @@ fun ManageTemplatesSheet(
                     Spacer(modifier = Modifier.height(24.dp))
                     Text(
                         text = "No templates yet",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = dimens.textM,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
@@ -99,53 +101,53 @@ fun ManageTemplatesSheet(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                                 .padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             BasicTextField(
                                 value = editName,
                                 onValueChange = { editName = it },
-                                textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                                 singleLine = true,
-                                cursorBrush = SolidColor(Color.White),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                                 modifier = Modifier
                                     .weight(1f)
-                                    .background(Color(0xFF2C2C2C), RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerXSmall))
                                     .padding(horizontal = 10.dp, vertical = 8.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(dimens.spacingMedium))
                             TextButton(onClick = {
                                 if (editName.isNotBlank()) {
                                     onRename(template.id, editName.trim())
                                     editingId = null
                                 }
                             }) {
-                                Text("Save", color = Color.White, fontSize = 13.sp)
+                                Text("Save", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textSm)
                             }
                             TextButton(onClick = { editingId = null }) {
-                                Text("Cancel", color = Color.White.copy(alpha = 0.5f), fontSize = 13.sp)
+                                Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f), fontSize = dimens.textSm)
                             }
                         }
                     } else {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                                 .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = template.name,
-                                    color = Color.White,
-                                    fontSize = 15.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = dimens.textMl,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = "${template.type} \u2022 ${template.note.ifEmpty { "No note" }}",
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 12.sp
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                    fontSize = dimens.textS
                                 )
                             }
                             IconButton(
@@ -158,7 +160,7 @@ fun ManageTemplatesSheet(
                                 Icon(
                                     imageVector = Icons.Rounded.Edit,
                                     contentDescription = "Rename",
-                                    tint = Color.White.copy(alpha = 0.5f),
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -169,7 +171,7 @@ fun ManageTemplatesSheet(
                                 Icon(
                                     imageVector = Icons.Rounded.Delete,
                                     contentDescription = "Delete",
-                                    tint = Color.White.copy(alpha = 0.4f),
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -183,24 +185,24 @@ fun ManageTemplatesSheet(
     deleteTarget?.let { template ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Delete template?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Delete template?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("\"${template.name}\" will be removed permanently.", color = Color.White.copy(alpha = 0.7f))
+                Text("\"${template.name}\" will be removed permanently.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = {
                     onDelete(template)
                     deleteTarget = null
                 }) {
-                    Text("Delete", color = Color(0xFFEF5350))
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )

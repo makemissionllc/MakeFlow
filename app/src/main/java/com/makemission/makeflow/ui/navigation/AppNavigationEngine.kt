@@ -60,6 +60,8 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
     val username by userPrefDataStore.userName.collectAsState(initial = "")
     val currency by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
     val selectedTheme by userPrefDataStore.selectedTheme.collectAsState(initial = "forest")
+    val themeMode by userPrefDataStore.themeMode.collectAsState(initial = "system")
+    val amoledMode by userPrefDataStore.amoledMode.collectAsState(initial = false)
     val hapticManager = rememberHapticManager()
     val powerState by rememberPowerState()
 
@@ -157,7 +159,7 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
         LocalReducedMotion provides powerState.shouldReduceMotion,
         LocalDeviceLayoutMode provides deviceLayoutMode
     ) {
-    MakeFlowTheme(themePalette = selectedTheme) {
+    MakeFlowTheme(themeMode = themeMode, themePalette = selectedTheme, amoledMode = amoledMode) {
         if (!isUnlocked) {
             com.makemission.makeflow.core.lock.LockScreen(
                 onUnlocked = { isUnlocked = true }

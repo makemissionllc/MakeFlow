@@ -44,6 +44,8 @@ import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -58,6 +60,7 @@ fun AddEditRecurringTransactionBottomSheet(
     prefillAmount: Double? = null,
     prefillDescription: String? = null
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
 
     val isEditing = editEntity != null
@@ -113,36 +116,36 @@ fun AddEditRecurringTransactionBottomSheet(
             Text(
                 text = if (isEditing) "Edit Recurring" else "New Recurring",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Description",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
             BasicTextField(
                 value = description,
                 onValueChange = { description = it },
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
                 singleLine = true,
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 decorationBox = { innerTextField ->
                     Box {
                         if (description.isEmpty()) {
                             Text(
                                 text = "e.g. Netflix Subscription",
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 16.sp
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                fontSize = dimens.textL
                             )
                         }
                         innerTextField()
@@ -150,12 +153,12 @@ fun AddEditRecurringTransactionBottomSheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                     .padding(horizontal = 14.dp, vertical = 12.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -164,11 +167,11 @@ fun AddEditRecurringTransactionBottomSheet(
         ) {
             Text(
                 text = currencySymbol,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(dimens.spacingMedium))
             BasicTextField(
                 value = amountInput,
                 onValueChange = { newValue ->
@@ -177,20 +180,20 @@ fun AddEditRecurringTransactionBottomSheet(
                     }
                 },
                 textStyle = TextStyle(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 decorationBox = { innerTextField ->
                     Box {
                         if (amountInput.isEmpty()) {
                             Text(
                                 text = "0.00",
-                                color = Color.White.copy(alpha = 0.3f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -202,26 +205,26 @@ fun AddEditRecurringTransactionBottomSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Type",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 listOf("INCOME", "EXPENSE").forEach { type ->
                     val isSelected = selectedType == type
                     Text(
                         text = type,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
+                        fontSize = dimens.textSm,
                         modifier = Modifier
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.cornerRadiusMedium)
                             )
                             .clickable {
                                 selectedType = type
@@ -234,32 +237,32 @@ fun AddEditRecurringTransactionBottomSheet(
         }
 
         if (selectedType == "EXPENSE") {
-            Spacer(modifier = Modifier.height(4.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(modifier = Modifier.height(dimens.spacingXSmall))
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
                 if (filteredCategories.isEmpty()) {
                     Text(
                         text = "No categories available",
-                        color = Color.White.copy(alpha = 0.3f),
-                        fontSize = 13.sp
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                        fontSize = dimens.textSm
                     )
                 } else {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         filteredCategories.forEach { cat ->
                             val isSelected = cat.id == selectedCategoryId
                             Text(
                                 text = cat.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
                                     .clickable { selectedCategoryId = cat.id }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -270,32 +273,32 @@ fun AddEditRecurringTransactionBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Account",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
             if (accounts.isEmpty()) {
                 Text(
                     text = "No accounts — create one first",
-                    color = Color.White.copy(alpha = 0.3f),
-                    fontSize = 13.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    fontSize = dimens.textSm
                 )
             } else {
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     accounts.forEach { acct ->
                         val isSelected = acct.id == selectedAccountId
                         Text(
                             text = acct.name,
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
+                            color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = dimens.textSm,
                             modifier = Modifier
                                 .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                                    if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    RoundedCornerShape(dimens.cornerRadiusMedium)
                                 )
                                 .clickable { selectedAccountId = acct.id }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -305,25 +308,25 @@ fun AddEditRecurringTransactionBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Frequency",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 listOf("WEEKLY", "MONTHLY", "ANNUAL", "CUSTOM_DAYS").forEach { freq ->
                     val isSelected = selectedFrequency == freq
                     Text(
                         text = freq.replace("_", " "),
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
+                        fontSize = dimens.textSm,
                         modifier = Modifier
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.cornerRadiusMedium)
                             )
                             .clickable { selectedFrequency = freq }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -334,16 +337,16 @@ fun AddEditRecurringTransactionBottomSheet(
                 BasicTextField(
                     value = customDaysInput,
                     onValueChange = { if (it.all { c -> c.isDigit() }) customDaysInput = it },
-                    textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
                     singleLine = true,
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     decorationBox = { innerTextField ->
                         Box {
                             if (customDaysInput.isEmpty()) {
                                 Text(
                                     text = "Days",
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 16.sp
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    fontSize = dimens.textL
                                 )
                             }
                             innerTextField()
@@ -351,13 +354,13 @@ fun AddEditRecurringTransactionBottomSheet(
                     },
                     modifier = Modifier
                         .width(120.dp)
-                        .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -366,29 +369,29 @@ fun AddEditRecurringTransactionBottomSheet(
             Column {
                 Text(
                     text = "Auto-confirm",
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textMl,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = if (autoConfirm) "Creates transaction automatically" else "Asks before creating",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textS
                 )
             }
             Switch(
                 checked = autoConfirm,
                 onCheckedChange = { autoConfirm = it },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF4CAF50),
-                    uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                    uncheckedTrackColor = Color(0xFF2C2C2C)
+                    checkedThumbColor = MaterialTheme.colorScheme.onSurface,
+                    checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 )
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingXSmall))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -397,29 +400,29 @@ fun AddEditRecurringTransactionBottomSheet(
             Column {
                 Text(
                     text = "End date",
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textMl,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = if (enableEndDate) "Stops after end date" else "Never ends",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textS
                 )
             }
             Switch(
                 checked = enableEndDate,
                 onCheckedChange = { enableEndDate = it },
                 colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF4CAF50),
-                    uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                    uncheckedTrackColor = Color(0xFF2C2C2C)
+                    checkedThumbColor = MaterialTheme.colorScheme.onSurface,
+                    checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                    uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 )
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
         androidx.compose.material3.Button(
             onClick = {
@@ -447,19 +450,19 @@ fun AddEditRecurringTransactionBottomSheet(
             },
             enabled = isSaveEnabled,
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color(0xFF121315),
-                disabledContainerColor = Color(0xFF1B1C1F),
-                disabledContentColor = Color.White.copy(alpha = 0.2f)
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.background,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(dimens.shapeCornerMedium),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
         ) {
             Text(
                 text = if (isEditing) "Update" else "Create",
-                fontSize = 16.sp,
+                fontSize = dimens.textL,
                 fontWeight = FontWeight.Bold
             )
         }

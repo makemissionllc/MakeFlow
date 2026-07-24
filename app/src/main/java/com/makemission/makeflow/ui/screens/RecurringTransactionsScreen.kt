@@ -55,6 +55,8 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
 import com.makemission.makeflow.ui.viewmodel.RecurringTransactionsViewModel
 import kotlinx.coroutines.launch
@@ -67,6 +69,7 @@ fun RecurringTransactionsScreen(
     onBack: () -> Unit,
     viewModel: RecurringTransactionsViewModel
 ) {
+    val dimens = LocalAppDimens.current
     val recurringTransactions by viewModel.recurringTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -85,7 +88,7 @@ fun RecurringTransactionsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             state = listState,
@@ -96,7 +99,7 @@ fun RecurringTransactionsScreen(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 32.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
         ) {
             item {
                 LargeTitleItem(title = "Recurring", scrollState = listState)
@@ -106,8 +109,8 @@ fun RecurringTransactionsScreen(
                 item {
                     Text(
                         text = "No recurring transactions yet",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = dimens.textM,
                         modifier = Modifier.padding(top = 32.dp, start = 4.dp)
                     )
                 }
@@ -147,17 +150,17 @@ fun RecurringTransactionsScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXLarge))
                 androidx.compose.material3.Button(
                     onClick = {
                         viewModel.setEditEntity(null)
                         showAddEdit = true
                     },
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF121315)
+                        containerColor = MaterialTheme.colorScheme.onSurface,
+                        contentColor = MaterialTheme.colorScheme.background
                     ),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(dimens.shapeCornerMedium),
                     modifier = Modifier.fillMaxWidth().height(54.dp)
                 ) {
                     Icon(
@@ -168,7 +171,7 @@ fun RecurringTransactionsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "Add Recurring",
-                        fontSize = 16.sp,
+                        fontSize = dimens.textL,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -184,7 +187,7 @@ fun RecurringTransactionsScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -212,14 +215,14 @@ fun RecurringTransactionsScreen(
     entityToDelete?.let { entity ->
         AlertDialog(
             onDismissRequest = { entityToDelete = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Delete recurring?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Delete recurring?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
                 Text(
                     text = "\"${entity.description}\" will be removed permanently.",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -227,12 +230,12 @@ fun RecurringTransactionsScreen(
                     viewModel.delete(entity)
                     entityToDelete = null
                 }) {
-                    Text("Delete", color = Color(0xFFEF5350))
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { entityToDelete = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -247,14 +250,15 @@ private fun RecurringTransactionCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val dateFormat = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .animateContentSize()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .pressScale()
             .clickable(onClick = onEdit)
             .padding(14.dp)
@@ -267,8 +271,8 @@ private fun RecurringTransactionCard(
             ) {
                 Text(
                     text = entity.description,
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textMl,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
@@ -279,7 +283,7 @@ private fun RecurringTransactionCard(
                     Icon(
                         imageVector = if (entity.isActive) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                         contentDescription = if (entity.isActive) "Pause" else "Resume",
-                        tint = if (entity.isActive) Color(0xFFFFA726) else Color(0xFF4CAF50),
+                        tint = if (entity.isActive) LocalMakeFlowColors.current.colorWarning else LocalMakeFlowColors.current.colorSuccess,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -289,32 +293,32 @@ private fun RecurringTransactionCard(
 
             Text(
                 text = "$currencySymbol ${formatAmount(entity.amount)}",
-                color = if (entity.type == "INCOME") Color(0xFF6DD881) else Color.White,
-                fontSize = 20.sp,
+                color = if (entity.type == "INCOME") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXxl,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingXSmall))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
             ) {
                 Text(
                     text = entity.frequency.replace("_", " "),
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = dimens.textS,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
                     text = "\u00B7",
-                    color = Color.White.copy(alpha = 0.3f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    fontSize = dimens.textS
                 )
                 Text(
                     text = if (entity.autoConfirm) "Auto" else "Pending review",
-                    color = if (entity.autoConfirm) Color(0xFF4CAF50).copy(alpha = 0.7f) else Color(0xFFFFA726).copy(alpha = 0.7f),
-                    fontSize = 12.sp
+                    color = if (entity.autoConfirm) LocalMakeFlowColors.current.colorSuccess.copy(alpha = 0.7f) else LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.7f),
+                    fontSize = dimens.textS
                 )
             }
 
@@ -322,21 +326,21 @@ private fun RecurringTransactionCard(
 
             Text(
                 text = "Next: ${dateFormat.format(Date(entity.nextDueDate))}",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 12.sp
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                fontSize = dimens.textS
             )
 
             if (!entity.isActive) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                 Text(
                     text = "Paused",
-                    color = Color(0xFFFFA726),
+                    color = LocalMakeFlowColors.current.colorWarning,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -349,7 +353,7 @@ private fun RecurringTransactionCard(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = "Delete",
-                        tint = Color.White.copy(alpha = 0.4f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                         modifier = Modifier.size(16.dp)
                     )
                 }

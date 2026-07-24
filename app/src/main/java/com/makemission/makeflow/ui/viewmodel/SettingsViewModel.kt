@@ -56,6 +56,12 @@ class SettingsViewModel(
     val logMpesaCosts: StateFlow<Boolean> = userPreferencesDataStore.logMpesaCosts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val themeMode: StateFlow<String> = userPreferencesDataStore.themeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
+
+    val amoledMode: StateFlow<Boolean> = userPreferencesDataStore.amoledMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val hasPromptedNotificationPermission: StateFlow<Boolean> = userPreferencesDataStore.hasPromptedNotificationPermission
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -96,6 +102,18 @@ class SettingsViewModel(
     fun saveLogMpesaCosts(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveLogMpesaCosts(enabled)
+        }
+    }
+
+    fun saveThemeMode(mode: String) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveThemeMode(mode)
+        }
+    }
+
+    fun saveAmoledMode(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveAmoledMode(enabled)
         }
     }
 

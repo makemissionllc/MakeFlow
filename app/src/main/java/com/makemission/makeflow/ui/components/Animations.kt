@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -105,7 +106,7 @@ fun Modifier.pressScale(
 fun AnimatedProgressBar(
     progress: Float,
     color: Color,
-    trackColor: Color = Color(0xFF2C2C2C),
+    trackColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier,
     animationSpec: AnimationSpec<Float> = spring(
         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -119,10 +120,11 @@ fun AnimatedProgressBar(
         animationSpec = spec,
         label = "progress"
     )
+    val resolvedTrackColor = if (trackColor != Color.Unspecified) trackColor else MaterialTheme.colorScheme.surfaceContainerHigh
     LinearProgressIndicator(
         progress = { animatedProgress },
         color = color,
-        trackColor = trackColor,
+        trackColor = resolvedTrackColor,
         modifier = modifier
     )
 }

@@ -1,6 +1,7 @@
 package com.makemission.makeflow.ui.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
 import java.util.Calendar
@@ -33,11 +34,13 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.RestorePage
 import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.TipsAndUpdates
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -69,6 +72,8 @@ import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
@@ -84,6 +89,13 @@ private val themes = listOf(
     ThemeOption("purple", "Royal Purple"),
     ThemeOption("dynamic", "Dynamic")
 )
+
+private val modeLabels = mapOf(
+    "system" to "System",
+    "light" to "Light",
+    "dark" to "Dark"
+)
+private val modeOptions = listOf("system", "light", "dark")
 
 private val currencies = listOf(
     CurrencyOption("KES", "KES"),
@@ -109,8 +121,11 @@ fun SettingsScreen(
     onRestore: () -> Unit = {},
     onOpenChangelog: () -> Unit = {}
 ) {
+    val dimens = LocalAppDimens.current
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentTheme by viewModel.selectedTheme.collectAsState()
+    val currentThemeMode by viewModel.themeMode.collectAsState()
+    val amoledMode by viewModel.amoledMode.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
     val smartCategorizationEnabled by viewModel.smartCategorizationEnabled.collectAsState()
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
@@ -119,6 +134,12 @@ fun SettingsScreen(
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
     var showThemePicker by remember { mutableStateOf(false) }
+    var showModePicker by remember { mutableStateOf(false) }
+    val isEffectivelyDark = when (currentThemeMode) {
+        "light" -> false
+        "dark" -> true
+        else -> isSystemInDarkTheme()
+    }
     var showClearConfirm by remember { mutableStateOf(false) }
     var showResetPersonalizationConfirm by remember { mutableStateOf(false) }
     var showPdfExportDialog by remember { mutableStateOf(false) }
@@ -129,7 +150,7 @@ fun SettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             state = listState,
@@ -140,7 +161,7 @@ fun SettingsScreen(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 32.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
         ) {
             item {
                 LargeTitleItem(title = "Settings", scrollState = listState)
@@ -157,6 +178,23 @@ fun SettingsScreen(
                         }
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
+                        }
+                    }
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 2) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
+                        Box(Modifier.weight(1f)) {
+                        SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
+                        }
+                        Box(Modifier.weight(1f)) {
+                        AmoledToggleRow(
+                            enabled = amoledMode,
+                            isDarkAvailable = isEffectivelyDark,
+                            onToggle = { viewModel.saveAmoledMode(it) }
+                        )
                         }
                     }
                     }
@@ -236,10 +274,10 @@ fun SettingsScreen(
                         }
                         }
                     }
-                    item { StaggeredItem(index = 11) { Spacer(modifier = Modifier.height(4.dp)) } }
+                    item { StaggeredItem(index = 11) { Spacer(modifier = Modifier.height(dimens.spacingXSmall)) } }
                 }
 
-                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(dimens.spacingXLarge)) } }
                 item { StaggeredItem(index = 13) { SectionHeader(text = "Data") } }
 
                 item {
@@ -255,7 +293,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 100) { Spacer(modifier = Modifier.height(4.dp)) } }
+                item { StaggeredItem(index = 100) { Spacer(modifier = Modifier.height(dimens.spacingXSmall)) } }
 
                 item {
                     StaggeredItem(index = 101) {
@@ -270,7 +308,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 102) { Spacer(modifier = Modifier.height(4.dp)) } }
+                item { StaggeredItem(index = 102) { Spacer(modifier = Modifier.height(dimens.spacingXSmall)) } }
 
                 item {
                     StaggeredItem(index = 103) {
@@ -290,7 +328,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 104) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 104) { Spacer(modifier = Modifier.height(dimens.spacingXLarge)) } }
                 item { StaggeredItem(index = 105) { SectionHeader(text = "About") } }
 
                 item {
@@ -322,6 +360,22 @@ fun SettingsScreen(
                 item {
                     StaggeredItem(index = 3) {
                     SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 3) {
+                    SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 3) {
+                    AmoledToggleRow(
+                        enabled = amoledMode,
+                        isDarkAvailable = isEffectivelyDark,
+                        onToggle = { viewModel.saveAmoledMode(it) }
+                    )
                     }
                 }
 
@@ -399,7 +453,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 12) { Spacer(modifier = Modifier.height(dimens.spacingXLarge)) } }
                 item { StaggeredItem(index = 13) { SectionHeader(text = "Data") } }
 
                 item {
@@ -443,7 +497,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item { StaggeredItem(index = 20) { Spacer(modifier = Modifier.height(16.dp)) } }
+                item { StaggeredItem(index = 20) { Spacer(modifier = Modifier.height(dimens.spacingXLarge)) } }
                 item { StaggeredItem(index = 21) { SectionHeader(text = "About") } }
 
                 item {
@@ -475,7 +529,7 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -510,27 +564,41 @@ fun SettingsScreen(
         )
     }
 
+    if (showModePicker) {
+        PickerDialog(
+            title = "Select Mode",
+            items = modeOptions.map { modeLabels[it] ?: it },
+            currentItem = modeLabels[currentThemeMode] ?: "System",
+            onDismiss = { showModePicker = false },
+            onSelect = { label ->
+                val key = modeLabels.entries.find { it.value == label }?.key ?: "system"
+                viewModel.saveThemeMode(key)
+                showModePicker = false
+            }
+        )
+    }
+
     if (showClearConfirm) {
         AlertDialog(
             onDismissRequest = { showClearConfirm = false },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Clear All Data?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Clear All Data?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("This will delete all transactions, budgets, accounts, and categories. This action cannot be undone.", color = Color.White.copy(alpha = 0.7f))
+                Text("This will delete all transactions, budgets, accounts, and categories. This action cannot be undone.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.clearAllData()
                     showClearConfirm = false
                 }) {
-                    Text("Clear", color = Color(0xFFEF5350))
+                    Text("Clear", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirm = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -539,24 +607,24 @@ fun SettingsScreen(
     if (showResetPersonalizationConfirm) {
         AlertDialog(
             onDismissRequest = { showResetPersonalizationConfirm = false },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Reset Personalization?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Reset Personalization?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("This will clear all correction history and reset the ML model to its default state. Your transactions and categories will not be affected.", color = Color.White.copy(alpha = 0.7f))
+                Text("This will clear all correction history and reset the ML model to its default state. Your transactions and categories will not be affected.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.resetPersonalization()
                     showResetPersonalizationConfirm = false
                 }) {
-                    Text("Reset", color = Color(0xFFEF5350))
+                    Text("Reset", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetPersonalizationConfirm = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -565,13 +633,13 @@ fun SettingsScreen(
     if (showPdfExportDialog) {
         AlertDialog(
             onDismissRequest = { showPdfExportDialog = false },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Export PDF Statement", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Export PDF Statement", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
                 Column {
-                    Text("Select date range:", color = Color.White.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 12.dp))
+                    Text("Select date range:", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), modifier = Modifier.padding(bottom = 12.dp))
                     PdfRangeOption("This Month", onClick = {
                         showPdfExportDialog = false
                         val cal = Calendar.getInstance()
@@ -597,7 +665,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showPdfExportDialog = false }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -606,10 +674,11 @@ fun SettingsScreen(
 
 @Composable
 private fun SectionHeader(text: String) {
+    val dimens = LocalAppDimens.current
     Text(
         text = text,
-        color = Color.White.copy(alpha = 0.4f),
-        fontSize = 12.sp,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+        fontSize = dimens.textS,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
     )
@@ -622,12 +691,13 @@ private fun SettingsRow(
     subtitle: String,
     onClick: (() -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.pressScale() else Modifier)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -635,24 +705,24 @@ private fun SettingsRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = title, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = subtitle, color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                Text(text = title, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
             }
         }
     }
@@ -663,12 +733,13 @@ private fun HapticToggleRow(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -676,34 +747,34 @@ private fun HapticToggleRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Haptic Feedback", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                Text(text = "Haptic Feedback", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
             }
         }
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF4CAF50),
-                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                uncheckedTrackColor = Color(0xFF2C2C2C)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         )
     }
@@ -714,12 +785,13 @@ private fun AppLockToggleRow(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -727,34 +799,34 @@ private fun AppLockToggleRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Lock,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "App Lock", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                Text(text = "App Lock", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
             }
         }
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF4CAF50),
-                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                uncheckedTrackColor = Color(0xFF2C2C2C)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         )
     }
@@ -765,12 +837,13 @@ private fun SmartCategorizationToggleRow(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -778,34 +851,34 @@ private fun SmartCategorizationToggleRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.TipsAndUpdates,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Smart categorization", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                Text(text = "Smart categorization", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
             }
         }
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF4CAF50),
-                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                uncheckedTrackColor = Color(0xFF2C2C2C)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         )
     }
@@ -816,12 +889,13 @@ private fun MpesaCostsToggleRow(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -829,34 +903,34 @@ private fun MpesaCostsToggleRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Receipt,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Log M-PESA fees", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "Create separate fee transactions" else "Ignore transaction costs", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
+                Text(text = "Log M-PESA fees", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = if (enabled) "Create separate fee transactions" else "Ignore transaction costs", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
             }
         }
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = Color(0xFF4CAF50),
-                uncheckedThumbColor = Color.White.copy(alpha = 0.5f),
-                uncheckedTrackColor = Color(0xFF2C2C2C)
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
             )
         )
     }
@@ -864,35 +938,36 @@ private fun MpesaCostsToggleRow(
 
 @Composable
 private fun ReducedMotionRow() {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = Color(0xFFEF5350),
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Reduced motion active", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = "Power saving mode", color = Color(0xFFEF5350), fontSize = 13.sp)
+                Text(text = "Reduced motion active", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = "Power saving mode", color = MaterialTheme.colorScheme.error, fontSize = dimens.textSm)
             }
         }
     }
@@ -900,12 +975,13 @@ private fun ReducedMotionRow() {
 
 @Composable
 private fun NotificationEnableRow() {
+    val dimens = LocalAppDimens.current
     val context = LocalContext.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { openAppNotificationSettings(context) }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -913,24 +989,24 @@ private fun NotificationEnableRow() {
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = Color(0xFFFFA726),
+                    tint = LocalMakeFlowColors.current.colorWarning,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Enable notifications", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = "Notifications are disabled", color = Color(0xFFFFA726), fontSize = 13.sp)
+                Text(text = "Enable notifications", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = "Notifications are disabled", color = LocalMakeFlowColors.current.colorWarning, fontSize = dimens.textSm)
             }
         }
     }
@@ -938,16 +1014,17 @@ private fun NotificationEnableRow() {
 
 @Composable
 private fun PdfRangeOption(label: String, onClick: () -> Unit) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp, horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, color = Color.White, fontSize = 15.sp)
+        Text(text = label, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl)
     }
 }
 
@@ -969,12 +1046,13 @@ private fun ResetPersonalizationRow(
     onShowConfirm: () -> Unit,
     onDismissConfirm: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onShowConfirm() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -982,24 +1060,24 @@ private fun ResetPersonalizationRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = Color(0xFFEF5350),
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
             }
             Column {
-                Text(text = "Reset personalization", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                Text(text = "Clear corrections & ML checkpoint", color = Color(0xFFEF5350), fontSize = 13.sp)
+                Text(text = "Reset personalization", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(text = "Clear corrections & ML checkpoint", color = MaterialTheme.colorScheme.error, fontSize = dimens.textSm)
             }
         }
     }
@@ -1013,11 +1091,12 @@ private fun PickerDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF1B1C1F),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
-            Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+            Text(title, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
         },
         text = {
             Column {
@@ -1025,18 +1104,18 @@ private fun PickerDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
                             .clickable { onSelect(item) }
                             .padding(vertical = 12.dp, horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(text = item, color = Color.White, fontSize = 15.sp)
+                        Text(text = item, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl)
                         if (item == currentItem) {
                             Icon(
                                 imageVector = Icons.Filled.Check,
                                 contentDescription = null,
-                                tint = Color(0xFF4CAF50),
+                                tint = LocalMakeFlowColors.current.colorSuccess,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -1046,8 +1125,71 @@ private fun PickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         }
     )
+}
+
+@Composable
+private fun AmoledToggleRow(
+    enabled: Boolean,
+    isDarkAvailable: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    val alpha = if (isDarkAvailable) 1f else 0.4f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (isDarkAvailable) Modifier.pressScale() else Modifier)
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = alpha))
+            .then(if (isDarkAvailable) Modifier.clickable { onToggle(!enabled) } else Modifier)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.background.copy(alpha = alpha), RoundedCornerShape(dimens.shapeCornerXSmall)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.DarkMode,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f * alpha),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column {
+                Text(text = "AMOLED Dark", color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha), fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
+                Text(
+                    text = if (isDarkAvailable) "Pure black for OLED screens" else "Only active in dark mode",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f * alpha),
+                    fontSize = dimens.textSm
+                )
+            }
+        }
+        Switch(
+            checked = enabled && isDarkAvailable,
+            onCheckedChange = { if (isDarkAvailable) onToggle(it) },
+            enabled = isDarkAvailable,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                disabledCheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                disabledCheckedTrackColor = LocalMakeFlowColors.current.colorSuccess.copy(alpha = 0.5f),
+                disabledUncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                disabledUncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+            )
+        )
+    }
 }

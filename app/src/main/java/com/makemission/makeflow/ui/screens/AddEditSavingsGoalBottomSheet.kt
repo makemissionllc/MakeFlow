@@ -19,6 +19,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.SavingsGoalEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -60,6 +62,7 @@ fun AddEditSavingsGoalBottomSheet(
     onAddAccount: () -> Unit,
     focusedAccountId: String? = null
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
     val isEdit = existingGoal != null
 
@@ -92,10 +95,10 @@ fun AddEditSavingsGoalBottomSheet(
                 TextButton(onClick = {
                     targetDate = datePickerState.selectedDateMillis
                     showDatePicker = false
-                }) { Text("OK", color = Color.White) }
+                }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel", color = Color.White.copy(alpha = 0.6f)) }
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -110,85 +113,85 @@ fun AddEditSavingsGoalBottomSheet(
         ) {
             Text(
                 text = if (isEdit) "Edit Goal" else "New Goal",
-                color = Color.White,
-                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXxl,
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(dimens.spacingXXLarge))
 
-            Text("Goal name", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+            Text("Goal name", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = dimens.textSm)
             Spacer(Modifier.height(6.dp))
             BasicTextField(
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2A2B2E), RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                cursorBrush = SolidColor(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
+                    .padding(dimens.paddingMedium),
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 keyboardOptions = KeyboardOptions.Default,
                 decorationBox = { innerTextField ->
                     if (name.isEmpty()) {
-                        Text("e.g. New Laptop", color = Color.White.copy(alpha = 0.3f), fontSize = 16.sp)
+                        Text("e.g. New Laptop", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), fontSize = dimens.textL)
                     }
                     innerTextField()
                 },
                 singleLine = true
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spacingXLarge))
 
-            Text("Target amount", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+            Text("Target amount", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = dimens.textSm)
             Spacer(Modifier.height(6.dp))
             BasicTextField(
                 value = amountInput,
                 onValueChange = { amountInput = it.filter { c -> c.isDigit() || c == '.' } },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2A2B2E), RoundedCornerShape(12.dp))
-                    .padding(16.dp),
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-                cursorBrush = SolidColor(Color.White),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
+                    .padding(dimens.paddingMedium),
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 decorationBox = { innerTextField ->
                     if (amountInput.isEmpty()) {
-                        Text("0.00", color = Color.White.copy(alpha = 0.3f), fontSize = 16.sp)
+                        Text("0.00", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f), fontSize = dimens.textL)
                     }
                     innerTextField()
                 },
                 singleLine = true
             )
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spacingXLarge))
 
-            Text("Linked account", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+            Text("Linked account", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = dimens.textSm)
             Spacer(Modifier.height(6.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 accounts.forEach { account ->
                     val selected = account.id == selectedAccountId
                     TextButton(
                         onClick = { selectedAccountId = account.id },
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (selected) Color(0xFF2A2B2E) else Color(0xFF1B1C1F))
+                            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
+                            .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.surfaceContainerHigh)
                     ) {
                         Text(
                             text = account.name,
-                            color = if (selected) Color.White else Color.White.copy(alpha = 0.5f),
-                            fontSize = 13.sp,
+                            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            fontSize = dimens.textSm,
                             maxLines = 1
                         )
                     }
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
 
             TextButton(
                 onClick = onAddAccount,
@@ -197,31 +200,31 @@ fun AddEditSavingsGoalBottomSheet(
                 Icon(
                     imageVector = Icons.Outlined.Add,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.padding(end = 4.dp)
                 )
                 Text(
                     "Create new account",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 13.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    fontSize = dimens.textSm
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(dimens.spacingXLarge))
 
-            Text("Target date (optional)", color = Color.White.copy(alpha = 0.6f), fontSize = 13.sp)
+            Text("Target date (optional)", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = dimens.textSm)
             Spacer(Modifier.height(6.dp))
             TextButton(
                 onClick = { showDatePicker = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2A2B2E), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
             ) {
                 val df = remember { SimpleDateFormat("MMM d, yyyy", Locale.getDefault()) }
                 Text(
                     text = targetDate?.let { df.format(Date(it)) } ?: "No deadline",
-                    color = if (targetDate != null) Color.White else Color.White.copy(alpha = 0.4f),
-                    fontSize = 14.sp
+                    color = if (targetDate != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textM
                 )
             }
 
@@ -236,18 +239,18 @@ fun AddEditSavingsGoalBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (isValid) Color.White else Color(0xFF2A2B2E)),
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(if (isValid) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh),
             ) {
                 Text(
                     text = if (isEdit) "Save Changes" else "Create Goal",
-                    color = if (isValid) Color(0xFF121315) else Color.White.copy(alpha = 0.3f),
+                    color = if (isValid) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = dimens.textL
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(dimens.spacingMedium))
         }
     }
 }

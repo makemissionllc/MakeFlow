@@ -25,6 +25,7 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -41,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -53,6 +56,7 @@ fun DateTimePickerScreen(
     onDateTimeSelected: (Long) -> Unit,
     onBack: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     val initialCalendar = remember {
         Calendar.getInstance().apply { timeInMillis = initialTimestamp }
     }
@@ -81,7 +85,7 @@ fun DateTimePickerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
@@ -95,13 +99,13 @@ fun DateTimePickerScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
             Text(
                 text = "Date & Time",
-                color = Color.White,
-                fontSize = 20.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXxl,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -110,14 +114,14 @@ fun DateTimePickerScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 12.dp)
-                .background(Color(0xFF1B1C1F), RoundedCornerShape(16.dp))
-                .padding(16.dp),
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerMedium))
+                .padding(dimens.paddingMedium),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = displayFormat.format(Date(combinedMillis)),
-                color = Color.White,
-                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textXl,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -137,36 +141,36 @@ fun DateTimePickerScreen(
                     state = datePickerState,
                     colors = DatePickerDefaults.colors(
                         containerColor = Color.Transparent,
-                        titleContentColor = Color.White,
-                        headlineContentColor = Color.White,
-                        weekdayContentColor = Color.White.copy(alpha = 0.6f),
-                        subheadContentColor = Color.White.copy(alpha = 0.7f),
-                        yearContentColor = Color.White,
-                        currentYearContentColor = Color.White,
-                        selectedYearContentColor = Color(0xFF121315),
-                        dayContentColor = Color.White,
-                        selectedDayContentColor = Color(0xFF121315),
-                        selectedDayContainerColor = Color.White,
-                        todayContentColor = Color(0xFFFFA726),
-                        todayDateBorderColor = Color(0xFFFFA726),
-                        dayInSelectionRangeContentColor = Color.White,
-                        dayInSelectionRangeContainerColor = Color(0xFF2C2C2E)
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        headlineContentColor = MaterialTheme.colorScheme.onSurface,
+                        weekdayContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        subheadContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        yearContentColor = MaterialTheme.colorScheme.onSurface,
+                        currentYearContentColor = MaterialTheme.colorScheme.onSurface,
+                        selectedYearContentColor = MaterialTheme.colorScheme.background,
+                        dayContentColor = MaterialTheme.colorScheme.onSurface,
+                        selectedDayContentColor = MaterialTheme.colorScheme.background,
+                        selectedDayContainerColor = MaterialTheme.colorScheme.onSurface,
+                        todayContentColor = LocalMakeFlowColors.current.colorWarning,
+                        todayDateBorderColor = LocalMakeFlowColors.current.colorWarning,
+                        dayInSelectionRangeContentColor = MaterialTheme.colorScheme.onSurface,
+                        dayInSelectionRangeContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
                 TimePicker(
                     state = timePickerState,
                     colors = androidx.compose.material3.TimePickerDefaults.colors(
-                        clockDialColor = Color(0xFF1B1C1F),
-                        selectorColor = Color.White,
-                        clockDialSelectedContentColor = Color(0xFF121315),
-                        clockDialUnselectedContentColor = Color.White.copy(alpha = 0.7f),
-                        timeSelectorSelectedContainerColor = Color.White,
-                        timeSelectorSelectedContentColor = Color(0xFF121315),
-                        timeSelectorUnselectedContainerColor = Color(0xFF1B1C1F),
-                        timeSelectorUnselectedContentColor = Color.White.copy(alpha = 0.6f)
+                        clockDialColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        selectorColor = MaterialTheme.colorScheme.onSurface,
+                        clockDialSelectedContentColor = MaterialTheme.colorScheme.background,
+                        clockDialUnselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.onSurface,
+                        timeSelectorSelectedContentColor = MaterialTheme.colorScheme.background,
+                        timeSelectorUnselectedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        timeSelectorUnselectedContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 )
             }
@@ -176,13 +180,13 @@ fun DateTimePickerScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
             TextButton(
                 onClick = onBack,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Cancel", color = Color.White.copy(alpha = 0.6f), fontSize = 16.sp)
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontSize = dimens.textL)
             }
             Button(
                 onClick = {
@@ -195,13 +199,13 @@ fun DateTimePickerScreen(
                     onDateTimeSelected(cal.timeInMillis)
                 },
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(dimens.shapeCornerMedium),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315)
+                    containerColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.background
                 )
             ) {
-                Text("Save", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Save", fontWeight = FontWeight.Bold, fontSize = dimens.textL)
             }
         }
     }

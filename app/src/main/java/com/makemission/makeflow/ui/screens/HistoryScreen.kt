@@ -72,6 +72,8 @@ import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.text.SimpleDateFormat
@@ -85,6 +87,7 @@ fun HistoryScreen(
     hapticManager: HapticManager,
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val transactions by viewModel.filteredTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -150,7 +153,7 @@ fun HistoryScreen(
                 modifier = Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
             )
             Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
                 if (selectedTransaction != null) {
@@ -159,11 +162,11 @@ fun HistoryScreen(
                     val categoryName = category?.name ?: "Uncategorized"
                     val categoryColor = try {
                         Color(android.graphics.Color.parseColor(category?.colorHex ?: "#9E9E9E"))
-                    } catch (_: Exception) { Color(0xFF9E9E9E) }
+                    } catch (_: Exception) { MaterialTheme.colorScheme.outline }
                     val account = accounts.find { it.id == tx.accountId }
                     val accountName = account?.name ?: ""
                     val prefix = if (tx.type == "INCOME") "+" else "-"
-                    val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else Color(0xFFFF3B30)
+                    val amountColor = if (tx.type == "INCOME") LocalMakeFlowColors.current.colorSuccess else MaterialTheme.colorScheme.error
                     val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
 
                     Box(
@@ -178,7 +181,7 @@ fun HistoryScreen(
                             Text(
                                 text = "Transaction Details",
                                 style = MaterialTheme.typography.titleLarge,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Box(
                                 modifier = Modifier
@@ -188,7 +191,7 @@ fun HistoryScreen(
                             Text(
                                 text = categoryName,
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "$prefix$formattedAmount",
@@ -199,25 +202,25 @@ fun HistoryScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = tx.type,
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     style = MaterialTheme.typography.labelLarge
                                 )
                                 Spacer(Modifier.width(16.dp))
                                 Text(
                                     text = android.text.format.DateFormat.format("dd MMM yyyy", Date(tx.timestamp)).toString(),
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
                             Text(
                                 text = accountName,
-                                color = Color.White.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             if (tx.note.isNotBlank()) {
                                 Text(
                                     text = tx.note,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -226,10 +229,10 @@ fun HistoryScreen(
                                 androidx.compose.material3.Button(
                                     onClick = { onEditTransaction(tx) },
                                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = Color.White,
-                                        contentColor = Color(0xFF121315)
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = MaterialTheme.colorScheme.onSurface
                                     ),
-                                    shape = RoundedCornerShape(14.dp),
+                                    shape = RoundedCornerShape(dimens.cornerRadiusMedium),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text("Edit", fontWeight = FontWeight.SemiBold)
@@ -244,7 +247,7 @@ fun HistoryScreen(
                     ) {
                         Text(
                             text = "Select a transaction to see details",
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -292,6 +295,7 @@ private fun HistoryListContent(
     yesterdayCal: Calendar,
     onTransactionClick: ((TransactionEntity) -> Unit)?
 ) {
+    val dimens = LocalAppDimens.current
     val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
@@ -302,7 +306,7 @@ private fun HistoryListContent(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
                 .verticalFadingEdge(
                     topFadeHeight = config.fadingEdgeHeight,
                     bottomFadeHeight = config.fadingEdgeHeight
@@ -312,7 +316,7 @@ private fun HistoryListContent(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 140.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {
             item {
                 LargeTitleItem(title = "History", scrollState = listState)
@@ -328,13 +332,13 @@ private fun HistoryListContent(
                     val isSelectedAll = selectedFilter == "ALL"
                     Text(
                         text = "All",
-                        color = if (isSelectedAll) Color(0xFF121315) else Color.White,
+                        color = if (isSelectedAll) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                         modifier = Modifier
                             .pressScale()
                             .background(
-                                if (isSelectedAll) Color.White else Color(0xFF1B1C1F),
+                                if (isSelectedAll) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                             )
                             .clickable { viewModel.selectedFilter.value = "ALL" }
@@ -343,13 +347,13 @@ private fun HistoryListContent(
                     val isSelectedIncome = selectedFilter == "INCOME"
                     Text(
                         text = "Income",
-                        color = if (isSelectedIncome) Color(0xFF121315) else Color.White,
+                        color = if (isSelectedIncome) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                         modifier = Modifier
                             .pressScale()
                             .background(
-                                if (isSelectedIncome) Color.White else Color(0xFF1B1C1F),
+                                if (isSelectedIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                             )
                             .clickable { viewModel.selectedFilter.value = "INCOME" }
@@ -358,13 +362,13 @@ private fun HistoryListContent(
                     val isSelectedExpense = selectedFilter == "EXPENSE"
                     Text(
                         text = "Expense",
-                        color = if (isSelectedExpense) Color(0xFF121315) else Color.White,
+                        color = if (isSelectedExpense) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
                         modifier = Modifier
                             .pressScale()
                             .background(
-                                if (isSelectedExpense) Color.White else Color(0xFF1B1C1F),
+                                if (isSelectedExpense) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
                                 RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
                             )
                             .clickable { viewModel.selectedFilter.value = "EXPENSE" }
@@ -384,8 +388,8 @@ private fun HistoryListContent(
                                 is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name ?: "All Accounts"
                             }
                         }",
-                        color = Color.White.copy(alpha = 0.5f),
-                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                        fontSize = dimens.textS,
                         modifier = Modifier.padding(start = 4.dp)
                     )
                 }
@@ -401,23 +405,23 @@ private fun HistoryListContent(
                     ) {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Receipt,
                                 contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.3f),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 modifier = Modifier.size(64.dp)
                             )
                             Text(
                                 text = "No transactions yet",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.5f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                             Text(
                                 text = "Tap + to log your first transaction",
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color.White.copy(alpha = 0.3f)
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             )
                         }
                     }
@@ -431,7 +435,7 @@ private fun HistoryListContent(
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                 modifier = Modifier.padding(vertical = 8.dp)
                             )
                         }
@@ -443,7 +447,7 @@ private fun HistoryListContent(
                         val categoryColor = try {
                             Color(android.graphics.Color.parseColor(category?.colorHex ?: "#9E9E9E"))
                         } catch (_: Exception) {
-                            Color(0xFF9E9E9E)
+                            MaterialTheme.colorScheme.outline
                         }
                         val account = accounts.find { it.id == tx.accountId }
                         val accountName = account?.name ?: ""
@@ -452,7 +456,7 @@ private fun HistoryListContent(
                         val fromAccountName = fromAccount?.name ?: ""
                         val toAccountName = toAccount?.name ?: ""
                         val prefix = if (tx.type == "INCOME") "+" else if (tx.type == "TRANSFER") "" else "-"
-                        val amountColor = if (tx.type == "INCOME") Color(0xFF34C759) else if (tx.type == "TRANSFER") Color(0xFF6DD881) else Color(0xFFFF3B30)
+                        val amountColor = if (tx.type == "INCOME") LocalMakeFlowColors.current.colorSuccess else if (tx.type == "TRANSFER") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
                         val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
 
                         val dismissState = rememberSwipeToDismissBoxState(
@@ -473,7 +477,7 @@ private fun HistoryListContent(
                             backgroundContent = {
                                 val bgColor by animateColorAsState(
                                     targetValue = if (dismissState.progress > 0f)
-                                        Color(0xFFB71C1C) else Color(0xFF2C2C2C),
+                                        MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceContainerHigh,
                                     animationSpec = tween(300),
                                     label = "swipeBg"
                                 )
@@ -489,12 +493,12 @@ private fun HistoryListContent(
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = "Delete",
-                                            tint = Color.White,
+                                            tint = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Text(
                                             text = "Delete",
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onSurface,
                                             style = MaterialTheme.typography.labelSmall
                                         )
                                     }
@@ -504,7 +508,7 @@ private fun HistoryListContent(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(Color(0xFF121315), MaterialTheme.shapes.medium)
+                                    .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium)
                                     .then(
                                         if (onTransactionClick != null) {
                                             Modifier.clickable { onTransactionClick(tx) }
@@ -520,8 +524,8 @@ private fun HistoryListContent(
                                             Icon(
                                                 imageVector = Icons.Rounded.SwapHoriz,
                                                 contentDescription = "Transfer",
-                                                tint = Color(0xFF6DD881),
-                                                modifier = Modifier.size(16.dp)
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
                                             )
                                         } else {
                                             Box(Modifier.size(10.dp).background(categoryColor, CircleShape))
@@ -529,9 +533,9 @@ private fun HistoryListContent(
                                         Spacer(Modifier.width(14.dp))
                                         Column(modifier = Modifier.weight(0.3f)) {
                                             if (tx.type == "TRANSFER") {
-                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                             } else {
-                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                             }
                                         }
                                         val subtitle = buildString {
@@ -550,7 +554,7 @@ private fun HistoryListContent(
                                         Text(
                                             text = subtitle.ifEmpty { "" },
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = Color.White.copy(alpha = 0.5f),
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                                             modifier = Modifier.weight(0.4f),
                                             maxLines = 1
                                         )
@@ -572,7 +576,7 @@ private fun HistoryListContent(
                                             Icon(
                                                 imageVector = Icons.Rounded.SwapHoriz,
                                                 contentDescription = "Transfer",
-                                                tint = Color(0xFF6DD881),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(12.dp)
                                             )
                                         } else {
@@ -581,9 +585,9 @@ private fun HistoryListContent(
                                         Spacer(Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
                                             if (tx.type == "TRANSFER") {
-                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                Text("Transfer", style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                             } else {
-                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=Color.White)
+                                                Text(categoryName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
                                             }
                                             val subtitle = buildString {
                                                 if (tx.type == "TRANSFER") {
@@ -599,13 +603,13 @@ private fun HistoryListContent(
                                                 }
                                             }
                                             if (subtitle.isNotEmpty()) {
-                                                Text(subtitle, style=MaterialTheme.typography.labelMedium, color=Color.White.copy(alpha=0.5f))
+                                                Text(subtitle, style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                             }
                                         }
                                         Text("$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))
                                     }
                                 }
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.06f), thickness = 0.5.dp)
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), thickness = 0.5.dp)
                             }
                         }
                         }

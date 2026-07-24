@@ -52,6 +52,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,7 @@ fun CategoryManagementScreen(
     onCreate: suspend (CategoryEntity) -> String?,
     onDelete: suspend (categoryId: String) -> String?
 ) {
+    val dimens = LocalAppDimens.current
     val listState = rememberLazyListState()
     val config = LocalAdaptiveConfig.current
     val scope = rememberCoroutineScope()
@@ -81,7 +83,7 @@ fun CategoryManagementScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         LazyColumn(
             state = listState,
@@ -92,7 +94,7 @@ fun CategoryManagementScreen(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
                 bottom = 32.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
         ) {
             item {
                 LargeTitleItem(title = "Manage Categories", scrollState = listState)
@@ -103,8 +105,8 @@ fun CategoryManagementScreen(
                 item {
                     Text(
                         text = "No expense categories",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = dimens.textM,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
                 }
@@ -127,14 +129,14 @@ fun CategoryManagementScreen(
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(dimens.spacingXLarge)) }
             item { StaggeredItem(index = 2) { SectionHeader(text = "INCOME CATEGORIES") } }
             if (incomeCategories.isEmpty()) {
                 item {
                     Text(
                         text = "No income categories",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = dimens.textM,
                         modifier = Modifier.padding(start = 4.dp, top = 4.dp)
                     )
                 }
@@ -167,7 +169,7 @@ fun CategoryManagementScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             },
@@ -176,7 +178,7 @@ fun CategoryManagementScreen(
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = "New Category",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -188,10 +190,10 @@ fun CategoryManagementScreen(
         if (sameType.isEmpty()) {
             AlertDialog(
                 onDismissRequest = { mergeSource = null },
-                containerColor = Color(0xFF1B1C1F),
-                title = { Text("Cannot Merge", color = Color.White, fontWeight = FontWeight.Bold) },
-                text = { Text("No other categories of type \"${source.type}\" available to merge into.", color = Color.White.copy(alpha = 0.7f)) },
-                confirmButton = { TextButton(onClick = { mergeSource = null }) { Text("OK", color = Color.White) } }
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                title = { Text("Cannot Merge", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+                text = { Text("No other categories of type \"${source.type}\" available to merge into.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+                confirmButton = { TextButton(onClick = { mergeSource = null }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) } }
             )
         } else {
             MergeTargetDialog(
@@ -213,12 +215,12 @@ fun CategoryManagementScreen(
         val newType = if (category.type == "EXPENSE") "INCOME" else "EXPENSE"
         AlertDialog(
             onDismissRequest = { convertTarget = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Convert Type", color = Color.White, fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Convert Type", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
                     "Change \"${category.name}\" from ${category.type} to $newType?",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -229,12 +231,12 @@ fun CategoryManagementScreen(
                     }
                     convertTarget = null
                 }) {
-                    Text("Convert", color = Color.White)
+                    Text("Convert", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { convertTarget = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -243,12 +245,12 @@ fun CategoryManagementScreen(
     deleteTarget?.let { category ->
         AlertDialog(
             onDismissRequest = { deleteTarget = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Delete Category", color = Color.White, fontWeight = FontWeight.Bold) },
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Delete Category", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
                     "Delete \"${category.name}\"? This action cannot be undone.",
-                    color = Color.White.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -259,12 +261,12 @@ fun CategoryManagementScreen(
                     }
                     deleteTarget = null
                 }) {
-                    Text("Delete", color = Color(0xFFEF5350))
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { deleteTarget = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -286,20 +288,21 @@ fun CategoryManagementScreen(
     resultMessage?.let { msg ->
         AlertDialog(
             onDismissRequest = { resultMessage = null },
-            containerColor = Color(0xFF1B1C1F),
-            title = { Text("Info", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = { Text(msg, color = Color.White.copy(alpha = 0.7f)) },
-            confirmButton = { TextButton(onClick = { resultMessage = null }) { Text("OK", color = Color.White) } }
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = { Text("Info", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = { Text(msg, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
+            confirmButton = { TextButton(onClick = { resultMessage = null }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) } }
         )
     }
 }
 
 @Composable
 private fun SectionHeader(text: String) {
+    val dimens = LocalAppDimens.current
     Text(
         text = text,
-        color = Color.White.copy(alpha = 0.4f),
-        fontSize = 12.sp,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+        fontSize = dimens.textS,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
     )
@@ -314,27 +317,28 @@ private fun CategoryRow(
     onConvertType: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
                 .size(36.dp)
-                .background(Color(0xFF121315), RoundedCornerShape(10.dp)),
+                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
             contentAlignment = Alignment.Center
         ) {
             if (category.parentCategoryId != null) {
-                Text("—", color = Color.White.copy(alpha = 0.4f), fontSize = 14.sp)
+                Text("—", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textM)
             } else {
                 Icon(
                     imageVector = Icons.Outlined.Info,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -342,15 +346,15 @@ private fun CategoryRow(
         Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
             Text(
                 text = category.name,
-                color = Color.White,
-                fontSize = 15.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textMl,
                 fontWeight = FontWeight.Medium
             )
             if (category.parentCategoryId != null) {
                 Text(
                     text = "Subcategory",
-                    color = Color.White.copy(alpha = 0.35f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    fontSize = dimens.textS
                 )
             }
         }
@@ -359,25 +363,25 @@ private fun CategoryRow(
                 Icon(
                     imageVector = Icons.Outlined.MoreVert,
                     contentDescription = "Actions",
-                    tint = Color.White.copy(alpha = 0.5f)
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
             }
             DropdownMenu(
                 expanded = isExpanded,
                 onDismissRequest = onToggleMenu,
-                containerColor = Color(0xFF2C2C2C)
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
             ) {
                 DropdownMenuItem(
-                    text = { Text("Merge into...", color = Color.White, fontSize = 14.sp) },
+                    text = { Text("Merge into...", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM) },
                     onClick = onMerge
                 )
                 val newTypeLabel = if (category.type == "EXPENSE") "Convert to INCOME" else "Convert to EXPENSE"
                 DropdownMenuItem(
-                    text = { Text(newTypeLabel, color = Color.White, fontSize = 14.sp) },
+                    text = { Text(newTypeLabel, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM) },
                     onClick = onConvertType
                 )
                 DropdownMenuItem(
-                    text = { Text("Delete", color = Color(0xFFEF5350), fontSize = 14.sp) },
+                    text = { Text("Delete", color = MaterialTheme.colorScheme.error, fontSize = dimens.textM) },
                     onClick = onDelete
                 )
             }
@@ -392,13 +396,14 @@ private fun MergeTargetDialog(
     onDismiss: () -> Unit,
     onConfirm: (CategoryEntity) -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF1B1C1F),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {
             Text(
                 "Merge \"${source.name}\" into...",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Bold
             )
         },
@@ -406,15 +411,15 @@ private fun MergeTargetDialog(
             Column {
                 Text(
                     "All transactions and budgets assigned to \"${source.name}\" will be reassigned to the target. The source category will be deleted.",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 13.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontSize = dimens.textSm
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingLarge))
                 targets.forEach { target ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(dimens.shapeCornerXSmall))
                             .pressScale()
                             .clickable { onConfirm(target) }
                             .padding(vertical = 10.dp, horizontal = 8.dp),
@@ -422,8 +427,8 @@ private fun MergeTargetDialog(
                     ) {
                         Text(
                             text = target.name,
-                            color = Color.White,
-                            fontSize = 15.sp
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textMl
                         )
                     }
                 }
@@ -431,7 +436,7 @@ private fun MergeTargetDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
             }
         }
     )

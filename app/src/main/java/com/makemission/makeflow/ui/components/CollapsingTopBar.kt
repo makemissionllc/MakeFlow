@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
 fun CollapsingTopBar(
@@ -34,6 +35,7 @@ fun CollapsingTopBar(
     navigationIcon: @Composable (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    val dimens = LocalAppDimens.current
     val config = LocalAdaptiveConfig.current
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val collapseFraction by remember {
@@ -58,9 +60,9 @@ fun CollapsingTopBar(
                 .background(
                     Brush.verticalGradient(
                         colorStops = arrayOf(
-                            0f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
-                            (statusBarHeight / (config.barHeight + statusBarHeight)) to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.70f),
-                            0.90f to Color(0xFF0A0A0A).copy(alpha = collapseFraction * 0.30f),
+                            0f to MaterialTheme.colorScheme.surfaceDim.copy(alpha = collapseFraction * 0.70f),
+                            (statusBarHeight / (config.barHeight + statusBarHeight)) to MaterialTheme.colorScheme.surfaceDim.copy(alpha = collapseFraction * 0.70f),
+                            0.90f to MaterialTheme.colorScheme.surfaceDim.copy(alpha = collapseFraction * 0.30f),
                             1f to Color.Transparent
                         )
                     )
@@ -83,7 +85,7 @@ fun CollapsingTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = Color.White.copy(alpha = collapseFraction),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = collapseFraction),
                 modifier = Modifier.align(Alignment.Center)
             )
 
@@ -103,6 +105,7 @@ fun LargeTitleItem(
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
+    val dimens = LocalAppDimens.current
     val config = LocalAdaptiveConfig.current
     val collapseFraction by remember {
         derivedStateOf {
@@ -118,7 +121,7 @@ fun LargeTitleItem(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
         fontWeight = FontWeight.Bold,
-        color = Color.White.copy(alpha = 1f - collapseFraction),
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 1f - collapseFraction),
         fontSize = config.titleFontSize,
         modifier = modifier
             .padding(start = config.horizontalPadding, end = config.horizontalPadding, top = 8.dp, bottom = config.titlePaddingBottom)

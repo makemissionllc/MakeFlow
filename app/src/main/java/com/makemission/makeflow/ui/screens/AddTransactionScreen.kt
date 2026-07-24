@@ -81,6 +81,8 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.domain.CalculatorEngine
 import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
@@ -130,6 +132,7 @@ fun AddTransactionScreen(
     mpesaTransactionCost: Double? = null,
     logMpesaCosts: Boolean = true
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val isEditMode = editTransaction != null
@@ -499,13 +502,13 @@ fun AddTransactionScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF2C2C1E), RoundedCornerShape(12.dp))
-                    .padding(12.dp)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
+                    .padding(dimens.spacingLarge)
             ) {
                 Text(
                     text = message,
-                    color = Color(0xFFFFA726),
-                    fontSize = 13.sp,
+                    color = LocalMakeFlowColors.current.colorWarning,
+                    fontSize = dimens.textSm,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -516,7 +519,7 @@ fun AddTransactionScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Scrollable area
         Column(
@@ -538,32 +541,32 @@ fun AddTransactionScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                     Text(
                         text = if (isEditMode) "Edit Transaction" else "New Transaction",
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
             // === Templates (non-edit mode) ===
             if (!isEditMode && templates.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         templates.forEach { template ->
                             Text(
                                 text = template.name,
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
-                                    .background(Color(0xFF2C2C1E), RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
                                     .clickable {
                                         engine.onClear()
                                         val amtStr = if (template.amount == template.amount.toLong().toDouble())
@@ -584,27 +587,27 @@ fun AddTransactionScreen(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingLarge))
             }
 
             // === Type toggle ===
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
                 listOf("Income" to "INCOME", "Expense" to "EXPENSE", "Transfer" to "TRANSFER").forEach { (label, value) ->
                     val isSelected = selectedType == value
                     Text(
                         text = label,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp,
+                        fontSize = dimens.textM,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.cornerRadiusMedium)
                             )
                             .clickable {
                                 selectedType = value
@@ -629,30 +632,30 @@ fun AddTransactionScreen(
                     if (isAmountConfirmed) {
                         Text(
                             text = currencySymbol,
-                            color = Color(0xFF4CAF50),
+                            color = LocalMakeFlowColors.current.colorSuccess,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = amountForDisplay,
-                            color = Color(0xFF4CAF50),
-                            fontSize = 32.sp,
+                            color = LocalMakeFlowColors.current.colorSuccess,
+                            fontSize = dimens.textDisplayLarge,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
                     } else {
                         Text(
                             text = currencySymbol,
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = calculatorDisplay,
-                            color = Color.White,
-                            fontSize = 32.sp,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.textDisplayLarge,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             maxLines = 1
@@ -661,7 +664,7 @@ fun AddTransactionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
             // === Calculator keypad ===
             CalculatorKeypad(
@@ -680,7 +683,7 @@ fun AddTransactionScreen(
                 hapticManager = hapticManager
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
             // === Note field (expandable) ===
             if (noteExpanded) {
@@ -688,16 +691,16 @@ fun AddTransactionScreen(
                     BasicTextField(
                         value = note,
                         onValueChange = { note = it },
-                        textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
+                        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textM),
                         singleLine = true,
-                        cursorBrush = SolidColor(Color.White),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                         decorationBox = { innerTextField ->
                             Box {
                                 if (note.isEmpty()) {
                                     Text(
                                         text = "Record name (optional)",
-                                        color = Color.White.copy(alpha = 0.4f),
-                                        fontSize = 14.sp
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        fontSize = dimens.textM
                                     )
                                 }
                                 innerTextField()
@@ -706,15 +709,15 @@ fun AddTransactionScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     HorizontalDivider(
-                        color = Color.White.copy(alpha = 0.15f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
                         thickness = 0.5.dp
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                 Text(
                     text = "Collapse",
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                    fontSize = dimens.textS,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .clickable { noteExpanded = false }
@@ -723,8 +726,8 @@ fun AddTransactionScreen(
             } else {
                 Text(
                     text = "+ Record Name${if (note.isNotEmpty()) ": $note" else " (Optional)"}",
-                    color = if (note.isNotEmpty()) Color.White else Color.White.copy(alpha = 0.5f),
-                    fontSize = 14.sp,
+                    color = if (note.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = dimens.textM,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .clickable { noteExpanded = true }
@@ -732,13 +735,13 @@ fun AddTransactionScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
             // === Three pills row ===
             if (selectedType == "TRANSFER") {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                 ) {
                     PickerPill(
                         label = "From",
@@ -756,7 +759,7 @@ fun AddTransactionScreen(
             } else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                 ) {
                     PickerPill(
                         label = "Account",
@@ -773,7 +776,7 @@ fun AddTransactionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
             PickerPill(
                 label = "Date & Time",
@@ -789,13 +792,13 @@ fun AddTransactionScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1E2A1E), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     Text(
                         text = "+ ${CurrencyFormatter.format(mpesaTransactionCost!!, currencyCode)} fee will also be logged separately",
-                        color = Color(0xFF81C784),
-                        fontSize = 13.sp,
+                        color = LocalMakeFlowColors.current.colorSuccess,
+                        fontSize = dimens.textSm,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -803,15 +806,15 @@ fun AddTransactionScreen(
 
             // === Save as Template link ===
             if (!isEditMode && onSaveAsTemplate != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
                 Text(
                     text = "Save as template",
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = dimens.textSm,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .clickable { showSaveTemplateDialog = true }
-                        .padding(vertical = 8.dp)
+                        .padding(vertical = dimens.spacingMedium)
                 )
             }
 
@@ -832,19 +835,19 @@ fun AddTransactionScreen(
                 },
                 enabled = isSaveEnabled,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF121315),
-                    disabledContainerColor = Color(0xFF1B1C1F),
-                    disabledContentColor = Color.White.copy(alpha = 0.2f)
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(dimens.shapeCornerMedium),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp)
             ) {
                 Text(
                     text = if (isEditMode) "Update Transaction" else "Save Transaction",
-                    fontSize = 16.sp,
+                    fontSize = dimens.textL,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -859,30 +862,30 @@ fun AddTransactionScreen(
                 showSaveTemplateDialog = false
                 templateNameInput = ""
             },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Save as template", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Save as template", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
                 Column {
                     Text(
                         text = "Name",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                     BasicTextField(
                         value = templateNameInput,
                         onValueChange = { templateNameInput = it },
-                        textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
+                        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textL),
                         singleLine = true,
-                        cursorBrush = SolidColor(Color.White),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                         decorationBox = { innerTextField ->
                             Box {
                                 if (templateNameInput.isEmpty()) {
                                     Text(
                                         text = "e.g. Monthly Rent",
-                                        color = Color.White.copy(alpha = 0.3f),
-                                        fontSize = 16.sp
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        fontSize = dimens.textL
                                     )
                                 }
                                 innerTextField()
@@ -890,7 +893,7 @@ fun AddTransactionScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF2C2C2C), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                             .padding(horizontal = 14.dp, vertical = 12.dp)
                     )
                 }
@@ -906,7 +909,7 @@ fun AddTransactionScreen(
                     },
                     enabled = templateNameInput.isNotBlank()
                 ) {
-                    Text("Save", color = Color.White)
+                    Text("Save", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
             dismissButton = {
@@ -914,7 +917,7 @@ fun AddTransactionScreen(
                     showSaveTemplateDialog = false
                     templateNameInput = ""
                 }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
@@ -926,15 +929,15 @@ fun AddTransactionScreen(
                 duplicateWarning = null
                 pendingEntity = null
             },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Possible duplicate", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Possible duplicate", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
                 Text(
                     "This looks like a ${warning.reason} — save anyway?",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 14.sp
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontSize = dimens.textM
                 )
             },
             confirmButton = {
@@ -960,7 +963,7 @@ fun AddTransactionScreen(
                         anomalyResult = null
                     }
                 }) {
-                    Text("Save Anyway", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("Save Anyway", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -968,7 +971,7 @@ fun AddTransactionScreen(
                     duplicateWarning = null
                     pendingEntity = null
                 }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.6f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
         )
@@ -984,9 +987,10 @@ private fun CalculatorKeypad(
     context: Context,
     hapticManager: HapticManager
 ) {
-    val buttonTextColor = Color.White
-    val operatorColor = Color(0xFFFFA726)
-    val functionColor = Color.White.copy(alpha = 0.6f)
+    val dimens = LocalAppDimens.current
+    val buttonTextColor = MaterialTheme.colorScheme.onSurface
+    val operatorColor = LocalMakeFlowColors.current.colorWarning
+    val functionColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
     fun pressDigit(d: Int) {
         engine.onDigit(d)
@@ -999,7 +1003,7 @@ private fun CalculatorKeypad(
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Row 1: Clear, Backspace, ±, ÷
@@ -1065,8 +1069,8 @@ private fun CalculatorKeypad(
                 modifier = Modifier
                     .weight(2f)
                     .height(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF1B1C1F))
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .clickable { pressDigit(0) },
                 contentAlignment = Alignment.Center
             ) {
@@ -1077,8 +1081,8 @@ private fun CalculatorKeypad(
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF1B1C1F))
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                     .clickable {
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                         val clip = ClipData.newPlainText("Amount", displayValue)
@@ -1090,7 +1094,7 @@ private fun CalculatorKeypad(
                 Icon(
                     imageVector = Icons.Filled.ContentCopy,
                     contentDescription = "Copy",
-                    tint = Color.White.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -1098,15 +1102,15 @@ private fun CalculatorKeypad(
                 modifier = Modifier
                     .weight(1f)
                     .height(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF4CAF50))
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable { onConfirm() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Filled.Check,
                     contentDescription = "Confirm amount",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -1118,9 +1122,10 @@ private fun CalculatorKeypad(
 private fun CalculatorRow(
     content: @Composable RowScope.() -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
     ) {
         this.content()
     }
@@ -1129,16 +1134,17 @@ private fun CalculatorRow(
 @Composable
 private fun RowScope.CalcButton(
     label: String,
-    color: Color = Color.White,
+    color: Color = MaterialTheme.colorScheme.onSurface,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val dimens = LocalAppDimens.current
     Box(
         modifier = modifier
             .weight(1f)
             .height(52.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -1158,10 +1164,11 @@ private fun PickerPill(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val dimens = LocalAppDimens.current
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF1B1C1F))
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1170,14 +1177,14 @@ private fun PickerPill(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 text = value,
-                color = Color.White,
-                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = dimens.textM,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -1185,7 +1192,7 @@ private fun PickerPill(
         }
         Text(
             text = "\u203A",
-            color = Color.White.copy(alpha = 0.4f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             fontSize = 18.sp
         )
     }

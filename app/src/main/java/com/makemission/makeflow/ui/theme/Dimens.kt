@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 data class AppDimens(
     val paddingSmall: Dp = 8.dp,
@@ -34,6 +35,24 @@ data class AppDimens(
     val shapeCornerLarge: Dp = 24.dp,
     val shapeCornerExtraLarge: Dp = 32.dp,
     val shapeCornerPill: Dp = 100.dp,
+
+    val spacingXSmall: Dp = 4.dp,
+    val spacingSmall: Dp = 6.dp,
+    val spacingMedium: Dp = 8.dp,
+    val spacingLarge: Dp = 12.dp,
+    val spacingXLarge: Dp = 16.dp,
+    val spacingXXLarge: Dp = 20.dp,
+
+    val textXs: androidx.compose.ui.unit.TextUnit = 11.sp,
+    val textS: androidx.compose.ui.unit.TextUnit = 12.sp,
+    val textSm: androidx.compose.ui.unit.TextUnit = 13.sp,
+    val textM: androidx.compose.ui.unit.TextUnit = 14.sp,
+    val textMl: androidx.compose.ui.unit.TextUnit = 15.sp,
+    val textL: androidx.compose.ui.unit.TextUnit = 16.sp,
+    val textXl: androidx.compose.ui.unit.TextUnit = 18.sp,
+    val textXxl: androidx.compose.ui.unit.TextUnit = 20.sp,
+    val textDisplay: androidx.compose.ui.unit.TextUnit = 28.sp,
+    val textDisplayLarge: androidx.compose.ui.unit.TextUnit = 32.sp,
 )
 
 val compactDimens = AppDimens()
@@ -60,6 +79,12 @@ val mediumDimens = AppDimens(
     shapeCornerLarge = 28.dp,
     shapeCornerExtraLarge = 36.dp,
     shapeCornerPill = 100.dp,
+    spacingXSmall = 6.dp,
+    spacingSmall = 8.dp,
+    spacingMedium = 10.dp,
+    spacingLarge = 14.dp,
+    spacingXLarge = 20.dp,
+    spacingXXLarge = 24.dp,
 )
 
 val expandedDimens = AppDimens(
@@ -90,6 +115,12 @@ val expandedDimens = AppDimens(
     shapeCornerLarge = 32.dp,
     shapeCornerExtraLarge = 40.dp,
     shapeCornerPill = 100.dp,
+    spacingXSmall = 8.dp,
+    spacingSmall = 10.dp,
+    spacingMedium = 12.dp,
+    spacingLarge = 16.dp,
+    spacingXLarge = 24.dp,
+    spacingXXLarge = 28.dp,
 )
 
 val LocalAppDimens = staticCompositionLocalOf { compactDimens }

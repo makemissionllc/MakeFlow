@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import kotlinx.coroutines.launch
 
@@ -51,6 +52,7 @@ fun AddBudgetBottomSheet(
     currencySymbol: String,
     editingBudget: BudgetEntity? = null
 ) {
+    val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
     val isEditing = editingBudget != null
 
@@ -111,54 +113,54 @@ fun AddBudgetBottomSheet(
             Text(
                 text = if (isEditing) "Edit Budget" else "New Budget",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onSurface
             )
             IconButton(onClick = onDismiss) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
                     contentDescription = "Close",
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
         if (isEditing) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
                 Text(
                     text = selectedCategoryName,
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    fontSize = dimens.textMl,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 )
             }
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Category",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     expenseParents.forEach { parent ->
                         val isSelected = parent.id == selectedParentCategory?.id
                         Text(
                             text = parent.name,
-                            color = if (isSelected) Color(0xFF121315) else Color.White,
+                            color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
+                            fontSize = dimens.textSm,
                             modifier = Modifier
                                 .background(
-                                    if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                    RoundedCornerShape(14.dp)
+                                    if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                    RoundedCornerShape(dimens.cornerRadiusMedium)
                                 )
                                 .clickable {
                                     selectedParentCategory = parent
@@ -172,20 +174,20 @@ fun AddBudgetBottomSheet(
                     Text(
                         text = "Subcategory",
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White.copy(alpha = 0.35f)
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
                     )
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                         childCategories.forEach { child ->
                             val isSelected = child.id == selectedChildCategory?.id
                             Text(
                                 text = child.name,
-                                color = if (isSelected) Color(0xFF121315) else Color.White,
+                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
+                                fontSize = dimens.textSm,
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                        RoundedCornerShape(14.dp)
+                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
                                     .clickable { selectedChildCategory = child }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -196,7 +198,7 @@ fun AddBudgetBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -205,11 +207,11 @@ fun AddBudgetBottomSheet(
         ) {
             Text(
                 text = currencySymbol,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(dimens.spacingMedium))
             BasicTextField(
                 value = amountInput,
                 onValueChange = { newValue ->
@@ -218,20 +220,20 @@ fun AddBudgetBottomSheet(
                     }
                 },
                 textStyle = TextStyle(
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 decorationBox = { innerTextField ->
                     Box {
                         if (amountInput.isEmpty()) {
                             Text(
                                 text = "0.00",
-                                color = Color.White.copy(alpha = 0.3f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -243,36 +245,36 @@ fun AddBudgetBottomSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Name (optional)",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
             BasicTextField(
                 value = nameInput,
                 onValueChange = { nameInput = it },
                 textStyle = TextStyle(
-                    color = Color.White,
-                    fontSize = 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = dimens.textMl,
                     fontWeight = FontWeight.Medium
                 ),
                 singleLine = true,
-                cursorBrush = SolidColor(Color.White),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                 decorationBox = { innerTextField ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFF1B1C1F), RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.shapeCornerSmall))
                             .padding(horizontal = 14.dp, vertical = 12.dp)
                     ) {
                         if (nameInput.isEmpty()) {
                             Text(
                                 text = selectedCategoryName,
-                                color = Color.White.copy(alpha = 0.3f),
-                                fontSize = 15.sp
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                fontSize = dimens.textMl
                             )
                         }
                         innerTextField()
@@ -282,26 +284,26 @@ fun AddBudgetBottomSheet(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
                 text = "Resets every",
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 listOf("Weekly", "Monthly", "Annual").forEach { period ->
                     val isSelected = selectedPeriod == period
                     Text(
                         text = period,
-                        color = if (isSelected) Color(0xFF121315) else Color.White,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
+                        fontSize = dimens.textSm,
                         modifier = Modifier
                             .background(
-                                if (isSelected) Color.White else Color(0xFF1B1C1F),
-                                RoundedCornerShape(14.dp)
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.cornerRadiusMedium)
                             )
                             .clickable { selectedPeriod = period }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -310,7 +312,7 @@ fun AddBudgetBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
         androidx.compose.material3.Button(
             onClick = {
@@ -323,19 +325,19 @@ fun AddBudgetBottomSheet(
             },
             enabled = isSaveEnabled,
             colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color(0xFF121315),
-                disabledContainerColor = Color(0xFF1B1C1F),
-                disabledContentColor = Color.White.copy(alpha = 0.2f)
+                containerColor = MaterialTheme.colorScheme.onSurface,
+                contentColor = MaterialTheme.colorScheme.background,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             ),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(dimens.shapeCornerMedium),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(54.dp)
         ) {
             Text(
                 text = if (isEditing) "Save Changes" else "Save Budget",
-                fontSize = 16.sp,
+                fontSize = dimens.textL,
                 fontWeight = FontWeight.Bold
             )
         }

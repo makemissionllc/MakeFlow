@@ -162,6 +162,26 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val themeMode: Flow<String> = dataStore.data.map { prefs ->
+        prefs[THEME_MODE_KEY] ?: "system"
+    }
+
+    suspend fun saveThemeMode(mode: String) {
+        dataStore.edit { prefs ->
+            prefs[THEME_MODE_KEY] = mode
+        }
+    }
+
+    val amoledMode: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[AMOLED_MODE_KEY] ?: false
+    }
+
+    suspend fun saveAmoledMode(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[AMOLED_MODE_KEY] = enabled
+        }
+    }
+
     companion object {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
@@ -176,5 +196,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
         private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
         private val LOG_MPESA_COSTS_KEY = booleanPreferencesKey("log_mpesa_costs")
+        private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        private val AMOLED_MODE_KEY = booleanPreferencesKey("amoled_mode")
     }
 }

@@ -46,6 +46,7 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.SpaceDashboard
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.AlertDialog
@@ -116,6 +117,8 @@ import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
 import com.makemission.makeflow.ui.screens.ChangelogScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.data.changelog.CURRENT_CHANGELOG_VERSION
+import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModelFactory
@@ -153,6 +156,7 @@ fun MainScreen(
     shareParseError: String? = null,
     onShareParseErrorShown: () -> Unit = {}
 ) {
+    val dimens = LocalAppDimens.current
     var activeTab by remember { mutableStateOf(MakeFlowTab.HOME) }
 
     val context = LocalContext.current
@@ -354,16 +358,16 @@ fun MainScreen(
     if (mpesaDuplicateMessage != null) {
         AlertDialog(
             onDismissRequest = { mpesaDuplicateMessage = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Duplicate Transaction", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Duplicate Transaction", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text(mpesaDuplicateMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+                Text(mpesaDuplicateMessage ?: "", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = { mpesaDuplicateMessage = null }) {
-                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                    Text("OK", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -372,16 +376,16 @@ fun MainScreen(
     if (mpesaShareErrorMessage != null) {
         AlertDialog(
             onDismissRequest = { mpesaShareErrorMessage = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Couldn't Parse Message", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Couldn't Parse Message", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text(mpesaShareErrorMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+                Text(mpesaShareErrorMessage ?: "", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = { mpesaShareErrorMessage = null }) {
-                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                    Text("OK", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -394,16 +398,16 @@ fun MainScreen(
         }
         AlertDialog(
             onDismissRequest = { mpesaCreatedAccountMessage = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Account Created", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Account Created", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text(mpesaCreatedAccountMessage ?: "", color = Color.White.copy(alpha = 0.7f))
+                Text(mpesaCreatedAccountMessage ?: "", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = { mpesaCreatedAccountMessage = null }) {
-                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                    Text("OK", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -520,7 +524,7 @@ fun MainScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121315))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         if (isNavRail) {
             Row(Modifier.fillMaxSize()) {
@@ -656,7 +660,7 @@ fun MainScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = dimens.paddingLarge)
                         .padding(
                             top = 24.dp,
                             bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -701,7 +705,7 @@ fun MainScreen(
                         enter = if (reducedMotion) fadeIn() else fadeIn(tween(150)),
                         exit = if (reducedMotion) fadeOut() else fadeOut(tween(100))
                     ) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(dimens.spacingXLarge))
                     }
 
                     FloatingCapsuleNavBar(
@@ -774,7 +778,7 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             BackHandler { showManageCategories = false }
             CategoryManagementScreen(
@@ -800,12 +804,12 @@ fun MainScreen(
     if (showRestoreConfirm && backupJson != null) {
         AlertDialog(
             onDismissRequest = { showRestoreConfirm = false; backupJson = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Restore Backup?", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Restore Backup?", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text("This will replace ALL current data (accounts, transactions, categories, budgets, etc.) with the data from the backup file. This action cannot be undone.", color = Color.White.copy(alpha = 0.7f))
+                Text("This will replace ALL current data (accounts, transactions, categories, budgets, etc.) with the data from the backup file. This action cannot be undone.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -832,12 +836,12 @@ fun MainScreen(
                         }
                     }
                 }) {
-                    Text("Restore", color = Color(0xFFEF5350))
+                    Text("Restore", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRestoreConfirm = false; backupJson = null }) {
-                    Text("Cancel", color = Color.White.copy(alpha = 0.5f))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -846,16 +850,16 @@ fun MainScreen(
     if (restoreError != null) {
         AlertDialog(
             onDismissRequest = { restoreError = null },
-            containerColor = Color(0xFF1B1C1F),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
-                Text("Restore Failed", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Restore Failed", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
             },
             text = {
-                Text(restoreError ?: "Unknown error", color = Color.White.copy(alpha = 0.7f))
+                Text(restoreError ?: "Unknown error", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
             },
             confirmButton = {
                 TextButton(onClick = { restoreError = null }) {
-                    Text("OK", color = Color.White.copy(alpha = 0.5f))
+                    Text("OK", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                 }
             }
         )
@@ -865,7 +869,7 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             BackHandler {
                 showChangelogScreen = false
@@ -894,7 +898,7 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             val onDismissAction = {
                 shortcutPendingType.value = null
@@ -1150,6 +1154,7 @@ private fun TabContentAnimated(
     onSetUpRecurringFromInsights: (Double) -> Unit = {},
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val tabIndex = when (activeTab) {
         MakeFlowTab.HOME -> 0
         MakeFlowTab.INSIGHTS -> 1
@@ -1215,17 +1220,18 @@ private fun AddTransactionFloatingActionButton(
     onClick: () -> Unit,
     fabSize: androidx.compose.ui.unit.Dp
 ) {
+    val dimens = LocalAppDimens.current
     FloatingActionButton(
         onClick = onClick,
-        containerColor = Color.White,
-        contentColor = Color(0xFF121315),
+        containerColor = MaterialTheme.colorScheme.inverseSurface,
+        contentColor = MaterialTheme.colorScheme.background,
         shape = CircleShape,
         modifier = Modifier.size(fabSize)
     ) {
         Icon(
             imageVector = Icons.Filled.Add,
             contentDescription = "Add transaction",
-            tint = Color(0xFF121315),
+            tint = MaterialTheme.colorScheme.background,
             modifier = Modifier.size(24.dp)
         )
     }
@@ -1257,6 +1263,7 @@ private fun OverlayPanels(
     onOpenChangelog: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
+    val dimens = LocalAppDimens.current
     val slideEnter = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
     val slideExit = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
     val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring
@@ -1290,7 +1297,7 @@ private fun OverlayPanels(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF0A0A0A))
+                .background(MaterialTheme.colorScheme.surfaceDim)
         ) {
             BackHandler { onHideAccounts() }
             AccountsScreen(
@@ -1311,7 +1318,7 @@ private fun OverlayPanels(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             BackHandler { onHideSettings() }
             SettingsScreen(
@@ -1341,7 +1348,7 @@ private fun OverlayPanels(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFF121315))
+                .background(MaterialTheme.colorScheme.background)
         ) {
             BackHandler { onHideRecurringTransactions() }
             RecurringTransactionsScreen(
@@ -1358,6 +1365,7 @@ private fun MakeFlowNavRail(
     onTabSelected: (MakeFlowTab) -> Unit,
     layoutMode: DeviceLayoutMode
 ) {
+    val dimens = LocalAppDimens.current
     val alwaysShowLabel = layoutMode == DeviceLayoutMode.EXPANDED
 
     NavigationRail(
@@ -1368,7 +1376,7 @@ private fun MakeFlowNavRail(
         header = {
             Text(
                 text = "Mindful Wallet",
-                color = Color(0xFF8B938A),
+                color = MaterialTheme.colorScheme.outline,
                 fontSize = if (alwaysShowLabel) 12.sp else 0.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -1396,7 +1404,7 @@ private fun MakeFlowNavRail(
                             MakeFlowTab.INSIGHTS -> "Insights"
                             MakeFlowTab.HISTORY -> "History"
                         },
-                        fontSize = 12.sp
+                        fontSize = dimens.textS
                     )
                 },
                 alwaysShowLabel = alwaysShowLabel
@@ -1411,13 +1419,14 @@ fun FloatingCapsuleNavBar(
     onTabSelected: (MakeFlowTab) -> Unit,
     config: AdaptiveConfig = AdaptiveConfig()
 ) {
+    val dimens = LocalAppDimens.current
     val tabs = MakeFlowTab.values()
     val reducedMotion = LocalReducedMotion.current
 
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(Color(0xFF24262B))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = if (config.isTablet) 12.dp else 8.dp, vertical = if (config.isTablet) 8.dp else 6.dp),
         horizontalArrangement = Arrangement.spacedBy(if (config.isTablet) 10.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1428,7 +1437,7 @@ fun FloatingCapsuleNavBar(
             Row(
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(if (isSelected) Color.White else Color.Transparent)
+                    .background(if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -1450,7 +1459,7 @@ fun FloatingCapsuleNavBar(
                         MakeFlowTab.HISTORY -> Icons.Rounded.History
                     },
                     contentDescription = tab.name,
-                    tint = if (isSelected) Color(0xFF121315) else Color.White,
+                    tint = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(config.navIconSize)
                 )
 
@@ -1484,7 +1493,7 @@ fun FloatingCapsuleNavBar(
                             MakeFlowTab.INSIGHTS -> "Insights"
                             MakeFlowTab.HISTORY -> "History"
                         },
-                        color = Color(0xFF121315),
+                        color = MaterialTheme.colorScheme.background,
                         fontSize = if (config.isTablet) 16.sp else 14.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,

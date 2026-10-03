@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -315,7 +316,7 @@ private fun HistoryListContent(
             contentPadding = PaddingValues(
                 start = config.horizontalPadding, end = config.horizontalPadding,
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = 140.dp
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + dimens.paddingMedium
             ),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {

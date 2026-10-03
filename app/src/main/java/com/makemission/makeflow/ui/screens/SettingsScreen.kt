@@ -74,6 +74,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.resolveColorScheme
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
@@ -353,18 +354,23 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 2) {
+                        ThemePaletteRow(
+                            selectedTheme = currentTheme,
+                            isDark = isEffectivelyDark,
+                            hapticManager = hapticManager,
+                            onSelect = viewModel::saveTheme
+                        )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 3) {
                     SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Currency", subtitle=currentCurrency, onClick={ showCurrencyPicker = true })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 3) {
-                    SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
-                    }
-                }
-
-                item {
-                    StaggeredItem(index = 3) {
+                    StaggeredItem(index = 4) {
                     SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
                     }
                 }
@@ -685,6 +691,65 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
+private fun ThemePaletteRow(
+    selectedTheme: String,
+    isDark: Boolean,
+    hapticManager: HapticManager?,
+    onSelect: (String) -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        themes.forEach { theme ->
+            val swatch = if (theme.key == "dynamic") {
+                MaterialTheme.colorScheme.primary
+            } else {
+                resolveColorScheme(theme.key, isDark).primary
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
+                    .clickable {
+                        hapticManager?.fire(HapticEvent.TAB_SWITCH)
+                        onSelect(theme.key)
+                    }
+                    .padding(vertical = dimens.spacingSmall),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(dimens.iconSizeLarge)
+                        .clip(CircleShape)
+                        .background(swatch),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (theme.key == selectedTheme) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = if (theme.key == "dynamic") MaterialTheme.colorScheme.onPrimary
+                            else resolveColorScheme(theme.key, isDark).onPrimary,
+                            modifier = Modifier.size(dimens.iconSizeSmall)
+                        )
+                    }
+                }
+                Text(
+                    text = if (theme.key == "purple") "Purple" else theme.label,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = dimens.textXs,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SettingsRow(
     icon: ImageVector,
     title: String,
@@ -696,10 +761,8 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.pressScale() else Modifier)
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = dimens.spacingLarge),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -707,22 +770,15 @@ private fun SettingsRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = title, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = subtitle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(dimens.iconSizeMedium)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium, maxLines = 1)
+                Text(text = subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = dimens.textSm, maxLines = 2)
             }
         }
     }
@@ -738,10 +794,8 @@ private fun HapticToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -790,10 +844,8 @@ private fun AppLockToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -842,10 +894,8 @@ private fun SmartCategorizationToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -894,10 +944,8 @@ private fun MpesaCostsToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onToggle(!enabled) }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -1143,10 +1191,8 @@ private fun AmoledToggleRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(if (isDarkAvailable) Modifier.pressScale() else Modifier)
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = alpha))
             .then(if (isDarkAvailable) Modifier.clickable { onToggle(!enabled) } else Modifier)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {

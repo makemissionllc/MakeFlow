@@ -85,7 +85,13 @@ fun PrimaryButton(
             Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(dimens.iconSizeMedium))
             Spacer(Modifier.width(dimens.spacingSmall))
         }
-        Text(label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -117,7 +123,13 @@ fun SoftButton(
             Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(dimens.iconSizeMedium))
             Spacer(Modifier.width(dimens.spacingSmall))
         }
-        Text(label, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

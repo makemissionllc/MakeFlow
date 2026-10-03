@@ -511,9 +511,7 @@ private fun HomeBalanceHero(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(dimens.cardCornerRadius))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(dimens.paddingLarge),
+            .padding(vertical = dimens.spacingLarge),
         verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
     ) {
         Text(
@@ -536,14 +534,12 @@ private fun HomeBalanceHero(
                 label = stringResource(R.string.home_action_add),
                 onClick = { onAddTransaction("EXPENSE") },
                 hapticManager = hapticManager,
-                leadingIcon = Icons.Rounded.Add,
                 modifier = Modifier.weight(1f)
             )
             SoftButton(
                 label = stringResource(R.string.home_action_transfer),
                 onClick = { onAddTransaction("TRANSFER") },
                 hapticManager = hapticManager,
-                leadingIcon = Icons.Rounded.SwapHoriz,
                 modifier = Modifier.weight(1f)
             )
         }

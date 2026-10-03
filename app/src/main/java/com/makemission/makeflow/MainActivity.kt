@@ -39,8 +39,9 @@ class MainActivity : FragmentActivity() {
         }
 
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(
-                scrim = android.graphics.Color.TRANSPARENT
+            statusBarStyle = SystemBarStyle.auto(
+                lightScrim = android.graphics.Color.TRANSPARENT,
+                darkScrim = android.graphics.Color.TRANSPARENT
             )
         )
         handleShareIntent(intent)

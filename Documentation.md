@@ -8,6 +8,21 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Align app shell and Settings with the mockups
+
+- **Scope:** System bars, primary navigation, Home balance actions, History/Insights
+  insets, Settings appearance, and shared mockup buttons.
+- **What:** restored readable status and navigation bar icons in light and dark themes;
+  made Home, Insights, Budget, and Goals the four primary destinations, with History
+  remaining reachable from Recent; removed the Home balance card treatment; added
+  one-line action labels; and simplified Settings rows while exposing theme palettes as
+  direct swatches. History now avoids unused dock-sized bottom space, while Insights
+  reserves exactly the space its adaptive dock occupies.
+- **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and
+  Gradle 9.6.
+
+---
+
 ## 2026-10-03 — Match Add Transaction to the mockup
 
 - **Scope:** Add Transaction screen, calculator expression state, recent amount shortcuts,

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -156,7 +157,11 @@ fun InsightsScreen(
         contentPadding = PaddingValues(
             start = config.horizontalPadding, end = config.horizontalPadding,
             top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-            bottom = 140.dp
+            bottom = (if (config.layoutMode == DeviceLayoutMode.COMPACT) {
+                dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
+            } else {
+                dimens.paddingLarge
+            }) + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
         ),
         verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
     ) {

@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.SpaceDashboard
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.Savings
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -147,8 +149,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 enum class MakeFlowTab {
-    HOME, INSIGHTS, HISTORY
+    HOME, INSIGHTS, BUDGET, GOALS, HISTORY
 }
+
+private val primaryTabs = listOf(
+    MakeFlowTab.HOME,
+    MakeFlowTab.INSIGHTS,
+    MakeFlowTab.BUDGET,
+    MakeFlowTab.GOALS
+)
 
 @Composable
 fun MainScreen(
@@ -552,12 +561,17 @@ fun MainScreen(
                             homeViewModel = homeViewModel,
                             insightsViewModel = insightsViewModel,
                             historyViewModel = historyViewModel,
+                            budgetViewModel = budgetViewModel,
+                            savingsGoalsViewModel = savingsGoalsViewModel,
+                            accounts = accounts,
+                            currencyCode = currencyCode,
+                            currencySymbol = currencySymbol,
                             hapticManager = hapticManager,
                             notificationGate = notificationGate,
                             onOpenAccounts = { showAccountsScreen = true },
-                            onOpenSavingsGoals = { showSavingsGoalsScreen = true },
+                            onOpenSavingsGoals = { activeTab = MakeFlowTab.GOALS },
                             onOpenSettings = { showSettingsScreen = true },
-                            onOpenBudgets = { showBudgetScreen = true },
+                            onOpenBudgets = { activeTab = MakeFlowTab.BUDGET },
                             onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
                             onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
                             onAddTransaction = { type ->
@@ -578,7 +592,7 @@ fun MainScreen(
 
             Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
                         androidx.compose.animation.AnimatedVisibility(
-                            visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
+                            visible = activeTab != MakeFlowTab.HISTORY && !showAddTransaction,
                             enter = scaleIn(
                                 animationSpec = if (reducedMotion) tween(150) else spring(
                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -650,12 +664,17 @@ fun MainScreen(
                     homeViewModel = homeViewModel,
                     insightsViewModel = insightsViewModel,
                     historyViewModel = historyViewModel,
+                    budgetViewModel = budgetViewModel,
+                    savingsGoalsViewModel = savingsGoalsViewModel,
+                    accounts = accounts,
+                    currencyCode = currencyCode,
+                    currencySymbol = currencySymbol,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate,
                     onOpenAccounts = { showAccountsScreen = true },
-                    onOpenSavingsGoals = { showSavingsGoalsScreen = true },
+                    onOpenSavingsGoals = { activeTab = MakeFlowTab.GOALS },
                     onOpenSettings = { showSettingsScreen = true },
-                    onOpenBudgets = { showBudgetScreen = true },
+                    onOpenBudgets = { activeTab = MakeFlowTab.BUDGET },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
                     onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
                     onAddTransaction = { type ->
@@ -673,7 +692,7 @@ fun MainScreen(
                     }
                 )
 
-                Column(
+                if (activeTab != MakeFlowTab.HISTORY) Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = dimens.paddingMedium)
@@ -687,10 +706,11 @@ fun MainScreen(
                         items = listOf(
                             PillNavItem(stringResource(R.string.nav_home), Icons.Rounded.SpaceDashboard),
                             PillNavItem(stringResource(R.string.nav_insights), Icons.Rounded.Insights),
-                            PillNavItem(stringResource(R.string.nav_history), Icons.Rounded.History)
+                            PillNavItem(stringResource(R.string.nav_budget), Icons.Rounded.AccountBalanceWallet),
+                            PillNavItem(stringResource(R.string.nav_goals), Icons.Rounded.Savings)
                         ),
-                        selectedIndex = MakeFlowTab.entries.indexOf(activeTab),
-                        onTabSelected = { activeTab = MakeFlowTab.entries[it] },
+                        selectedIndex = primaryTabs.indexOf(activeTab),
+                        onTabSelected = { activeTab = primaryTabs[it] },
                         onAddClick = {
                             shortcutPendingType.value = null
                             showAddTransaction = true
@@ -1143,6 +1163,11 @@ private fun TabContentAnimated(
     homeViewModel: HomeDashboardViewModel,
     insightsViewModel: InsightsViewModel,
     historyViewModel: HistoryViewModel,
+    budgetViewModel: BudgetViewModel,
+    savingsGoalsViewModel: SavingsGoalsViewModel,
+    accounts: List<AccountEntity>,
+    currencyCode: String,
+    currencySymbol: String,
     hapticManager: com.makemission.makeflow.core.haptics.HapticManager,
     notificationGate: NotificationGate?,
     onOpenAccounts: () -> Unit,
@@ -1160,7 +1185,9 @@ private fun TabContentAnimated(
     val tabIndex = when (activeTab) {
         MakeFlowTab.HOME -> 0
         MakeFlowTab.INSIGHTS -> 1
-        MakeFlowTab.HISTORY -> 2
+        MakeFlowTab.BUDGET -> 2
+        MakeFlowTab.GOALS -> 3
+        MakeFlowTab.HISTORY -> 4
     }
     val previousTabIndex = remember { mutableStateOf(0) }
 
@@ -1208,6 +1235,26 @@ private fun TabContentAnimated(
                     onSetUpRecurring = onSetUpRecurringFromInsights,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
+                )
+            }
+            MakeFlowTab.BUDGET -> {
+                BackHandler { onNavigateToHome() }
+                BudgetScreen(
+                    onBack = onNavigateToHome,
+                    viewModel = budgetViewModel,
+                    hapticManager = hapticManager,
+                    notificationGate = notificationGate
+                )
+            }
+            MakeFlowTab.GOALS -> {
+                BackHandler { onNavigateToHome() }
+                SavingsGoalsScreen(
+                    onBack = onNavigateToHome,
+                    viewModel = savingsGoalsViewModel,
+                    accounts = accounts,
+                    currencyCode = currencyCode,
+                    currencySymbol = currencySymbol,
+                    onAddAccount = onOpenAccounts
                 )
             }
             MakeFlowTab.HISTORY -> {
@@ -1390,7 +1437,7 @@ private fun MakeFlowNavRail(
             )
         }
     ) {
-        MakeFlowTab.entries.forEach { tab ->
+        primaryTabs.forEach { tab ->
             NavigationRailItem(
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },
@@ -1399,6 +1446,8 @@ private fun MakeFlowNavRail(
                         imageVector = when (tab) {
                             MakeFlowTab.HOME -> Icons.Rounded.SpaceDashboard
                             MakeFlowTab.INSIGHTS -> Icons.Rounded.Insights
+                            MakeFlowTab.BUDGET -> Icons.Rounded.AccountBalanceWallet
+                            MakeFlowTab.GOALS -> Icons.Rounded.Savings
                             MakeFlowTab.HISTORY -> Icons.Rounded.History
                         },
                         contentDescription = tab.name
@@ -1407,9 +1456,11 @@ private fun MakeFlowNavRail(
                 label = {
                     Text(
                         text = when (tab) {
-                            MakeFlowTab.HOME -> "Home"
-                            MakeFlowTab.INSIGHTS -> "Insights"
-                            MakeFlowTab.HISTORY -> "History"
+                            MakeFlowTab.HOME -> stringResource(R.string.nav_home)
+                            MakeFlowTab.INSIGHTS -> stringResource(R.string.nav_insights)
+                            MakeFlowTab.BUDGET -> stringResource(R.string.nav_budget)
+                            MakeFlowTab.GOALS -> stringResource(R.string.nav_goals)
+                            MakeFlowTab.HISTORY -> stringResource(R.string.nav_history)
                         },
                         fontSize = dimens.textS
                     )
@@ -1427,7 +1478,7 @@ fun FloatingCapsuleNavBar(
     config: AdaptiveConfig = AdaptiveConfig()
 ) {
     val dimens = LocalAppDimens.current
-    val tabs = MakeFlowTab.values()
+    val tabs = primaryTabs
     val reducedMotion = LocalReducedMotion.current
 
     Row(
@@ -1463,6 +1514,8 @@ fun FloatingCapsuleNavBar(
                     imageVector = when (tab) {
                         MakeFlowTab.HOME -> Icons.Rounded.SpaceDashboard
                         MakeFlowTab.INSIGHTS -> Icons.Rounded.Insights
+                        MakeFlowTab.BUDGET -> Icons.Rounded.AccountBalanceWallet
+                        MakeFlowTab.GOALS -> Icons.Rounded.Savings
                         MakeFlowTab.HISTORY -> Icons.Rounded.History
                     },
                     contentDescription = tab.name,
@@ -1498,6 +1551,8 @@ fun FloatingCapsuleNavBar(
                         text = when (tab) {
                             MakeFlowTab.HOME -> "Home"
                             MakeFlowTab.INSIGHTS -> "Insights"
+                            MakeFlowTab.BUDGET -> "Budget"
+                            MakeFlowTab.GOALS -> "Goals"
                             MakeFlowTab.HISTORY -> "History"
                         },
                         color = MaterialTheme.colorScheme.background,

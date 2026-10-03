@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -76,7 +78,8 @@ fun BudgetScreen(
     onBack: () -> Unit,
     viewModel: BudgetViewModel,
     hapticManager: HapticManager,
-    notificationGate: NotificationGate? = null
+    notificationGate: NotificationGate? = null,
+    isPrimaryDestination: Boolean = false
 ) {
     val dimens = LocalAppDimens.current
     val budgets by viewModel.budgets.collectAsState()
@@ -118,6 +121,11 @@ fun BudgetScreen(
     }
 
     val config = LocalAdaptiveConfig.current
+    val dockSpace = if (config.layoutMode == DeviceLayoutMode.COMPACT) {
+        dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
+    } else {
+        dimens.paddingLarge
+    }
     val listState = rememberLazyListState()
     var showAddBudget by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<BudgetEntity?>(null) }
@@ -175,13 +183,15 @@ fun BudgetScreen(
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding, end = config.horizontalPadding,
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                        bottom = 140.dp
+                        bottom = dockSpace + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                     ),
                     verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
                 ) {
-                    item {
-                        LargeTitleItem(title = "Budgets", scrollState = listState)
+                    if (!isPrimaryDestination) {
+                        item { LargeTitleItem(title = "Budget", scrollState = listState) }
                     }
+                    item { MonthlyBudgetOverview(budgets, selectedCurrency) }
+                    item { BudgetWarningNotice(budgets) }
                     if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
                         val columns = if (config.layoutMode == DeviceLayoutMode.EXPANDED) 3 else 2
                         val chunked = budgets.chunked(columns)
@@ -203,35 +213,13 @@ fun BudgetScreen(
                                         Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                                     }
                                     Box(modifier = Modifier.weight(1f)) {
-                                        val progress = (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
-                                        val progressColor = when {
-                                            progress >= 1f -> MaterialTheme.colorScheme.error
-                                            progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
-                                            else -> LocalMakeFlowColors.current.colorSuccess
-                                        }
-
-                                            CardContainer {
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
-                                                    verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-                                                ) {
-                                                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
-                                                        Column {
-                                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                                            if (budget.name != null) {
-                                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
-                                                            }
-                                                        }
-                                                        Text(
-                                                        when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
-                                                        style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f),
-                                                        modifier=Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
-                                                    )
-                                                }
-                                                Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
-                                                AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
-                                            }
-                                        }
+                                        BudgetLimitRow(
+                                            budget = budget,
+                                            currencyCode = selectedCurrency,
+                                            hapticManager = hapticManager,
+                                            onEdit = { editingBudget = budget },
+                                            onDelete = { budgetToDelete = budget }
+                                        )
                                     }
                                 }
                                 if (chunk.size == 1) {
@@ -260,30 +248,13 @@ fun BudgetScreen(
                                 else -> LocalMakeFlowColors.current.colorSuccess
                             }
 
-                            CardContainer {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ editingBudget = budget }, onLongClick={ budgetToDelete = budget }),
-                                    verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-                                ) {
-                                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
-                                        Column {
-                                            Text(budget.displayName, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                            if (budget.name != null) {
-                                                Text(budget.categoryName, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
-                                            }
-                                        }
-                                        Text(
-                                            when (budget.period) { "Weekly"->"Weekly" "Monthly"->"Monthly" "Annual"->"Annual" else->budget.period },
-                                            style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f),
-                                            modifier=Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(6.dp)).padding(horizontal=8.dp, vertical=4.dp)
-                                        )
-                                    }
-                                    Text("${CurrencyFormatter.format(budget.spentAmount, selectedCurrency)} of ${CurrencyFormatter.format(budget.amount, selectedCurrency)}", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.6f))
-                                    AnimatedProgressBar(progress=progress, color=progressColor, modifier=Modifier.fillMaxWidth().height(6.dp).background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(3.dp)))
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(2.dp))
+                            BudgetLimitRow(
+                                budget = budget,
+                                currencyCode = selectedCurrency,
+                                hapticManager = hapticManager,
+                                onEdit = { editingBudget = budget },
+                                onDelete = { budgetToDelete = budget }
+                            )
                             }
                         }
                     }
@@ -291,16 +262,18 @@ fun BudgetScreen(
             }
 
         CollapsingTopBar(
-            title = "Budgets",
+            title = "Budget",
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart),
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+            navigationIcon = if (isPrimaryDestination) null else {
+                {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             },
             actions = {
@@ -368,6 +341,173 @@ fun BudgetScreen(
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
             }
+        )
+    }
+}
+
+@Composable
+private fun MonthlyBudgetOverview(budgets: List<BudgetEntity>, currencyCode: String) {
+    val dimens = LocalAppDimens.current
+    val monthlyBudgets = budgets.filter { it.period == "Monthly" }
+    if (monthlyBudgets.isEmpty()) return
+
+    val totalLimit = monthlyBudgets.sumOf { it.amount }
+    val totalSpent = monthlyBudgets.sumOf { it.spentAmount }
+    val progress = if (totalLimit > 0.0) (totalSpent / totalLimit).toFloat().coerceIn(0f, 1f) else 0f
+    val monthName = java.time.LocalDate.now().month.getDisplayName(
+        java.time.format.TextStyle.FULL,
+        java.util.Locale.getDefault()
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+        Text(
+            text = "$monthName · ${CurrencyFormatter.format(totalLimit, currencyCode)} planned",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Text(
+            text = CurrencyFormatter.format(totalSpent, currencyCode),
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1
+        )
+        Text(
+            text = "spent so far",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge
+        )
+        AnimatedProgressBar(
+            progress = progress,
+            color = if (progress >= 0.7f) LocalMakeFlowColors.current.colorWarning
+            else LocalMakeFlowColors.current.colorSuccess,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(dimens.progressTrackHeight)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusSmall))
+        )
+        val remaining = totalLimit - totalSpent
+        Text(
+            text = if (remaining >= 0.0) {
+                "${CurrencyFormatter.format(remaining, currencyCode)} left across monthly budgets"
+            } else {
+                "${CurrencyFormatter.format(-remaining, currencyCode)} over monthly budgets"
+            },
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
+}
+
+@Composable
+private fun BudgetWarningNotice(budgets: List<BudgetEntity>) {
+    val dimens = LocalAppDimens.current
+    val warningBudget = budgets
+        .filter { it.amount > 0.0 }
+        .maxByOrNull { it.spentAmount / it.amount }
+        ?.takeIf { it.spentAmount / it.amount >= 0.7 }
+        ?: return
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.22f),
+                RoundedCornerShape(dimens.cornerRadiusLarge)
+            )
+            .padding(dimens.paddingMedium)
+    ) {
+        Text(
+            text = "Heads up: ${warningBudget.displayName} is nearing its ${warningBudget.period.lowercase()} limit.",
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun BudgetLimitRow(
+    budget: BudgetEntity,
+    currencyCode: String,
+    hapticManager: HapticManager,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    val progress = if (budget.amount > 0.0) {
+        (budget.spentAmount / budget.amount).toFloat().coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    val progressColor = when {
+        progress >= 1f -> MaterialTheme.colorScheme.error
+        progress >= 0.7f -> LocalMakeFlowColors.current.colorWarning
+        else -> LocalMakeFlowColors.current.colorSuccess
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .combinedClickable(
+                onClick = {
+                    hapticManager.fire(HapticEvent.NAV_SELECT)
+                    onEdit()
+                },
+                onLongClick = {
+                    hapticManager.fire(HapticEvent.DELETE_UNDO_AVAILABLE)
+                    onDelete()
+                }
+            )
+            .padding(vertical = dimens.spacingLarge),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = budget.displayName,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1
+                )
+                if (budget.name != null) {
+                    Text(
+                        text = budget.categoryName,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+            }
+            Spacer(Modifier.width(dimens.spacingMedium))
+            Text(
+                text = CurrencyFormatter.format(budget.amount, currencyCode),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                maxLines = 1
+            )
+        }
+        Text(
+            text = "${CurrencyFormatter.format(budget.spentAmount, currencyCode)} of ${CurrencyFormatter.format(budget.amount, currencyCode)} · ${budget.period.lowercase()}",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1
+        )
+        AnimatedProgressBar(
+            progress = progress,
+            color = progressColor,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(dimens.progressTrackHeight)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusSmall))
+        )
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+            thickness = dimens.spacingXSmall / 2
         )
     }
 }

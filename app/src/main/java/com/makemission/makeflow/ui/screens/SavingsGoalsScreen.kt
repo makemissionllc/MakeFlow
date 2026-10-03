@@ -79,7 +79,8 @@ fun SavingsGoalsScreen(
     accounts: List<AccountEntity>,
     currencyCode: String,
     currencySymbol: String,
-    onAddAccount: () -> Unit
+    onAddAccount: () -> Unit,
+    isPrimaryDestination: Boolean = false
 ) {
     val dimens = LocalAppDimens.current
     val goalItems by viewModel.goalsWithFeasibility.collectAsState()
@@ -115,7 +116,7 @@ fun SavingsGoalsScreen(
                 .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight)
         ) {
             item {
-                LargeTitleItem(title = "Savings Goals", scrollState = listState)
+                LargeTitleItem(title = "Goals", scrollState = listState)
             }
 
             if (goalItems.isEmpty()) {
@@ -165,9 +166,11 @@ fun SavingsGoalsScreen(
         CollapsingTopBar(
             title = "",
             scrollState = listState,
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            navigationIcon = if (isPrimaryDestination) null else {
+                {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 }
             },
             actions = {

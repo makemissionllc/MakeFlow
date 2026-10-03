@@ -8,6 +8,18 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Match Budget and Goals tabs to their references
+
+- **Scope:** Primary Budget and Goals destinations.
+- **What:** restyled monthly budget usage around the total planned/spent values, an
+  adaptive progress indicator, threshold warning, and unboxed editable rows. The primary
+  Goals tab now uses the mockup title and hides its secondary-screen back affordance.
+  Compile validation caught optional composable-lambda typing errors in the two header
+  conditions; both were corrected.
+- **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and Gradle 9.6.
+
+---
+
 ## 2026-10-03 — Align core screens with the mockups
 
 - **Scope:** System bars, primary navigation, Home balance actions, History/Insights

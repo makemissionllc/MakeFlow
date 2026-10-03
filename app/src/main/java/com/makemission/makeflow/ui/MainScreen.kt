@@ -1258,7 +1258,8 @@ private fun TabContentAnimated(
                     onBack = onNavigateToHome,
                     viewModel = budgetViewModel,
                     hapticManager = hapticManager,
-                    notificationGate = notificationGate
+                    notificationGate = notificationGate,
+                    isPrimaryDestination = true
                 )
             }
             MakeFlowTab.GOALS -> {
@@ -1269,7 +1270,8 @@ private fun TabContentAnimated(
                     accounts = accounts,
                     currencyCode = currencyCode,
                     currencySymbol = currencySymbol,
-                    onAddAccount = onOpenAccounts
+                    onAddAccount = onOpenAccounts,
+                    isPrimaryDestination = true
                 )
             }
             MakeFlowTab.HISTORY -> {

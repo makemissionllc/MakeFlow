@@ -12,6 +12,10 @@ object WidgetUpdateHelper {
         CoroutineScope(Dispatchers.Main).launch {
             MakeFlowWidget().updateAll(context)
             QuickActionWidget().updateAll(context)
+            BalanceWidget().updateAll(context)
+            MonthlySummaryWidget().updateAll(context)
+            ExpenseEntryWidget().updateAll(context)
+            IncomeEntryWidget().updateAll(context)
         }
     }
 }

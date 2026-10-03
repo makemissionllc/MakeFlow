@@ -61,7 +61,7 @@ import com.makemission.makeflow.ui.theme.NavbarPillShape
 fun PrimaryButton(
     label: String,
     onClick: () -> Unit,
-    hapticManager: HapticManager,
+    hapticManager: HapticManager?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null
@@ -69,7 +69,7 @@ fun PrimaryButton(
     val dimens = LocalAppDimens.current
     Button(
         onClick = {
-            hapticManager.fire(HapticEvent.NAV_SELECT)
+            hapticManager?.fire(HapticEvent.NAV_SELECT)
             onClick()
         },
         modifier = modifier.height(dimens.primaryButtonHeight),
@@ -93,7 +93,7 @@ fun PrimaryButton(
 fun SoftButton(
     label: String,
     onClick: () -> Unit,
-    hapticManager: HapticManager,
+    hapticManager: HapticManager?,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     leadingIcon: ImageVector? = null
@@ -101,7 +101,7 @@ fun SoftButton(
     val dimens = LocalAppDimens.current
     Button(
         onClick = {
-            hapticManager.fire(HapticEvent.NAV_SELECT)
+            hapticManager?.fire(HapticEvent.NAV_SELECT)
             onClick()
         },
         modifier = modifier.height(dimens.primaryButtonHeight),

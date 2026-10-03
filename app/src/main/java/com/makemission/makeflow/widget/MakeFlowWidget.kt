@@ -70,7 +70,7 @@ data class WidgetData(
     val monthExpenses: Double
 )
 
-private suspend fun loadWidgetData(context: Context): WidgetData {
+internal suspend fun loadWidgetData(context: Context): WidgetData {
     val db = AppDatabase.getDatabase(context)
     val accounts = db.accountDao().getAllAccounts().first()
     val allTransactions = db.transactionDao().getAllTransactions().first()

@@ -68,6 +68,54 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/quick_action_widget_info" />
         </receiver>
+
+        <receiver
+            android:name=".widget.BalanceWidgetReceiver"
+            android:label="@string/widget_name_balance"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/balance_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.MonthlySummaryWidgetReceiver"
+            android:label="@string/widget_name_monthly_summary"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/monthly_summary_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.ExpenseEntryWidgetReceiver"
+            android:label="@string/widget_name_quick_expense"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_expense_widget_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.IncomeEntryWidgetReceiver"
+            android:label="@string/widget_name_quick_income"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_income_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

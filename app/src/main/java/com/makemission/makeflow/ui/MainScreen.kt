@@ -561,7 +561,6 @@ fun MainScreen(
                             onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
                             onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
                             onAddTransaction = { type ->
-                                hapticManager.fire(HapticEvent.NAV_SELECT)
                                 shortcutPendingType.value = type
                                 showAddTransaction = true
                             },
@@ -660,7 +659,6 @@ fun MainScreen(
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
                     onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
                     onAddTransaction = { type ->
-                        hapticManager.fire(HapticEvent.NAV_SELECT)
                         shortcutPendingType.value = type
                         showAddTransaction = true
                     },
@@ -1181,6 +1179,7 @@ private fun TabContentAnimated(
                     onOpenAccounts = onOpenAccounts,
                     onOpenSavingsGoals = onOpenSavingsGoals,
                     onOpenSettings = onOpenSettings,
+                    onOpenBudgets = onOpenBudgets,
                     onOpenHistory = onOpenHistory,
                     onAddTransaction = onAddTransaction,
                     onEditTransaction = { tx -> onEditTransaction?.invoke(tx) },

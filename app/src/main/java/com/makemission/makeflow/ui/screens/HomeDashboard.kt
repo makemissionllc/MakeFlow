@@ -31,6 +31,7 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
@@ -54,8 +55,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.makemission.makeflow.R
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.notifications.NotificationGate
@@ -69,7 +73,12 @@ import com.makemission.makeflow.domain.VelocityAlert
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
+import com.makemission.makeflow.ui.components.BigAmount
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.components.PrimaryButton
+import com.makemission.makeflow.ui.components.ProgressBar
+import com.makemission.makeflow.ui.components.SoftButton
+import com.makemission.makeflow.ui.components.TransactionRow
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -103,6 +112,7 @@ fun HomeDashboard(
     onOpenAccounts: () -> Unit = {},
     onOpenSavingsGoals: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenBudgets: () -> Unit = {},
     onOpenHistory: () -> Unit = {},
     onAddTransaction: (String) -> Unit = {},
     onEditTransaction: (TransactionEntity) -> Unit = {},
@@ -141,7 +151,6 @@ fun HomeDashboard(
         is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name
     }
 
-    val formattedBalance = CurrencyFormatter.format(totalBalance, balanceCurrencyCode)
     val formattedIncome = CurrencyFormatter.format(monthlyIncome, selectedCurrency)
     val formattedExpenses = CurrencyFormatter.format(monthlyExpenses, selectedCurrency)
     val formattedNet = CurrencyFormatter.format(monthlyIncome - monthlyExpenses, selectedCurrency)
@@ -177,14 +186,15 @@ fun HomeDashboard(
             verticalArrangement = Arrangement.spacedBy(config.cardSpacing),
             contentPadding = PaddingValues(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = 140.dp
+                bottom = dimens.navbarHeight + dimens.navbarFabSize + dimens.paddingExtra
             )
         ) {
             item {
-                LargeTitleItem(title = "Home", scrollState = listState)
-            }
-            item {
-                HomeWelcomeHeader(username = username)
+                HomeWelcomeHeader(
+                    username = username,
+                    onOpenSettings = onOpenSettings,
+                    hapticManager = hapticManager
+                )
             }
             if (focusedAccountReady) {
                 item {
@@ -194,18 +204,29 @@ fun HomeDashboard(
                     )
                 }
                 item {
-                    TotalBalanceCard(
-                        balance = formattedBalance,
-                        label = focusedAccountName ?: "Total balance",
+                    HomeBalanceHero(
+                        balance = totalBalance,
+                        currencyCode = balanceCurrencyCode,
+                        label = focusedAccountName ?: stringResource(R.string.home_total_balance),
                         supportingLabel = if (focusedAccountName == null) {
                             when (accounts.size) {
-                                0 -> "No accounts yet"
-                                1 -> "Across 1 account"
-                                else -> "Across ${accounts.size} accounts"
+                                0 -> stringResource(R.string.home_no_accounts)
+                                1 -> stringResource(R.string.home_across_one_account)
+                                else -> stringResource(R.string.home_across_accounts, accounts.size)
                             }
                         } else {
-                            "Focused account"
-                        }
+                            stringResource(R.string.home_focused_account)
+                        },
+                        onAddTransaction = onAddTransaction,
+                        hapticManager = hapticManager
+                    )
+                }
+                item {
+                    WeeklySpendingSummary(
+                        budgets = budgets,
+                        currencyCode = selectedCurrency,
+                        onOpenBudgets = onOpenBudgets,
+                        hapticManager = hapticManager
                     )
                 }
                 item {
@@ -216,7 +237,8 @@ fun HomeDashboard(
                         currencyCode = selectedCurrency,
                         onAddTransaction = onAddTransaction,
                         onOpenHistory = onOpenHistory,
-                        onEditTransaction = onEditTransaction
+                        onEditTransaction = onEditTransaction,
+                        hapticManager = hapticManager
                     )
                 }
             } else {
@@ -398,30 +420,195 @@ fun HomeDashboard(
 }
 
 @Composable
-private fun HomeWelcomeHeader(username: String) {
+private fun HomeWelcomeHeader(
+    username: String,
+    onOpenSettings: () -> Unit,
+    hapticManager: HapticManager?
+) {
+    val dimens = LocalAppDimens.current
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
     val greeting = when (hour) {
-        in 5..11 -> "Good morning"
-        in 12..16 -> "Good afternoon"
-        else -> "Good evening"
+        in 5..11 -> stringResource(R.string.home_greeting_morning)
+        in 12..16 -> stringResource(R.string.home_greeting_afternoon)
+        else -> stringResource(R.string.home_greeting_evening)
     }
     val today = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(dimens.avatarSize)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .clickable {
+                    hapticManager?.fire(HapticEvent.NAV_SELECT)
+                    onOpenSettings()
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = username.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "M",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+        ) {
+            Text(
+                text = if (username.isBlank()) greeting else stringResource(
+                    R.string.home_greeting_name,
+                    greeting,
+                    username.trim()
+                ),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(R.string.home_money_at_a_glance, today),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeBalanceHero(
+    balance: Double,
+    currencyCode: String,
+    label: String,
+    supportingLabel: String,
+    onAddTransaction: (String) -> Unit,
+    hapticManager: HapticManager?
+) {
+    val dimens = LocalAppDimens.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .clip(RoundedCornerShape(dimens.cardCornerRadius))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(dimens.paddingLarge),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
     ) {
         Text(
-            text = if (username.isBlank()) "$greeting" else "$greeting, ${username.trim()}.",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onBackground
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        BigAmount(
+            amount = balance,
+            currencyCode = currencyCode,
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "$today | Your money at a glance",
+            text = supportingLabel,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+            PrimaryButton(
+                label = stringResource(R.string.home_action_add),
+                onClick = { onAddTransaction("EXPENSE") },
+                hapticManager = hapticManager,
+                leadingIcon = Icons.Rounded.Add,
+                modifier = Modifier.weight(1f)
+            )
+            SoftButton(
+                label = stringResource(R.string.home_action_transfer),
+                onClick = { onAddTransaction("TRANSFER") },
+                hapticManager = hapticManager,
+                leadingIcon = Icons.Rounded.SwapHoriz,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklySpendingSummary(
+    budgets: List<BudgetEntity>,
+    currencyCode: String,
+    onOpenBudgets: () -> Unit,
+    hapticManager: HapticManager?
+) {
+    val dimens = LocalAppDimens.current
+    val weeklyBudgets = budgets.filter { it.period.equals("Weekly", ignoreCase = true) }
+    val limit = weeklyBudgets.sumOf { it.amount }
+    val spent = weeklyBudgets.sumOf { it.spentAmount }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(dimens.cardCornerRadius))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .clickable {
+                if (weeklyBudgets.isEmpty()) {
+                    hapticManager?.fire(HapticEvent.NAV_SELECT)
+                    onOpenBudgets()
+                }
+            }
+            .padding(dimens.paddingMedium),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+    ) {
+        Text(
+            text = stringResource(R.string.home_weekly_left),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        if (weeklyBudgets.isEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+                ) {
+                    Text(
+                        text = stringResource(R.string.home_weekly_budget_setup),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = stringResource(R.string.home_weekly_budget_setup_support),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            BigAmount(
+                amount = (limit - spent).coerceAtLeast(0.0),
+                currencyCode = currencyCode,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = stringResource(
+                    R.string.home_weekly_spent,
+                    CurrencyFormatter.format(spent, currencyCode),
+                    CurrencyFormatter.format(limit, currencyCode)
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            ProgressBar(
+                progress = if (limit > 0.0) (spent / limit).toFloat() else 0f
+            )
+        }
     }
 }
 
@@ -433,7 +620,8 @@ private fun RecentActivityCard(
     currencyCode: String,
     onAddTransaction: (String) -> Unit,
     onOpenHistory: () -> Unit,
-    onEditTransaction: (TransactionEntity) -> Unit
+    onEditTransaction: (TransactionEntity) -> Unit,
+    hapticManager: HapticManager?
 ) {
     val dimens = LocalAppDimens.current
     CardContainer {
@@ -444,20 +632,14 @@ private fun RecentActivityCard(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Recent activity",
+                    text = stringResource(R.string.home_recent),
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    text = if (transactions.isEmpty()) "Your latest entries will appear here" else "Your latest money moves",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
             if (transactions.isNotEmpty()) {
                 TextButton(onClick = onOpenHistory) {
-                    Text("View all")
+                    Text(stringResource(R.string.home_view_all))
                     Icon(Icons.Rounded.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
             }
@@ -467,16 +649,16 @@ private fun RecentActivityCard(
 
         if (transactions.isEmpty()) {
             Text(
-                text = "Keep a simple record of what comes in and goes out. You can add an entry whenever it suits you.",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                text = stringResource(R.string.home_recent_empty),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium
             )
-            QuickAddActions(onAddTransaction)
+            QuickAddActions(onAddTransaction, hapticManager)
         } else {
             transactions.forEachIndexed { index, transaction ->
                 val category = categories.find { it.id == transaction.categoryId }
                 val account = accounts.find { it.id == transaction.accountId }
-                val title = if (transaction.type == "TRANSFER") "Transfer" else category?.name ?: "Uncategorized"
+                val title = if (transaction.type == "TRANSFER") stringResource(R.string.home_transfer) else category?.name ?: stringResource(R.string.home_uncategorized)
                 val accountLabel = when (transaction.type) {
                     "TRANSFER" -> {
                         val from = accounts.find { it.id == transaction.fromAccountId }?.name
@@ -485,77 +667,43 @@ private fun RecentActivityCard(
                     }
                     else -> account?.name ?: ""
                 }
-                val amountColor = when (transaction.type) {
-                    "INCOME" -> LocalMakeFlowColors.current.colorSuccess
-                    "TRANSFER" -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.error
-                }
-                val amountPrefix = when (transaction.type) {
-                    "INCOME" -> "+"
-                    "EXPENSE" -> "-"
-                    else -> ""
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-                        .clickable { onEditTransaction(transaction) }
-                        .padding(vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    val categoryColor = runCatching {
-                        Color(android.graphics.Color.parseColor(category?.colorHex ?: "#6C8F72"))
-                    }.getOrElse { MaterialTheme.colorScheme.primary }
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .background(categoryColor, CircleShape)
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            text = title,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
-                            maxLines = 1
-                        )
-                        val dateLabel = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
-                            .format(Date(transaction.timestamp))
-                        val subtitle = listOf(accountLabel, transaction.note, dateLabel)
-                            .filter { it.isNotBlank() }
-                            .joinToString(" | ")
-                        Text(
-                            text = subtitle,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1
-                        )
-                    }
-                    Text(
-                        text = "$amountPrefix${CurrencyFormatter.format(transaction.amount, currencyCode)}",
-                        color = amountColor,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1
-                    )
-                }
+                val dateLabel = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+                    .format(Date(transaction.timestamp))
+                val subtitle = listOf(accountLabel, transaction.note, dateLabel)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" • ")
+                TransactionRow(
+                    title = title,
+                    subtitle = subtitle,
+                    amount = transaction.amount,
+                    currencyCode = currencyCode,
+                    type = transaction.type,
+                    onClick = { onEditTransaction(transaction) },
+                    hapticManager = hapticManager
+                )
                 if (index < transactions.lastIndex) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), thickness = 0.5.dp)
                 }
             }
-            QuickAddActions(onAddTransaction)
+            QuickAddActions(onAddTransaction, hapticManager)
         }
     }
 }
 
 @Composable
-private fun QuickAddActions(onAddTransaction: (String) -> Unit) {
+private fun QuickAddActions(onAddTransaction: (String) -> Unit, hapticManager: HapticManager?) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        TextButton(onClick = { onAddTransaction("EXPENSE") }) {
+        TextButton(onClick = {
+            hapticManager?.fire(HapticEvent.NAV_SELECT)
+            onAddTransaction("EXPENSE")
+        }) {
             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Text("Expense")
         }
-        TextButton(onClick = { onAddTransaction("INCOME") }) {
+        TextButton(onClick = {
+            hapticManager?.fire(HapticEvent.NAV_SELECT)
+            onAddTransaction("INCOME")
+        }) {
             Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Text("Income")
         }

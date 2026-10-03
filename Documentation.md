@@ -1,0 +1,69 @@
+# Documentation.md — MakeFlow change log
+
+Living record of code changes, errors encountered, and fixes applied.
+**Newest entries go first.** Each entry: date (UTC), scope, what changed and why,
+plus verification status.
+
+Conventions: `path:line` for code refs, commit hashes where available.
+
+---
+
+## 2026-10-03 — Project docs created (`README.md`, `AGENTS.md`, `Documentation.md`)
+
+- **Scope:** repo root (new files, no code touched).
+- **What:** added `README.md` (overview, tech stack table, features, structure, build/test
+  commands, ML workflow), `AGENTS.md` (mandatory agent procedures: read-first, exact
+  edits, verify-by-execution, log changes, commit+push hygiene, design-token-only UI,
+  Room-migration + test rules), and this file.
+- **Basis:** full exploration of `data/` (Room v20, 15 entities, 15 DAOs, 19 migrations,
+  backup/restore, DataStore keys), `ui/` (24 screens, state-driven navigation, 6 theme
+  files, 8 ViewModels), `domain/` (19 pure-Kotlin objects), `core/` (ml, haptics,
+  notifications, lock, logging, layout, device), `widget/` (6 Glance widgets),
+  `train_category_classifier.py`, `PLAN.md`, and the `app/src/test` (38 classes) +
+  `app/src/androidTest` (5 classes) suites.
+- **Verification:** n/a (markdown only). Committed and pushed with the fix below.
+
+## 2026-10-03 — Fix: missing `LaunchedEffect` import in `AccountsScreen.kt`
+
+- **Error:** `e: .../ui/screens/AccountsScreen.kt:98:5 Unresolved reference 'LaunchedEffect'`
+  (used at `AccountsScreen.kt:99` to refresh widgets when `accounts` changes).
+- **Fix:** added `import androidx.compose.runtime.LaunchedEffect`
+  (`app/src/main/java/com/makemission/makeflow/ui/screens/AccountsScreen.kt:41`).
+- **Verification:** static cross-check — all 8 `androidx.compose.runtime` symbols used in
+  the file now have matching imports, zero missing. Full Gradle compile not possible in
+  this environment: no JDK (`JAVA_HOME is not set`). Rebuild in Android Studio to confirm.
+
+## 2026-10-03 — Local work in progress (uncommitted at time of writing)
+
+- `app/src/main/AndroidManifest.xml` and `.idea/misc.xml` carry uncommitted local
+  modifications; commit `38347b4 Improve dashboard and add adaptive widgets` (15 files,
+  HomeDashboard/widgets/onboarding/animations) sits on `main` ahead of `origin/main`.
+  Agent docs commits do not touch these paths.
+
+## 2026-10-03 — History: `Backup1` merged onto `main`, pushed
+
+- `main` was a stub (`Initial commit`: `.gitignore` + `LICENSE` only). Latest branch by
+  date was `origin/Backup1` (`8ab9368`, 83 commits). Merged with
+  `--allow-unrelated-histories` into `3411a96 Merge Backup1 into main...`,
+  `.gitignore` add/add conflict resolved as a union (kept `Backup1`'s selective `.idea/`
+  ignores so tracked IDE configs stay tracked, plus `main`'s keystore/`google-services`/
+  profiling entries), `LICENSE` retained. Pushed `0715fb7..3411a96 main -> main`.
+
+## Notable history (from `git log`, for context)
+
+- `8ab9368` Design-system migration: hardcoded values → Material 3 tokens, advanced theming.
+- `0fc8c56` Production polish; account-focus filtering across dashboard/history/insights.
+- Splash Screen API + initial-load optimization; centralized motion system with reduced-motion.
+- Release changelog system + onboarding; suspending backup/restore refactor.
+- Room migration test suite; TensorFlow Lite → LiteRT migration.
+- Self-learning categorization (on-device retraining + correction memory).
+- Savings goals with feasibility analysis; quick-add transaction system + validation.
+
+## Known environment / repo issues
+
+- Agent sandbox has **no JDK**: `./gradlew` fails with `JAVA_HOME is not set`. Builds and
+  instrumented tests must run in Android Studio or a JDK-equipped machine.
+- `err.txt` (1 MB binary) and `.kotlin/errors/` dumps are committed accidentally in
+  history; per `AGENTS.md` these paths must not be committed going forward.
+- Display name is "Mindful / Mindful Wallet" while the package stays
+  `com.makemission.makeflow` — keep both in mind when editing launcher/widget strings.

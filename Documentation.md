@@ -8,6 +8,18 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Redesign the Home dashboard around daily money actions
+
+- **Scope:** Home dashboard, dashboard view model, weekly budget calculation, and tests.
+- **What:** reshaped Home around a personalized greeting, adaptive total balance, quick
+  expense and transfer actions, weekly budget feedback, and recent transactions. Weekly
+  spend is calculated from dated expenses and budget categories instead of the app's
+  cumulative budget counter; added tests for date, category, and focused-account filtering.
+  Existing dashboard modules remain below the primary content.
+- **Verification:** `:app:compileDebugKotlin test` passed with cached JDK 21 and
+  Gradle 9.6. An intermediate compile caught a misplaced modifier declaration in the
+  weekly card; it was moved into the correct composable before the successful run.
+
 ## 2026-10-03 — Add shared mockup components and compact navigation dock
 
 - **Scope:** shared Compose controls, app dimensions, compact navigation, and UI strings.

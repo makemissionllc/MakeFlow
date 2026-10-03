@@ -25,7 +25,8 @@
     <string name="home_greeting_afternoon">Good afternoon</string>
     <string name="home_greeting_evening">Good evening</string>
     <string name="home_greeting_name">%1$s, %2$s.</string>
-    <string name="home_money_at_a_glance">%1$s • Your money at a glance</string>
+    <string name="home_money_at_a_glance">%1$s | Your money at a glance</string>
+    <string name="home_open_settings">Open settings</string>
     <string name="home_total_balance">Total balance</string>
     <string name="home_no_accounts">No accounts yet</string>
     <string name="home_across_one_account">Across 1 account</string>

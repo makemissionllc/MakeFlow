@@ -27,6 +27,8 @@ import com.makemission.makeflow.domain.DashboardCardRanker
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.domain.SpendingVelocityTracker
 import com.makemission.makeflow.domain.VelocityAlert
+import com.makemission.makeflow.domain.WeeklyBudgetCalculator
+import com.makemission.makeflow.domain.WeeklyBudgetStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -163,6 +165,27 @@ class HomeDashboardViewModel(
 
     val budgets: StateFlow<List<BudgetEntity>> = financeRepository.getAllBudgets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val weeklyBudgetStatus: StateFlow<WeeklyBudgetStatus> = combine(
+        allTransactions, budgets, categories, focusedAccountId
+    ) { transactions, budgetList, categoryList, accountId ->
+        val weekStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            set(Calendar.DAY_OF_WEEK, firstDayOfWeek)
+        }
+        val weekEnd = (weekStart.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 7) }
+        WeeklyBudgetCalculator.calculate(
+            budgets = budgetList,
+            transactions = transactions,
+            categories = categoryList,
+            focusedAccountId = accountId,
+            weekStartMillis = weekStart.timeInMillis,
+            weekEndMillis = weekEnd.timeInMillis
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), WeeklyBudgetStatus(false, 0.0, 0.0))
 
     private val upcomingThreshold: Long
         get() = System.currentTimeMillis() + 14L * 24 * 60 * 60 * 1000

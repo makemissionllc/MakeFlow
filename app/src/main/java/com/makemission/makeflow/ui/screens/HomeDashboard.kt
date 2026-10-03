@@ -56,6 +56,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -87,6 +90,7 @@ import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.viewmodel.HomeDashboardViewModel
+import com.makemission.makeflow.domain.WeeklyBudgetStatus
 import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -130,6 +134,7 @@ fun HomeDashboard(
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
     val parentCategorySpending by viewModel.parentCategorySpending.collectAsState()
     val budgets by viewModel.budgets.collectAsState()
+    val weeklyBudgetStatus by viewModel.weeklyBudgetStatus.collectAsState()
     val recurringPatterns by viewModel.recurringPatterns.collectAsState()
     val pendingRecurringTransactions by viewModel.pendingRecurringTransactions.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
@@ -200,7 +205,10 @@ fun HomeDashboard(
                 item {
                     AccountFocusSelector(
                         focusedAccountName = focusedAccountName,
-                        onClick = { showAccountFocusSheet = true }
+                        onClick = {
+                            hapticManager?.fire(HapticEvent.NAV_SELECT)
+                            showAccountFocusSheet = true
+                        }
                     )
                 }
                 item {
@@ -223,7 +231,7 @@ fun HomeDashboard(
                 }
                 item {
                     WeeklySpendingSummary(
-                        budgets = budgets,
+                        status = weeklyBudgetStatus,
                         currencyCode = selectedCurrency,
                         onOpenBudgets = onOpenBudgets,
                         hapticManager = hapticManager
@@ -433,6 +441,7 @@ private fun HomeWelcomeHeader(
         else -> stringResource(R.string.home_greeting_evening)
     }
     val today = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+    val settingsLabel = stringResource(R.string.home_open_settings)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge),
@@ -443,17 +452,26 @@ private fun HomeWelcomeHeader(
                 .size(dimens.avatarSize)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .clickable {
+                .semantics { contentDescription = settingsLabel }
+                .clickable(role = Role.Button) {
                     hapticManager?.fire(HapticEvent.NAV_SELECT)
                     onOpenSettings()
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = username.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "M",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            if (username.isBlank()) {
+                Icon(
+                    imageVector = Icons.Rounded.AccountBalanceWallet,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                Text(
+                    text = username.trim().firstOrNull()?.uppercaseChar()?.toString().orEmpty(),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
         }
         Column(
             modifier = Modifier.weight(1f),
@@ -534,27 +552,26 @@ private fun HomeBalanceHero(
 
 @Composable
 private fun WeeklySpendingSummary(
-    budgets: List<BudgetEntity>,
+    status: WeeklyBudgetStatus,
     currencyCode: String,
     onOpenBudgets: () -> Unit,
     hapticManager: HapticManager?
 ) {
     val dimens = LocalAppDimens.current
-    val weeklyBudgets = budgets.filter { it.period.equals("Weekly", ignoreCase = true) }
-    val limit = weeklyBudgets.sumOf { it.amount }
-    val spent = weeklyBudgets.sumOf { it.spentAmount }
-
+    val clickModifier = if (status.hasBudget) {
+        Modifier
+    } else {
+        Modifier.clickable(role = Role.Button) {
+            hapticManager?.fire(HapticEvent.NAV_SELECT)
+            onOpenBudgets()
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(dimens.cardCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable {
-                if (weeklyBudgets.isEmpty()) {
-                    hapticManager?.fire(HapticEvent.NAV_SELECT)
-                    onOpenBudgets()
-                }
-            }
+            .then(clickModifier)
             .padding(dimens.paddingMedium),
         verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
     ) {
@@ -563,7 +580,7 @@ private fun WeeklySpendingSummary(
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface
         )
-        if (weeklyBudgets.isEmpty()) {
+        if (!status.hasBudget) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -592,21 +609,21 @@ private fun WeeklySpendingSummary(
             }
         } else {
             BigAmount(
-                amount = (limit - spent).coerceAtLeast(0.0),
+                amount = (status.limit - status.spent).coerceAtLeast(0.0),
                 currencyCode = currencyCode,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = stringResource(
                     R.string.home_weekly_spent,
-                    CurrencyFormatter.format(spent, currencyCode),
-                    CurrencyFormatter.format(limit, currencyCode)
+                    CurrencyFormatter.format(status.spent, currencyCode),
+                    CurrencyFormatter.format(status.limit, currencyCode)
                 ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             ProgressBar(
-                progress = if (limit > 0.0) (spent / limit).toFloat() else 0f
+                progress = if (status.limit > 0.0) (status.spent / status.limit).toFloat() else 0f
             )
         }
     }
@@ -638,7 +655,10 @@ private fun RecentActivityCard(
                 )
             }
             if (transactions.isNotEmpty()) {
-                TextButton(onClick = onOpenHistory) {
+                TextButton(onClick = {
+                    hapticManager?.fire(HapticEvent.NAV_SELECT)
+                    onOpenHistory()
+                }) {
                     Text(stringResource(R.string.home_view_all))
                     Icon(Icons.Rounded.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
@@ -671,7 +691,7 @@ private fun RecentActivityCard(
                     .format(Date(transaction.timestamp))
                 val subtitle = listOf(accountLabel, transaction.note, dateLabel)
                     .filter { it.isNotBlank() }
-                    .joinToString(" • ")
+                    .joinToString(" | ")
                 TransactionRow(
                     title = title,
                     subtitle = subtitle,

@@ -52,6 +52,8 @@ import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.res.stringResource
+import com.makemission.makeflow.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
@@ -72,6 +74,8 @@ import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.AdaptiveConfig
+import com.makemission.makeflow.ui.components.FloatingPillNav
+import com.makemission.makeflow.ui.components.PillNavItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -674,58 +678,26 @@ fun MainScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = dimens.paddingLarge)
+                        .padding(horizontal = dimens.paddingMedium)
                         .padding(
-                            top = 24.dp,
-                            bottom = 24.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                            bottom = dimens.navbarMarginBottom + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                         ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Bottom
                 ) {
-                    AnimatedVisibility(
-                        visible = (activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY) && !showAddTransaction,
-                        enter = scaleIn(
-                            animationSpec = if (reducedMotion) tween(150) else spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) + fadeIn(animationSpec = if (reducedMotion) tween(150) else spring(
-                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )),
-                        exit = scaleOut(
-                            animationSpec = if (reducedMotion) tween(100) else spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )
-                        ) + fadeOut(animationSpec = if (reducedMotion) tween(100) else spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            )) + slideOutVertically(
-                            animationSpec = if (reducedMotion) tween(100) else spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMedium
-                            ),
-                            targetOffsetY = { -it / 3 }
-                        )
-                    ) {
-                        AddTransactionFloatingActionButton(
-                            onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
-                            fabSize = config.fabSize
-                        )
-                    }
-                    AnimatedVisibility(
-                        visible = activeTab == MakeFlowTab.HOME || activeTab == MakeFlowTab.HISTORY,
-                        enter = if (reducedMotion) fadeIn() else fadeIn(tween(150)),
-                        exit = if (reducedMotion) fadeOut() else fadeOut(tween(100))
-                    ) {
-                        Spacer(modifier = Modifier.height(dimens.spacingXLarge))
-                    }
-
-                    FloatingCapsuleNavBar(
-                        selectedTab = activeTab,
-                        onTabSelected = { activeTab = it },
-                        config = config
+                    FloatingPillNav(
+                        items = listOf(
+                            PillNavItem(stringResource(R.string.nav_home), Icons.Rounded.SpaceDashboard),
+                            PillNavItem(stringResource(R.string.nav_insights), Icons.Rounded.Insights),
+                            PillNavItem(stringResource(R.string.nav_history), Icons.Rounded.History)
+                        ),
+                        selectedIndex = MakeFlowTab.entries.indexOf(activeTab),
+                        onTabSelected = { activeTab = MakeFlowTab.entries[it] },
+                        onAddClick = {
+                            shortcutPendingType.value = null
+                            showAddTransaction = true
+                        },
+                        hapticManager = hapticManager
                     )
                 }
 

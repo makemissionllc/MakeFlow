@@ -9,4 +9,8 @@
     <string name="shortcut_add_expense_long">Add a new expense</string>
     <string name="shortcut_add_income">Add income</string>
     <string name="shortcut_add_income_long">Add new income</string>
+    <string name="action_add_transaction">Add transaction</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_insights">Insights</string>
+    <string name="nav_history">History</string>
 </resources>

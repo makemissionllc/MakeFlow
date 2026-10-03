@@ -8,6 +8,17 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Add shared mockup components and compact navigation dock
+
+- **Scope:** shared Compose controls, app dimensions, compact navigation, and UI strings.
+- **What:** introduced reusable amount, transaction row, action button, banner, progress,
+  switch row, and pill navigation components using design tokens. The compact phone dock
+  now combines the app's three real tabs with a one-tap add action; adaptive navigation
+  rails remain unchanged for larger layouts.
+- **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and
+  Gradle 9.6. An initial compile caught stale/unavailable Compose extension imports in
+  the new controls; those were removed or replaced with supported click semantics.
+
 ## 2026-10-03 — Add mockup theme foundation
 
 - **Scope:** `ui/theme/`, DM Sans font resource and license, theme resolution tests.

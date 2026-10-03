@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_expense"
+        android:shortcutShortLabel="@string/shortcut_add_expense"
+        android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.makemission.makeflow"
+            android:targetClass="com.makemission.makeflow.MainActivity">
+            <extra android:name="shortcut_type" android:value="EXPENSE" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_income"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_income"
+        android:shortcutShortLabel="@string/shortcut_add_income"
+        android:shortcutLongLabel="@string/shortcut_add_income_long">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetPackage="com.makemission.makeflow"
+            android:targetClass="com.makemission.makeflow.MainActivity">
+            <extra android:name="shortcut_type" android:value="INCOME" />
+        </intent>
+    </shortcut>
+</shortcuts>

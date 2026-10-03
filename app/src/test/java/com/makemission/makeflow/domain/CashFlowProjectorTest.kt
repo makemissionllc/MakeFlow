@@ -14,6 +14,28 @@ class CashFlowProjectorTest {
         date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
 
     @Test
+    fun `monthly net projection scales current pace across the month`() {
+        val projected = CashFlowProjector.projectMonthlyNet(
+            incomeSoFar = 1200.0,
+            expensesSoFar = 600.0,
+            elapsedDays = 10,
+            daysInMonth = 30
+        )
+        assertEquals(1800.0, projected, 0.01)
+    }
+
+    @Test
+    fun `monthly net projection preserves a current shortfall`() {
+        val projected = CashFlowProjector.projectMonthlyNet(
+            incomeSoFar = 400.0,
+            expensesSoFar = 700.0,
+            elapsedDays = 15,
+            daysInMonth = 30
+        )
+        assertEquals(-600.0, projected, 0.01)
+    }
+
+    @Test
     fun `projection with upcoming recurring income and expense nets correctly`() {
         val today = LocalDate.of(2026, 7, 15)
         val patterns = listOf(

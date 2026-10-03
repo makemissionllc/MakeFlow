@@ -263,6 +263,17 @@ fun MainScreen(
     val categories by homeViewModel.categories.collectAsState()
     val currencySymbol by homeViewModel.currencySymbol.collectAsState()
     val currencyCode by homeViewModel.selectedCurrency.collectAsState()
+    val exportSelectedInsightsMonth = remember(context, insightsViewModel, settingsViewModel) {
+        {
+            val month = insightsViewModel.selectedMonth.value
+            val zone = java.time.ZoneId.systemDefault()
+            val start = month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            val end = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
+            settingsViewModel.exportPdf(context, start, end) { fileName ->
+                Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     var showAddTransaction by remember { mutableStateOf(false) }
     val shortcutPendingType = remember { mutableStateOf<String?>(null) }
@@ -583,6 +594,7 @@ fun MainScreen(
                                 recurringSetupAmount = amount
                                 showRecurringSetupFromInsights = true
                             },
+                            onExportPdf = exportSelectedInsightsMonth,
                             onEditTransaction = { tx ->
                                 editingTransaction = tx
                                 showAddTransaction = true
@@ -592,7 +604,7 @@ fun MainScreen(
 
             Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
                         androidx.compose.animation.AnimatedVisibility(
-                            visible = activeTab != MakeFlowTab.HISTORY && !showAddTransaction,
+                            visible = !showAddTransaction,
                             enter = scaleIn(
                                 animationSpec = if (reducedMotion) tween(150) else spring(
                                     dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -686,13 +698,14 @@ fun MainScreen(
                         recurringSetupAmount = amount
                         showRecurringSetupFromInsights = true
                     },
+                    onExportPdf = exportSelectedInsightsMonth,
                     onEditTransaction = { tx ->
                         editingTransaction = tx
                         showAddTransaction = true
                     }
                 )
 
-                if (activeTab != MakeFlowTab.HISTORY) Column(
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = dimens.paddingMedium)
@@ -1179,6 +1192,7 @@ private fun TabContentAnimated(
     onAddTransaction: (String) -> Unit,
     onNavigateToHome: () -> Unit,
     onSetUpRecurringFromInsights: (Double) -> Unit = {},
+    onExportPdf: () -> Unit = {},
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
     val dimens = LocalAppDimens.current
@@ -1233,6 +1247,7 @@ private fun TabContentAnimated(
                     viewModel = insightsViewModel,
                     onOpenBudgets = onOpenBudgets,
                     onSetUpRecurring = onSetUpRecurringFromInsights,
+                    onExportPdf = onExportPdf,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
                 )

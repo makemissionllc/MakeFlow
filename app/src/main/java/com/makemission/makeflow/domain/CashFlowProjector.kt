@@ -15,6 +15,17 @@ data class CashFlowProjection(
 )
 
 object CashFlowProjector {
+    fun projectMonthlyNet(
+        incomeSoFar: Double,
+        expensesSoFar: Double,
+        elapsedDays: Int,
+        daysInMonth: Int
+    ): Double {
+        require(daysInMonth > 0)
+        val observedDays = elapsedDays.coerceIn(1, daysInMonth)
+        return (incomeSoFar - expensesSoFar) / observedDays * daysInMonth
+    }
+
     fun project(
         currentBalance: Double,
         allTransactionsThisMonth: List<TransactionEntity>,

@@ -42,11 +42,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -65,6 +65,7 @@ import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.viewmodel.CategorySpendingItem
+import com.makemission.makeflow.ui.viewmodel.MonthlyBarItem
 import com.makemission.makeflow.domain.FrugalStreak
 import com.makemission.makeflow.domain.PatternType
 import com.makemission.makeflow.domain.SeasonalPattern
@@ -72,23 +73,13 @@ import com.makemission.makeflow.ui.viewmodel.InsightsViewModel
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.core.format.CurrencyFormatter
-import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberBottom
-import com.patrykandpatrick.vico.compose.cartesian.axis.rememberStart
-import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
-import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
-import com.patrykandpatrick.vico.core.cartesian.axis.HorizontalAxis
-import com.patrykandpatrick.vico.core.cartesian.axis.VerticalAxis
-import com.patrykandpatrick.vico.core.cartesian.data.CartesianChartModelProducer
-import com.patrykandpatrick.vico.core.cartesian.data.columnSeries
-import com.patrykandpatrick.vico.core.cartesian.layer.ColumnCartesianLayer
-import com.patrykandpatrick.vico.core.common.component.LineComponent
 
 @Composable
 fun InsightsScreen(
     viewModel: InsightsViewModel,
     onOpenBudgets: () -> Unit = {},
     onSetUpRecurring: (Double) -> Unit = {},
+    onExportPdf: () -> Unit = {},
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
@@ -102,6 +93,7 @@ fun InsightsScreen(
     val budgets by viewModel.budgets.collectAsState()
     val totalIncome by viewModel.totalIncome.collectAsState()
     val totalExpenses by viewModel.totalExpenses.collectAsState()
+    val projectedMonthlyBalance by viewModel.projectedMonthlyNet.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val momItems by viewModel.momItems.collectAsState()
@@ -143,6 +135,8 @@ fun InsightsScreen(
 
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
+    val budgetWarning = budgetForecasts.firstOrNull { it.projectedOverspend != null }
+    val longestFrugalStreak = frugalStreaks.maxOfOrNull { it.streakLengthMonths } ?: 0
 
     Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
@@ -167,6 +161,85 @@ fun InsightsScreen(
     ) {
         item {
             LargeTitleItem(title = "Insights", scrollState = listState)
+        }
+        item {
+            MonthlySpendingChart(monthlyBarData)
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
+                Text(
+                    text = "Forecast",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                val forecastMessage = if (projectedMonthlyBalance >= 0.0) {
+                    "You should end the month with ${CurrencyFormatter.format(projectedMonthlyBalance, selectedCurrency)} left"
+                } else {
+                    "You may finish ${CurrencyFormatter.format(-projectedMonthlyBalance, selectedCurrency)} below your income"
+                }
+                Text(
+                    text = forecastMessage,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+            ) {
+                InsightMetricCard(
+                    title = "Frugal streak",
+                    value = if (longestFrugalStreak > 0) "$longestFrugalStreak months" else "Start one",
+                    modifier = Modifier.weight(1f)
+                )
+                InsightMetricCard(
+                    title = "You can save",
+                    value = savingsSuggestion?.let {
+                        CurrencyFormatter.format(it.suggestedAmount, selectedCurrency)
+                    } ?: "No estimate yet",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        if (budgetWarning != null) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            LocalMakeFlowColors.current.colorWarning.copy(alpha = 0.22f),
+                            RoundedCornerShape(dimens.cornerRadiusLarge)
+                        )
+                        .padding(dimens.paddingMedium)
+                ) {
+                    Text(
+                        text = "Heads up: ${budgetWarning.categoryName} is on pace to exceed its monthly budget.",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
+        }
+        item {
+            Button(
+                onClick = {
+                    hapticManager?.fire(HapticEvent.NAV_SELECT)
+                    onExportPdf()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(dimens.cornerRadiusXL),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                    contentColor = MaterialTheme.colorScheme.onSurface
+                )
+            ) {
+                Text(
+                    text = "Export PDF statement",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                )
+            }
         }
         item {
             if (insightsFocusedReady) {
@@ -511,74 +584,6 @@ fun InsightsScreen(
             }
         }
 
-        item {
-            StaggeredItem(index = 4) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusLarge))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-            ) {
-                Text(
-                    text = "Cash flow — last 6 months",
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = dimens.textL,
-                    fontWeight = FontWeight.Medium
-                )
-
-                val allZeros = monthlyBarData.all { it.income == 0.0 && it.expense == 0.0 }
-
-                if (monthlyBarData.isEmpty() || allZeros) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (config.isTablet && config.isLandscape) 260.dp else 200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No data yet",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            fontSize = dimens.textM
-                        )
-                    }
-                } else {
-                    val incomeArgb = LocalMakeFlowColors.current.colorSuccess.toArgb()
-                    val expenseArgb = MaterialTheme.colorScheme.error.toArgb()
-                    val columnProvider = remember {
-                        ColumnCartesianLayer.ColumnProvider.series(
-                            LineComponent(color = incomeArgb),
-                            LineComponent(color = expenseArgb)
-                        )
-                    }
-
-                    val barModelProducer = remember { CartesianChartModelProducer() }
-
-                    LaunchedEffect(monthlyBarData) {
-                        barModelProducer.runTransaction {
-                            columnSeries {
-                                series(monthlyBarData.map { it.income })
-                                series(monthlyBarData.map { it.expense })
-                            }
-                        }
-                    }
-
-                    CartesianChartHost(
-                        chart = rememberCartesianChart(
-                            layers = arrayOf(rememberColumnCartesianLayer(columnProvider = columnProvider)),
-                            startAxis = VerticalAxis.rememberStart(),
-                            bottomAxis = HorizontalAxis.rememberBottom()
-                        ),
-                        modelProducer = barModelProducer,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (config.isTablet && config.isLandscape) 260.dp else 200.dp)
-                    )
-                }
-            }
-            }
-        }
-
         savingsSuggestion?.let { suggestion ->
             item {
             StaggeredItem(index = 7) {
@@ -883,6 +888,104 @@ fun InsightsScreen(
             title = "Insights",
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart)
+        )
+    }
+}
+
+@Composable
+private fun MonthlySpendingChart(months: List<MonthlyBarItem>) {
+    val dimens = LocalAppDimens.current
+    val maxSpending = months.maxOfOrNull { it.expense } ?: 0.0
+    val chartHeight = dimens.cardMinHeight * 2
+
+    if (maxSpending <= 0.0) {
+        Text(
+            text = "No spending data yet",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(vertical = dimens.spacingLarge)
+        )
+        return
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(chartHeight),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            months.forEachIndexed { index, month ->
+                val fraction = (month.expense / maxSpending).toFloat().coerceIn(0f, 1f)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.72f)
+                            .height(chartHeight * fraction.coerceAtLeast(0.04f))
+                            .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
+                            .background(
+                                if (index == months.lastIndex) LocalMakeFlowColors.current.colorSuccess
+                                else MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+        ) {
+            months.forEachIndexed { index, month ->
+                Text(
+                    text = month.label,
+                    modifier = Modifier.weight(1f),
+                    color = if (index == months.lastIndex) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightMetricCard(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    val dimens = LocalAppDimens.current
+    Column(
+        modifier = modifier
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                RoundedCornerShape(dimens.cornerRadiusLarge)
+            )
+            .padding(dimens.paddingMedium),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+    ) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodyLarge,
+            maxLines = 1
+        )
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            softWrap = false,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
     }
 }

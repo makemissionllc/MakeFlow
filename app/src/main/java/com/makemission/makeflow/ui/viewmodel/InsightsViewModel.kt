@@ -10,6 +10,7 @@ import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.domain.BudgetForecast
 import com.makemission.makeflow.domain.BudgetForecaster
+import com.makemission.makeflow.domain.CashFlowProjector
 import com.makemission.makeflow.domain.ExpenseSeasonalityDetector
 import com.makemission.makeflow.domain.FrugalStreak
 import com.makemission.makeflow.domain.FrugalStreakDetector
@@ -190,6 +191,19 @@ class InsightsViewModel(
     ) { txs, month ->
         val (start, end) = getMonthRangeMillis(month)
         txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { it.amount }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val projectedMonthlyNet: StateFlow<Double> = combine(
+        totalIncome, totalExpenses, selectedMonth.asStateFlow()
+    ) { income, expenses, month ->
+        val today = java.time.LocalDate.now()
+        val elapsedDays = if (month == YearMonth.from(today)) today.dayOfMonth else month.lengthOfMonth()
+        CashFlowProjector.projectMonthlyNet(
+            incomeSoFar = income,
+            expensesSoFar = expenses,
+            elapsedDays = elapsedDays,
+            daysInMonth = month.lengthOfMonth()
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency

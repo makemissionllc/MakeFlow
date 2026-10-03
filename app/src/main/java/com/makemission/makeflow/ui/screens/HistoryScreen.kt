@@ -299,6 +299,12 @@ private fun HistoryListContent(
 ) {
     val dimens = LocalAppDimens.current
     val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
+    val layoutMode = LocalDeviceLayoutMode.current
+    val dockSpace = if (layoutMode == DeviceLayoutMode.COMPACT) {
+        dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
+    } else {
+        dimens.paddingLarge
+    }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -316,7 +322,7 @@ private fun HistoryListContent(
             contentPadding = PaddingValues(
                 start = config.horizontalPadding, end = config.horizontalPadding,
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + dimens.paddingMedium
+                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + dockSpace
             ),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {

@@ -8,16 +8,21 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
-## 2026-10-03 — Align app shell and Settings with the mockups
+## 2026-10-03 — Align core screens with the mockups
 
 - **Scope:** System bars, primary navigation, Home balance actions, History/Insights
-  insets, Settings appearance, and shared mockup buttons.
+  layouts, Settings appearance, and shared mockup buttons.
 - **What:** restored readable status and navigation bar icons in light and dark themes;
   made Home, Insights, Budget, and Goals the four primary destinations, with History
   remaining reachable from Recent; removed the Home balance card treatment; added
   one-line action labels; and simplified Settings rows while exposing theme palettes as
-  direct swatches. History now avoids unused dock-sized bottom space, while Insights
-  reserves exactly the space its adaptive dock occupies.
+  direct swatches. History keeps the primary dock available and reserves its height;
+  Insights uses the same adaptive dock inset. Insights now opens with spending trend, a cash-flow
+  projection, frugal/savings summaries, budget-pace warnings, and selected-month PDF
+  export while retaining its detailed breakdowns below. A compile check caught a missing
+  Compose `clip` import for the chart bars; the import was added. Projection arithmetic
+  now uses the existing cash-flow domain helper, with direct tests for positive and
+  negative monthly outcomes.
 - **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and
   Gradle 9.6.
 

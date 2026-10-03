@@ -20,6 +20,10 @@ data class AppDimens(
     val cardElevation: Dp = 2.dp,
     val cardMinHeight: Dp = 80.dp,
     val barHeight: Dp = 8.dp,
+    val primaryButtonHeight: Dp = 56.dp,
+    val progressTrackHeight: Dp = 6.dp,
+    val cardCornerRadius: Dp = 20.dp,
+    val chipCornerRadius: Dp = 12.dp,
     val numpadKeyAspectRatio: Float = 1.5f,
     val numpadRadius: Dp = 16.dp,
     val navbarCornerRadius: Dp = 28.dp,
@@ -53,6 +57,10 @@ data class AppDimens(
     val textXxl: androidx.compose.ui.unit.TextUnit = 20.sp,
     val textDisplay: androidx.compose.ui.unit.TextUnit = 28.sp,
     val textDisplayLarge: androidx.compose.ui.unit.TextUnit = 32.sp,
+    val textAmount: androidx.compose.ui.unit.TextUnit = 44.sp,
+    val textAmountLarge: androidx.compose.ui.unit.TextUnit = 56.sp,
+    val textBody: androidx.compose.ui.unit.TextUnit = 16.sp,
+    val textSmall: androidx.compose.ui.unit.TextUnit = 14.sp,
 )
 
 val compactDimens = AppDimens()

@@ -46,15 +46,19 @@ class ThemeResolutionTest {
     @Test
     fun `forest dark scheme has dark background`() {
         val scheme = resolveColorScheme("forest", darkTheme = true)
-        assertEquals(Color(0xFF111411), scheme.background)
-        assertEquals(Color(0xFFE1E3DE), scheme.onSurface)
+        assertEquals(MindfulDarkBackground, scheme.background)
+        assertEquals(MindfulDarkText, scheme.onSurface)
+        assertEquals(MindfulAccent, scheme.primary)
+        assertEquals(MindfulLightText, scheme.onPrimary)
     }
 
     @Test
     fun `forest light scheme has light background`() {
         val scheme = resolveColorScheme("forest", darkTheme = false)
-        assertEquals(Color(0xFFFBFDF8), scheme.background)
-        assertEquals(Color(0xFF191C1A), scheme.onSurface)
+        assertEquals(MindfulLightBackground, scheme.background)
+        assertEquals(MindfulLightText, scheme.onSurface)
+        assertEquals(MindfulAccent, scheme.primary)
+        assertEquals(MindfulLightText, scheme.onPrimary)
     }
 
     @Test
@@ -187,7 +191,7 @@ class ThemeResolutionTest {
         assertFalse("darkTheme should be false for light mode", darkTheme)
         assertEquals(
             "Background must NOT be pure black when light mode",
-            Color(0xFFFBFDF8),
+            MindfulLightBackground,
             finalScheme.background
         )
     }

@@ -8,6 +8,18 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Add mockup theme foundation
+
+- **Scope:** `ui/theme/`, DM Sans font resource and license, theme resolution tests.
+- **What:** matched the light and dark mockups with white/black backgrounds, neutral
+  surfaces, green actions with black text, and a yellow alert surface with black text.
+  Added shared dimensions for pill buttons, cards, chips, progress, and large amounts;
+  updated Material typography to use DM Sans and aligned the shared shapes. Kept the
+  other palettes, dynamic color, and AMOLED handling available.
+- **Verification:** `:app:compileDebugKotlin test` passed using the cached JDK 21 and
+  Gradle 9.6. The first offline attempt could not find a cached AAPT2 artifact;
+  rerunning with dependency access resolved it and the full compile and unit suite passed.
+
 ## 2026-10-03 — Project docs created (`README.md`, `AGENTS.md`, `Documentation.md`)
 
 - **Scope:** repo root (new files, no code touched).

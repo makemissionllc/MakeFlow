@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -79,6 +80,7 @@ import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.components.FittedAmountText
 import com.makemission.makeflow.domain.CalculatorEngine
 import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
@@ -531,8 +533,7 @@ fun AddTransactionScreen(
                     Text(
                         text = if (isEditMode) stringResource(R.string.add_edit_title) else stringResource(R.string.add_new_title),
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = dimens.textXxl,
-                        fontWeight = FontWeight.SemiBold
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -576,8 +577,13 @@ fun AddTransactionScreen(
 
             // === Type toggle ===
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dimens.segmentedControlHeight + dimens.segmentedControlInset + dimens.segmentedControlInset)
+                    .clip(RoundedCornerShape(dimens.shapeCornerPill))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(dimens.segmentedControlInset),
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
             ) {
                 listOf(
                     stringResource(R.string.add_expense) to "EXPENSE",
@@ -587,14 +593,15 @@ fun AddTransactionScreen(
                     val isSelected = selectedType == value
                     Text(
                         text = label,
-                        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = dimens.textM,
+                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(dimens.shapeCornerPill))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
                                 RoundedCornerShape(dimens.shapeCornerPill)
                             )
                             .clickable {
@@ -602,7 +609,7 @@ fun AddTransactionScreen(
                                 confirmedAmount = null
                                 hapticManager.fire(HapticEvent.TOGGLE)
                             }
-                            .padding(vertical = 12.dp)
+                            .padding(horizontal = dimens.spacingSmall)
                     )
                 }
             }
@@ -622,17 +629,14 @@ fun AddTransactionScreen(
                         Text(
                             text = expression,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
-                            fontSize = dimens.textM,
+                            style = MaterialTheme.typography.titleMedium,
                             textAlign = TextAlign.Center,
                         )
                     }
-                    Text(
+                    FittedAmountText(
                         text = "$currencySymbol ${CurrencyFormatter.formatNumber((amountForDisplay.toDoubleOrNull() ?: 0.0), if ((amountForDisplay.toDoubleOrNull() ?: 0.0) % 1.0 == 0.0 || currencyCode == "UGX" || currencyCode == "TZS") 0 else 2)}",
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = dimens.textAmount,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -662,13 +666,17 @@ fun AddTransactionScreen(
             Spacer(modifier = Modifier.height(dimens.spacingLarge))
             if (selectedType != "TRANSFER") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
-                    Text(stringResource(R.string.add_usual), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), fontSize = dimens.textSm, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = stringResource(R.string.add_usual),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
                         (usualAmounts.distinct().take(4).ifEmpty { listOf(100.0, 200.0, 500.0, 1000.0) }).forEach { value ->
                             Text(
                                 text = CurrencyFormatter.formatNumber(value, 0),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
-                                fontSize = dimens.textSm,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(dimens.shapeCornerPill))
                                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
@@ -681,7 +689,7 @@ fun AddTransactionScreen(
                                         calculatorRevision++
                                         hapticManager.fire(HapticEvent.NAV_SELECT)
                                     }
-                                    .padding(horizontal = dimens.paddingSmall, vertical = dimens.spacingMedium)
+                                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingMedium)
                             )
                         }
                     }

@@ -3,8 +3,8 @@ package com.makemission.makeflow.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,6 +59,7 @@ import com.makemission.makeflow.domain.GoalFeasibilityResult
 import com.makemission.makeflow.domain.SavingsGoalWithProgress
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.components.AnimatedDoodle
@@ -80,7 +81,8 @@ fun SavingsGoalsScreen(
     currencyCode: String,
     currencySymbol: String,
     onAddAccount: () -> Unit,
-    isPrimaryDestination: Boolean = false
+    isPrimaryDestination: Boolean = false,
+    dockAddRequest: Int = 0
 ) {
     val dimens = LocalAppDimens.current
     val goalItems by viewModel.goalsWithFeasibility.collectAsState()
@@ -95,6 +97,16 @@ fun SavingsGoalsScreen(
     var createdAccountId by remember { mutableStateOf<String?>(null) }
     var previousAccountIds by remember { mutableStateOf(setOf<String>()) }
     val scope = rememberCoroutineScope()
+
+    var lastDockAddRequest by remember { mutableStateOf(dockAddRequest) }
+    LaunchedEffect(dockAddRequest) {
+        if (dockAddRequest != lastDockAddRequest) {
+            lastDockAddRequest = dockAddRequest
+            showAddSheet = true
+            shouldReopenSheet = false
+            createdAccountId = null
+        }
+    }
 
     LaunchedEffect(shouldReopenSheet, accounts) {
         if (shouldReopenSheet) {
@@ -113,7 +125,8 @@ fun SavingsGoalsScreen(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight)
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight),
+            contentPadding = PaddingValues(bottom = PrimaryDockContentInset())
         ) {
             item {
                 LargeTitleItem(title = "Goals", scrollState = listState)
@@ -160,7 +173,6 @@ fun SavingsGoalsScreen(
                 )
             }
 
-            item { Spacer(Modifier.height(80.dp)) }
         }
 
         CollapsingTopBar(
@@ -174,12 +186,14 @@ fun SavingsGoalsScreen(
                 }
             },
             actions = {
-                IconButton(onClick = {
-                    showAddSheet = true
-                    shouldReopenSheet = false
-                    createdAccountId = null
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add goal", tint = MaterialTheme.colorScheme.onSurface)
+                if (!isPrimaryDestination) {
+                    IconButton(onClick = {
+                        showAddSheet = true
+                        shouldReopenSheet = false
+                        createdAccountId = null
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = "Add goal", tint = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         )

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,10 +29,14 @@ class AccountsViewModel(
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
+    val exchangeRates: StateFlow<List<ExchangeRateEntity>> =
+        (exchangeRateRepository?.getAllRates() ?: flowOf(emptyList()))
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val totalBalance: StateFlow<Double> = combine(
         accounts,
         selectedCurrency,
-        exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
+        exchangeRates
     ) { accts, displayCurrency, rates ->
         val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
         accts.sumOf { account ->

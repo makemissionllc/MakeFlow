@@ -1,5 +1,9 @@
 package com.makemission.makeflow.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,11 +13,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,9 +40,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -48,14 +57,75 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.theme.ExpressiveShapes
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.MindfulFontFamily
 import com.makemission.makeflow.ui.theme.NavbarPillShape
+
+@Composable
+fun PrimaryDockContentInset(): androidx.compose.ui.unit.Dp {
+    val dimens = LocalAppDimens.current
+    val config = LocalAdaptiveConfig.current
+    return if (config.layoutMode == DeviceLayoutMode.COMPACT) {
+        dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom +
+            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    } else {
+        dimens.paddingLarge
+    }
+}
+
+@Composable
+fun FittedAmountText(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onBackground,
+    textAlign: TextAlign = TextAlign.Start
+) {
+    val dimens = LocalAppDimens.current
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth(),
+        contentAlignment = if (textAlign == TextAlign.Center) Alignment.Center else Alignment.CenterStart
+    ) {
+        val availableWidth = with(density) { maxWidth.roundToPx() }
+        val fontSize = listOf(
+            dimens.textAmountLarge,
+            dimens.textAmount,
+            dimens.textDisplayLarge,
+            dimens.textSmall
+        ).firstOrNull { candidate ->
+            textMeasurer.measure(
+                text = AnnotatedString(text),
+                style = TextStyle(
+                    fontFamily = MindfulFontFamily,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = candidate
+                ),
+                maxLines = 1
+            ).size.width <= availableWidth
+        } ?: dimens.textSmall
+
+        Text(
+            text = text,
+            color = color,
+            fontFamily = MindfulFontFamily,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize,
+            letterSpacing = 0.sp,
+            textAlign = textAlign,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Clip
+        )
+    }
+}
 
 @Composable
 fun PrimaryButton(
@@ -140,45 +210,11 @@ fun BigAmount(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onBackground
 ) {
-    val dimens = LocalAppDimens.current
-    val textMeasurer = rememberTextMeasurer()
-    val density = LocalDensity.current
     val formattedAmount = remember(amount, currencyCode) {
         CurrencyFormatter.format(amount, currencyCode)
     }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-    val availableWidth = with(density) { maxWidth.roundToPx() }
-        val fontSize = listOf(
-            dimens.textAmountLarge,
-            dimens.textAmount,
-            dimens.textDisplayLarge,
-            dimens.textSmall
-        ).firstOrNull { size ->
-            textMeasurer.measure(
-                text = AnnotatedString(formattedAmount),
-                style = TextStyle(
-                    fontFamily = MindfulFontFamily,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = size,
-                    letterSpacing = 0.sp
-                ),
-                maxLines = 1
-            ).size.width <= availableWidth
-        } ?: dimens.textSmall
-
-        Text(
-            text = formattedAmount,
-            color = color,
-            fontFamily = MindfulFontFamily,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = fontSize,
-            letterSpacing = 0.sp,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Clip
-        )
-    }
+    FittedAmountText(text = formattedAmount, modifier = modifier, color = color)
 }
 
 @Composable
@@ -330,13 +366,15 @@ fun FloatingPillNav(
     onTabSelected: (Int) -> Unit,
     onAddClick: () -> Unit,
     hapticManager: HapticManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    addContentDescription: String? = null
 ) {
     val dimens = LocalAppDimens.current
     val navContentColor = MaterialTheme.colorScheme.onSurface
     val navHeight = dimens.navbarHeight
     val fabSize = dimens.navbarFabSize
     val gap = dimens.spacingSmall
+    val reducedMotion = LocalReducedMotion.current
 
     Box(
         modifier = modifier
@@ -348,20 +386,29 @@ fun FloatingPillNav(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(navHeight)
+                .shadow(dimens.navbarElevation, shape = NavbarPillShape)
                 .clip(NavbarPillShape)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(dimens.navbarPaddingHorizontal),
             horizontalArrangement = Arrangement.spacedBy(dimens.spacingXSmall),
             verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEachIndexed { index, item ->
                 val selected = index == selectedIndex
+                val selectedColor = animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
+                    animationSpec = if (reducedMotion) tween(durationMillis = 100) else spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessMediumLow
+                    ),
+                    label = "navSelection"
+                ).value
                 Column(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                         .clip(NavbarPillShape)
-                        .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent)
+                        .background(selectedColor)
                         .clickable {
                             hapticManager.fire(HapticEvent.TAB_SWITCH)
                             onTabSelected(index)
@@ -379,10 +426,14 @@ fun FloatingPillNav(
                     Text(
                         text = item.label,
                         color = navContentColor,
-                        style = MaterialTheme.typography.labelMedium.copy(
+                        style = MaterialTheme.typography.labelLarge.copy(
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                         ),
-                        maxLines = 1
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Clip
                     )
                 }
             }
@@ -401,7 +452,8 @@ fun FloatingPillNav(
         ) {
             Icon(
                 imageVector = Icons.Filled.Add,
-                contentDescription = stringResource(com.makemission.makeflow.R.string.action_add_transaction),
+                contentDescription = addContentDescription
+                    ?: stringResource(com.makemission.makeflow.R.string.action_add_transaction),
                 modifier = Modifier.size(dimens.iconSizeMedium)
             )
         }

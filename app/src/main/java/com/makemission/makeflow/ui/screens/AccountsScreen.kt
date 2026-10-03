@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -52,9 +53,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.ui.components.AnimatedCounter
 import com.makemission.makeflow.ui.components.CollapsingTopBar
@@ -65,11 +68,13 @@ import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.components.AnimatedDoodle
+import com.makemission.makeflow.ui.components.PrimaryButton
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.core.haptics.HapticManager
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -77,13 +82,16 @@ import kotlinx.coroutines.launch
 fun AccountsScreen(
     onBack: () -> Unit,
     viewModel: AccountsViewModel,
-    onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
+    onDeleteAccount: (suspend (AccountEntity) -> String?)? = null,
+    onOpenExchangeRates: () -> Unit = {},
+    hapticManager: HapticManager? = null
 ) {
     val dimens = LocalAppDimens.current
     val accounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
+    val exchangeRates by viewModel.exchangeRates.collectAsState()
     val context = LocalContext.current
 
     val config = LocalAdaptiveConfig.current
@@ -100,7 +108,19 @@ fun AccountsScreen(
         WidgetUpdateHelper.updateWidgets(context)
     }
 
-    if (layoutMode == DeviceLayoutMode.EXPANDED && accounts.isNotEmpty()) {
+    if (layoutMode == DeviceLayoutMode.COMPACT) {
+        AccountsCompactLayout(
+            accounts = accounts,
+            selectedCurrency = selectedCurrency,
+            exchangeRates = exchangeRates,
+            onBack = onBack,
+            onAddAccount = { showAddAccount = true },
+            onEditAccount = { showEditAccount = it },
+            onDeleteAccount = { accountToDelete = it },
+            onOpenExchangeRates = onOpenExchangeRates,
+            hapticManager = hapticManager
+        )
+    } else if (layoutMode == DeviceLayoutMode.EXPANDED && accounts.isNotEmpty()) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -523,6 +543,195 @@ fun AccountsScreen(
             title = { Text("Cannot Delete", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = { Text(msg, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) },
             confirmButton = { TextButton(onClick = { deleteError = null }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) } }
+        )
+    }
+}
+
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun AccountsCompactLayout(
+    accounts: List<AccountEntity>,
+    selectedCurrency: String,
+    exchangeRates: List<ExchangeRateEntity>,
+    onBack: () -> Unit,
+    onAddAccount: () -> Unit,
+    onEditAccount: (AccountEntity) -> Unit,
+    onDeleteAccount: (AccountEntity) -> Unit,
+    onOpenExchangeRates: () -> Unit,
+    hapticManager: HapticManager?
+) {
+    val dimens = LocalAppDimens.current
+    val config = LocalAdaptiveConfig.current
+    val exchangeRate = exchangeRates.firstOrNull {
+        it.currencyCode == "USD" && it.currencyCode != selectedCurrency
+    } ?: exchangeRates.firstOrNull { it.currencyCode != selectedCurrency }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                .height(config.barHeight)
+                .padding(horizontal = config.horizontalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Text(
+                text = "Accounts",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+        }
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            contentPadding = PaddingValues(
+                start = config.horizontalPadding,
+                top = dimens.paddingExtra,
+                end = config.horizontalPadding,
+                bottom = dimens.spacingLarge
+            ),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+        ) {
+            if (accounts.isEmpty()) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+                    ) {
+                        AnimatedDoodle(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "No accounts yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
+                    StaggeredItem(index = index) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .pressScale()
+                                .combinedClickable(
+                                    onClick = { onEditAccount(account) },
+                                    onLongClick = { onDeleteAccount(account) }
+                                )
+                                .padding(vertical = dimens.spacingSmall),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(dimens.avatarSize)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = account.name.trim().take(1).uppercase().ifBlank { "?" },
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(dimens.spacingLarge))
+                            Text(
+                                text = account.name,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(dimens.spacingSmall))
+                            val accountCurrency = account.currencyCode ?: selectedCurrency
+                            val decimalPlaces = if (account.balance % 1.0 == 0.0) 0 else 2
+                            Text(
+                                text = "${CurrencyFormatter.symbolFor(accountCurrency)} " +
+                                    CurrencyFormatter.formatNumber(account.balance, decimalPlaces),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.End,
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .clickable(onClick = onOpenExchangeRates)
+                        .padding(dimens.paddingMedium),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+                    ) {
+                        Text(
+                            text = "Exchange rate",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        val rateText = exchangeRate?.let {
+                            val decimalPlaces = if (it.rateToDisplayCurrency % 1.0 == 0.0) 0 else 2
+                            "1 ${it.currencyCode} = ${CurrencyFormatter.symbolFor(selectedCurrency)} " +
+                                CurrencyFormatter.formatNumber(it.rateToDisplayCurrency, decimalPlaces)
+                        } ?: "No rates added"
+                        Text(
+                            text = rateText,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1
+                        )
+                    }
+                    Text(
+                        text = "Edit",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        PrimaryButton(
+            label = "Add account",
+            onClick = onAddAccount,
+            hapticManager = hapticManager,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = config.horizontalPadding)
+                .padding(
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                        dimens.spacingLarge
+                )
         )
     }
 }

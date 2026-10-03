@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -67,6 +66,7 @@ import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.AnimatedDoodle
@@ -299,12 +299,6 @@ private fun HistoryListContent(
 ) {
     val dimens = LocalAppDimens.current
     val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
-    val layoutMode = LocalDeviceLayoutMode.current
-    val dockSpace = if (layoutMode == DeviceLayoutMode.COMPACT) {
-        dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
-    } else {
-        dimens.paddingLarge
-    }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -322,7 +316,7 @@ private fun HistoryListContent(
             contentPadding = PaddingValues(
                 start = config.horizontalPadding, end = config.horizontalPadding,
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + dockSpace
+                bottom = PrimaryDockContentInset()
             ),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
         ) {

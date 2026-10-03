@@ -8,6 +8,24 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Unify app screens around the mockup system
+
+- **Scope:** Shared amounts, navigation dock, primary tab actions, Accounts, and Settings.
+- **What:** matched title/amount emphasis and transaction type selection to the mockups;
+  unified bottom-dock insets across Home, Insights, Budget, Goals, and History; animated
+  dock selection with reduced-motion support; routed its add action to transaction,
+  budget, or goal entry by active tab; removed duplicate primary-screen add buttons;
+  prevented Insights metric truncation; aligned Settings palette selection, switch rows,
+  and notices with the unboxed reference; and rebuilt compact Accounts around initials,
+  per-account balances, editable exchange rates, and a fixed add action while preserving
+  expanded layouts. Compile checks found missing `fillMaxHeight` and
+  `ExperimentalFoundationApi` opt-ins plus an invalid mixed `PaddingValues` overload;
+  all were corrected.
+- **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and
+  Gradle 9.3.1.
+
+---
+
 ## 2026-10-03 — Match Budget and Goals tabs to their references
 
 - **Scope:** Primary Budget and Goals destinations.

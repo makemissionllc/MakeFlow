@@ -17,7 +17,7 @@ data class AdaptiveConfig(
     val contentMaxWidth: Dp = Dp.Unspecified,
     val fabSize: Dp = 56.dp,
     val barHeight: Dp = 56.dp,
-    val titleFontSize: TextUnit = 28.sp,
+    val titleFontSize: TextUnit = 32.sp,
     val titlePaddingBottom: Dp = 12.dp,
     val navIconSize: Dp = 20.dp,
     val navCapsulePadding: Dp = 24.dp,

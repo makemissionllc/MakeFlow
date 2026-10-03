@@ -62,6 +62,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -276,6 +277,8 @@ fun MainScreen(
     }
 
     var showAddTransaction by remember { mutableStateOf(false) }
+    val budgetDockAddRequest = remember { mutableIntStateOf(0) }
+    val goalsDockAddRequest = remember { mutableIntStateOf(0) }
     val shortcutPendingType = remember { mutableStateOf<String?>(null) }
     var editingTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
@@ -574,6 +577,8 @@ fun MainScreen(
                             historyViewModel = historyViewModel,
                             budgetViewModel = budgetViewModel,
                             savingsGoalsViewModel = savingsGoalsViewModel,
+                            budgetDockAddRequest = budgetDockAddRequest.intValue,
+                            goalsDockAddRequest = goalsDockAddRequest.intValue,
                             accounts = accounts,
                             currencyCode = currencyCode,
                             currencySymbol = currencySymbol,
@@ -678,6 +683,8 @@ fun MainScreen(
                     historyViewModel = historyViewModel,
                     budgetViewModel = budgetViewModel,
                     savingsGoalsViewModel = savingsGoalsViewModel,
+                    budgetDockAddRequest = budgetDockAddRequest.intValue,
+                    goalsDockAddRequest = goalsDockAddRequest.intValue,
                     accounts = accounts,
                     currencyCode = currencyCode,
                     currencySymbol = currencySymbol,
@@ -708,7 +715,7 @@ fun MainScreen(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = dimens.paddingMedium)
+                        .padding(horizontal = dimens.navbarMarginHorizontal)
                         .padding(
                             bottom = dimens.navbarMarginBottom + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                         ),
@@ -725,10 +732,21 @@ fun MainScreen(
                         selectedIndex = primaryTabs.indexOf(activeTab),
                         onTabSelected = { activeTab = primaryTabs[it] },
                         onAddClick = {
-                            shortcutPendingType.value = null
-                            showAddTransaction = true
+                            when (activeTab) {
+                                MakeFlowTab.BUDGET -> budgetDockAddRequest.intValue++
+                                MakeFlowTab.GOALS -> goalsDockAddRequest.intValue++
+                                else -> {
+                                    shortcutPendingType.value = null
+                                    showAddTransaction = true
+                                }
+                            }
                         },
-                        hapticManager = hapticManager
+                        hapticManager = hapticManager,
+                        addContentDescription = when (activeTab) {
+                            MakeFlowTab.BUDGET -> "Add budget"
+                            MakeFlowTab.GOALS -> "Add goal"
+                            else -> stringResource(R.string.action_add_transaction)
+                        }
                     )
                 }
 
@@ -1178,6 +1196,8 @@ private fun TabContentAnimated(
     historyViewModel: HistoryViewModel,
     budgetViewModel: BudgetViewModel,
     savingsGoalsViewModel: SavingsGoalsViewModel,
+    budgetDockAddRequest: Int,
+    goalsDockAddRequest: Int,
     accounts: List<AccountEntity>,
     currencyCode: String,
     currencySymbol: String,
@@ -1259,7 +1279,8 @@ private fun TabContentAnimated(
                     viewModel = budgetViewModel,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate,
-                    isPrimaryDestination = true
+                    isPrimaryDestination = true,
+                    dockAddRequest = budgetDockAddRequest
                 )
             }
             MakeFlowTab.GOALS -> {
@@ -1271,7 +1292,8 @@ private fun TabContentAnimated(
                     currencyCode = currencyCode,
                     currencySymbol = currencySymbol,
                     onAddAccount = onOpenAccounts,
-                    isPrimaryDestination = true
+                    isPrimaryDestination = true,
+                    dockAddRequest = goalsDockAddRequest
                 )
             }
             MakeFlowTab.HISTORY -> {
@@ -1374,7 +1396,9 @@ private fun OverlayPanels(
             AccountsScreen(
                 onBack = onHideAccounts,
                 viewModel = accountsViewModel,
-                onDeleteAccount = onDeleteAccount
+                onDeleteAccount = onDeleteAccount,
+                onOpenExchangeRates = onOpenExchangeRates,
+                hapticManager = hapticManager
             )
         }
     }

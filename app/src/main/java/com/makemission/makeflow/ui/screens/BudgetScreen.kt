@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -56,6 +55,8 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.FittedAmountText
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
@@ -79,7 +80,8 @@ fun BudgetScreen(
     viewModel: BudgetViewModel,
     hapticManager: HapticManager,
     notificationGate: NotificationGate? = null,
-    isPrimaryDestination: Boolean = false
+    isPrimaryDestination: Boolean = false,
+    dockAddRequest: Int = 0
 ) {
     val dimens = LocalAppDimens.current
     val budgets by viewModel.budgets.collectAsState()
@@ -121,16 +123,19 @@ fun BudgetScreen(
     }
 
     val config = LocalAdaptiveConfig.current
-    val dockSpace = if (config.layoutMode == DeviceLayoutMode.COMPACT) {
-        dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
-    } else {
-        dimens.paddingLarge
-    }
     val listState = rememberLazyListState()
     var showAddBudget by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<BudgetEntity?>(null) }
     var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
     val scope = rememberCoroutineScope()
+
+    var lastDockAddRequest by remember { mutableStateOf(dockAddRequest) }
+    LaunchedEffect(dockAddRequest) {
+        if (dockAddRequest != lastDockAddRequest) {
+            lastDockAddRequest = dockAddRequest
+            showAddBudget = true
+        }
+    }
 
     LaunchedEffect(budgets) {
         WidgetUpdateHelper.updateWidgets(context)
@@ -183,7 +188,7 @@ fun BudgetScreen(
                     contentPadding = PaddingValues(
                         start = config.horizontalPadding, end = config.horizontalPadding,
                         top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                        bottom = dockSpace + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        bottom = PrimaryDockContentInset()
                     ),
                     verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
                 ) {
@@ -277,12 +282,14 @@ fun BudgetScreen(
                 }
             },
             actions = {
-                IconButton(onClick = { showAddBudget = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = "Add budget",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                if (!isPrimaryDestination) {
+                    IconButton(onClick = { showAddBudget = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Add budget",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
             }
         )
@@ -365,11 +372,9 @@ private fun MonthlyBudgetOverview(budgets: List<BudgetEntity>, currencyCode: Str
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.titleMedium
         )
-        Text(
+        FittedAmountText(
             text = CurrencyFormatter.format(totalSpent, currencyCode),
-            color = MaterialTheme.colorScheme.onSurface,
-            style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Bold),
-            maxLines = 1
+            color = MaterialTheme.colorScheme.onSurface
         )
         Text(
             text = "spent so far",

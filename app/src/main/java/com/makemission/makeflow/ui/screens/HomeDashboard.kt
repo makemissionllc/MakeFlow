@@ -80,6 +80,7 @@ import com.makemission.makeflow.ui.components.BigAmount
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.PrimaryButton
 import com.makemission.makeflow.ui.components.ProgressBar
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.ui.components.SoftButton
 import com.makemission.makeflow.ui.components.TransactionRow
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -191,7 +192,7 @@ fun HomeDashboard(
             verticalArrangement = Arrangement.spacedBy(config.cardSpacing),
             contentPadding = PaddingValues(
                 top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = dimens.navbarHeight + dimens.navbarFabSize + dimens.paddingExtra
+                bottom = PrimaryDockContentInset()
             )
         ) {
             item {

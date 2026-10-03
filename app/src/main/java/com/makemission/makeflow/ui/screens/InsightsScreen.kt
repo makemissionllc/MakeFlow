@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -58,6 +57,7 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
@@ -151,11 +151,7 @@ fun InsightsScreen(
         contentPadding = PaddingValues(
             start = config.horizontalPadding, end = config.horizontalPadding,
             top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-            bottom = (if (config.layoutMode == DeviceLayoutMode.COMPACT) {
-                dimens.navbarHeight + dimens.navbarFabSize + dimens.spacingSmall + dimens.navbarMarginBottom
-            } else {
-                dimens.paddingLarge
-            }) + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            bottom = PrimaryDockContentInset()
         ),
         verticalArrangement = Arrangement.spacedBy(config.cardSpacing)
     ) {
@@ -983,9 +979,8 @@ private fun InsightMetricCard(
             text = value,
             color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            maxLines = 1,
-            softWrap = false,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            maxLines = 2,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Clip
         )
     }
 }

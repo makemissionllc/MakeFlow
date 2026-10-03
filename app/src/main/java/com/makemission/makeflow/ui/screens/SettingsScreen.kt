@@ -3,6 +3,7 @@ package com.makemission.makeflow.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import java.util.Calendar
 import androidx.compose.foundation.clickable
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -58,6 +58,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -350,7 +352,7 @@ fun SettingsScreen(
                     }
                 }
             } else {
-                item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
+                item { StaggeredItem(index = 1) { SectionHeader(text = "Theme") } }
 
                 item {
                     StaggeredItem(index = 2) {
@@ -713,6 +715,7 @@ private fun ThemePaletteRow(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
+                    .semantics { contentDescription = "${theme.label} theme" }
                     .clickable {
                         hapticManager?.fire(HapticEvent.TAB_SWITCH)
                         onSelect(theme.key)
@@ -725,24 +728,12 @@ private fun ThemePaletteRow(
                     modifier = Modifier
                         .size(dimens.iconSizeLarge)
                         .clip(CircleShape)
-                        .background(swatch),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (theme.key == selectedTheme) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            tint = if (theme.key == "dynamic") MaterialTheme.colorScheme.onPrimary
-                            else resolveColorScheme(theme.key, isDark).onPrimary,
-                            modifier = Modifier.size(dimens.iconSizeSmall)
+                        .background(swatch)
+                        .then(
+                            if (theme.key == selectedTheme) {
+                                Modifier.border(dimens.spacingXSmall / 2, MaterialTheme.colorScheme.onSurface, CircleShape)
+                            } else Modifier
                         )
-                    }
-                }
-                Text(
-                    text = if (theme.key == "purple") "Purple" else theme.label,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = dimens.textXs,
-                    maxLines = 1
                 )
             }
         }
@@ -757,6 +748,7 @@ private fun SettingsRow(
     onClick: (() -> Unit)? = null
 ) {
     val dimens = LocalAppDimens.current
+    val showLeadingIcons = LocalAdaptiveConfig.current.isTablet
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -768,18 +760,47 @@ private fun SettingsRow(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+            horizontalArrangement = Arrangement.spacedBy(if (showLeadingIcons) dimens.spacingLarge else dimens.spacingSmall)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(dimens.iconSizeMedium)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium, maxLines = 1)
-                Text(text = subtitle, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = dimens.textSm, maxLines = 2)
+            if (showLeadingIcons) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(dimens.iconSizeMedium)
+                )
             }
+            SettingText(title = title, subtitle = subtitle, modifier = Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun SettingText(
+    title: String,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    alpha: Float = 1f,
+    subtitleColor: Color? = null,
+    titleWeight: FontWeight = FontWeight.Medium
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(LocalAppDimens.current.spacingXSmall)
+    ) {
+        Text(
+            text = title,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = titleWeight),
+            maxLines = 1
+        )
+        if (subtitle.isNotBlank()) {
+            Text(
+                text = subtitle,
+                color = subtitleColor ?: MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2
+            )
         }
     }
 }
@@ -799,28 +820,12 @@ private fun HapticToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Haptic Feedback", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Haptic Feedback",
+            subtitle = "",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
@@ -849,28 +854,12 @@ private fun AppLockToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Lock,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "App Lock", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Lock with fingerprint",
+            subtitle = "",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
@@ -899,28 +888,12 @@ private fun SmartCategorizationToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.TipsAndUpdates,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Smart categorization", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "On" else "Off", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Smart categorization",
+            subtitle = "",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
@@ -949,28 +922,12 @@ private fun MpesaCostsToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Receipt,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Log M-PESA fees", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = if (enabled) "Create separate fee transactions" else "Ignore transaction costs", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f), fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Log M-PESA fees",
+            subtitle = "",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
@@ -990,34 +947,15 @@ private fun ReducedMotionRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Reduced motion active", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = "Power saving mode", color = MaterialTheme.colorScheme.error, fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Reduced motion active",
+            subtitle = "Power saving mode",
+            subtitleColor = MaterialTheme.colorScheme.error
+        )
     }
 }
 
@@ -1028,35 +966,16 @@ private fun NotificationEnableRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { openAppNotificationSettings(context) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = LocalMakeFlowColors.current.colorWarning,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Enable notifications", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = "Notifications are disabled", color = LocalMakeFlowColors.current.colorWarning, fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Enable notifications",
+            subtitle = "Notifications are disabled",
+            subtitleColor = LocalMakeFlowColors.current.colorWarning
+        )
     }
 }
 
@@ -1099,35 +1018,16 @@ private fun ResetPersonalizationRow(
         modifier = Modifier
             .fillMaxWidth()
             .pressScale()
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .clickable { onShowConfirm() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = dimens.spacingSmall),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "Reset personalization", color = MaterialTheme.colorScheme.onSurface, fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(text = "Clear corrections & ML checkpoint", color = MaterialTheme.colorScheme.error, fontSize = dimens.textSm)
-            }
-        }
+        SettingText(
+            title = "Reset personalization",
+            subtitle = "Clear corrections & ML checkpoint",
+            subtitleColor = MaterialTheme.colorScheme.error
+        )
     }
 }
 
@@ -1196,32 +1096,13 @@ private fun AmoledToggleRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MaterialTheme.colorScheme.background.copy(alpha = alpha), RoundedCornerShape(dimens.shapeCornerXSmall)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.DarkMode,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f * alpha),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Column {
-                Text(text = "AMOLED Dark", color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha), fontSize = dimens.textMl, fontWeight = FontWeight.Medium)
-                Text(
-                    text = if (isDarkAvailable) "Pure black for OLED screens" else "Only active in dark mode",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f * alpha),
-                    fontSize = dimens.textSm
-                )
-            }
-        }
+        SettingText(
+            title = "Dark AMOLED mode",
+            subtitle = "",
+            modifier = Modifier.weight(1f),
+            alpha = alpha,
+            titleWeight = FontWeight.Bold
+        )
         Switch(
             checked = enabled && isDarkAvailable,
             onCheckedChange = { if (isDarkAvailable) onToggle(it) },

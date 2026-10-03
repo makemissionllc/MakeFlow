@@ -34,9 +34,12 @@ class CalculatorEngine {
     private var storedOperand: Double = 0.0
     private var waitingForOperand: Boolean = false
     private var hasError: Boolean = false
+    private var _expression: String? = null
 
     /** Current value shown on screen (e.g. "29.99", "0", "Error"). */
     val displayValue: String get() = _displayValue
+    val expression: String? get() = _expression
+    val hasUnconfirmedOperation: Boolean get() = pendingOperator != null
 
     fun onDigit(digit: Int) {
         require(digit in 0..9) { "Digit must be 0-9" }
@@ -44,6 +47,7 @@ class CalculatorEngine {
             onClear()
         }
         if (waitingForOperand) {
+            if (pendingOperator == null) _expression = null
             _displayValue = digit.toString()
             waitingForOperand = false
         } else {
@@ -56,6 +60,7 @@ class CalculatorEngine {
             onClear()
         }
         if (waitingForOperand) {
+            if (pendingOperator == null) _expression = null
             _displayValue = "0."
             waitingForOperand = false
             return
@@ -86,6 +91,7 @@ class CalculatorEngine {
         }
 
         pendingOperator = op
+        _expression = "${formatResult(storedOperand)} ${op.symbol}"
         waitingForOperand = true
     }
 
@@ -97,6 +103,7 @@ class CalculatorEngine {
      */
     fun onConfirm(): Double? {
         if (hasError) return null
+        if (pendingOperator != null && waitingForOperand) return null
 
         val currentValue = _displayValue.toDoubleOrNull() ?: return null
 
@@ -115,6 +122,9 @@ class CalculatorEngine {
         // Validate: non-negative, max 2 decimal places.
         if (result < 0) return null
         val rounded = roundToTwoDecimals(result)
+        if (pendingOperator != null && !waitingForOperand) {
+            _expression = "${_expression.orEmpty()} ${formatResult(currentValue)}"
+        }
         _displayValue = formatResult(rounded)
 
         // Reset engine state after confirm — the value is finalised.
@@ -132,6 +142,7 @@ class CalculatorEngine {
         if (waitingForOperand) {
             // Remove the pending operator, revert to the stored operand.
             pendingOperator = null
+            _expression = null
             waitingForOperand = false
             _displayValue = formatResult(storedOperand)
             return
@@ -145,6 +156,7 @@ class CalculatorEngine {
 
     fun onClear() {
         _displayValue = "0"
+        _expression = null
         pendingOperator = null
         storedOperand = 0.0
         waitingForOperand = false

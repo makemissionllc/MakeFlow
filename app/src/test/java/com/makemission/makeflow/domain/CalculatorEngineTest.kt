@@ -1,7 +1,9 @@
 package com.makemission.makeflow.domain
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -229,6 +231,28 @@ class CalculatorEngineTest {
         engine.onDigit(9)
         val result = engine.onConfirm()
         assertEquals(2.99, result!!, 0.001)
+    }
+
+    @Test
+    fun expression_tracksPendingAndConfirmedCalculation() {
+        engine.onDigit(1)
+        engine.onDigit(0)
+        engine.onOperator(CalculatorEngine.Operator.ADD)
+        assertEquals("10 +", engine.expression)
+        assertTrue(engine.hasUnconfirmedOperation)
+        engine.onDigit(5)
+        assertEquals(15.0, engine.onConfirm()!!, 0.001)
+        assertEquals("10 + 5", engine.expression)
+        assertFalse(engine.hasUnconfirmedOperation)
+    }
+
+    @Test
+    fun confirm_afterOperatorWithoutSecondOperand_isRejected() {
+        engine.onDigit(1)
+        engine.onDigit(0)
+        engine.onOperator(CalculatorEngine.Operator.ADD)
+        assertNull(engine.onConfirm())
+        assertTrue(engine.hasUnconfirmedOperation)
     }
 
     // --- Backspace ---

@@ -1,9 +1,5 @@
 package com.makemission.makeflow.ui.screens
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
@@ -14,7 +10,8 @@ import androidx.compose.animation.slideOutVertically
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,8 +37,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -55,22 +50,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.widthIn
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
@@ -88,6 +84,7 @@ import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.DuplicateCheckResult
+import com.makemission.makeflow.domain.TransactionCommitHandler
 import com.makemission.makeflow.domain.CategoryUsage
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import kotlinx.coroutines.Dispatchers
@@ -98,6 +95,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.makemission.makeflow.R
 
 private const val ML_CONFIDENCE_THRESHOLD = 0.6f
 
@@ -115,12 +113,13 @@ fun AddTransactionScreen(
     onAnomalyCheck: (suspend (Double, String?) -> AnomalyResult?)? = null,
     onGetPastTransactions: (suspend () -> List<PastTransactionForSuggestion>)? = null,
     onGetCategoryUsages: (suspend () -> List<CategoryUsage>)? = null,
+    onGetUsualAmounts: (suspend (accountId: String, type: String, categoryId: String?) -> List<Double>)? = null,
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
     correctionMemory: Map<String, String> = emptyMap(),
     onCategoryCorrected: ((description: String, correctedCategoryId: String, originalSuggestedCategoryId: String?) -> Unit)? = null,
-    initialType: String = "INCOME",
+    initialType: String = "EXPENSE",
     initialAmount: String = "",
     initialNote: String = "",
     initialTimestamp: Long? = null,
@@ -134,7 +133,6 @@ fun AddTransactionScreen(
 ) {
     val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     val isEditMode = editTransaction != null
 
     // === Sub-screen visibility ===
@@ -154,13 +152,14 @@ fun AddTransactionScreen(
     var noteExpanded by remember { mutableStateOf(isEditMode || initialNote.isNotEmpty()) }
 
     // === Feature state ===
-    var anomalyResult by remember { mutableStateOf<AnomalyResult?>(null) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
-    var duplicateWarning by remember { mutableStateOf<DuplicateCheckResult?>(null) }
-    var pendingEntity by remember { mutableStateOf<TransactionEntity?>(null) }
+    val commitHandler = remember(onCheckDuplicate, onAnomalyCheck, hapticManager) {
+        TransactionCommitHandler(onCheckDuplicate, onAnomalyCheck, hapticManager)
+    }
     var templateNameInput by remember { mutableStateOf("") }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
     val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
+    var usualAmounts by remember { mutableStateOf<List<Double>>(emptyList()) }
 
     // === Category state ===
     val parentCategories = remember(categories, selectedType) {
@@ -214,11 +213,14 @@ fun AddTransactionScreen(
         e
     }
     var calculatorDisplay by remember { mutableStateOf(engine.displayValue) }
+    var calculatorRevision by remember { mutableIntStateOf(0) }
+    val calculatorExpression = remember(calculatorRevision) { engine.expression }
 
     val isAmountConfirmed = confirmedAmount != null
     val parsedAmount = confirmedAmount ?: engine.displayValue.toDoubleOrNull()
-    val isSaveEnabled = (confirmedAmount != null || (engine.displayValue.toDoubleOrNull() != null && engine.displayValue != "0")) &&
-        (selectedType != "TRANSFER" || selectedTransferFromId != selectedTransferToId)
+    val isSaveEnabled = (confirmedAmount != null || (!engine.hasUnconfirmedOperation && engine.displayValue.toDoubleOrNull()?.let { it > 0 } == true)) &&
+        (parsedAmount ?: 0.0) > 0 && selectedAccountId.isNotBlank() &&
+        (selectedType != "TRANSFER" || (selectedTransferFromId.isNotBlank() && selectedTransferToId.isNotBlank() && selectedTransferFromId != selectedTransferToId))
 
     val amountForDisplay = if (isAmountConfirmed) {
         val a = confirmedAmount!!
@@ -249,7 +251,11 @@ fun AddTransactionScreen(
         }
     }
 
-    LaunchedEffect(note, smartCategorizationEnabled, correctionMemory) {
+    LaunchedEffect(selectedType, selectedAccountId, resolvedCategoryId, onGetUsualAmounts) {
+        usualAmounts = onGetUsualAmounts?.invoke(selectedAccountId, selectedType, resolvedCategoryId).orEmpty()
+    }
+
+    LaunchedEffect(note, selectedType, smartCategorizationEnabled, correctionMemory, categories, pastTransactions.value) {
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -358,7 +364,7 @@ fun AddTransactionScreen(
         scope.launch {
             val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
             val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
-            if (isEditMode && onUpdate != null && editTransaction != null) {
+            if (editTransaction != null && onUpdate != null) {
                 val updatedEntity = editTransaction.copy(
                     amount = amount,
                     type = selectedType,
@@ -369,20 +375,9 @@ fun AddTransactionScreen(
                     note = note,
                     timestamp = selectedDate
                 )
-                onUpdate(updatedEntity)
+                commitHandler.update(updatedEntity, editTransaction, onUpdate)
                 fireCorrection()
-                hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
-                if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null
-                    && amount != editTransaction.amount) {
-                    val result = onAnomalyCheck(amount, resolvedCategoryId)
-                    if (result != null && result.severity != AnomalySeverity.NONE) {
-                        anomalyResult = result
-                        hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
-                        delay(2500)
-                    }
-                }
                 onDismiss()
-                anomalyResult = null
             } else {
                 val entity = TransactionEntity(
                     amount = amount,
@@ -394,27 +389,14 @@ fun AddTransactionScreen(
                     note = note,
                     timestamp = selectedDate
                 )
-                if (onCheckDuplicate != null) {
-                    val result = onCheckDuplicate(entity)
-                    if (result != null) {
-                        duplicateWarning = result
-                        pendingEntity = entity
-                        return@launch
-                    }
-                }
-                onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
-                fireCorrection()
-                hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
-                if (selectedType == "EXPENSE" && resolvedCategoryId != null && onAnomalyCheck != null) {
-                    val result = onAnomalyCheck(amount, resolvedCategoryId)
-                    if (result != null && result.severity != AnomalySeverity.NONE) {
-                        anomalyResult = result
-                        hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
-                        delay(2500)
-                    }
-                }
-                onDismiss()
-                anomalyResult = null
+                commitHandler.prepareSave(
+                    entity = entity,
+                    onSave = { saved ->
+                        onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId)
+                        fireCorrection()
+                    },
+                    onComplete = onDismiss
+                )
             }
         }
     }
@@ -488,11 +470,11 @@ fun AddTransactionScreen(
     // === Anomaly banner ===
     val reducedMotion = LocalReducedMotion.current
     AnimatedVisibility(
-        visible = anomalyResult != null,
+        visible = commitHandler.anomalyResult != null,
         enter = if (reducedMotion) fadeIn() else slideInVertically { -it } + fadeIn(),
         exit = if (reducedMotion) fadeOut() else slideOutVertically { -it } + fadeOut()
     ) {
-        anomalyResult?.let { result ->
+        commitHandler.anomalyResult?.let { result ->
             val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"
             val message = if (result.severity == AnomalySeverity.HIGH) {
                 "This is significantly higher than your usual $categoryName spend (avg ${CurrencyFormatter.format(result.categoryAverage, currencyCode)})"
@@ -526,7 +508,9 @@ fun AddTransactionScreen(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .widthIn(max = dimens.navbarMaxWidth)
+                .align(Alignment.CenterHorizontally)
+                .padding(horizontal = dimens.paddingMedium)
         ) {
             Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
@@ -545,9 +529,9 @@ fun AddTransactionScreen(
                         )
                     }
                     Text(
-                        text = if (isEditMode) "Edit Transaction" else "New Transaction",
+                        text = if (isEditMode) stringResource(R.string.add_edit_title) else stringResource(R.string.add_new_title),
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 20.sp,
+                        fontSize = dimens.textXxl,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -595,82 +579,126 @@ fun AddTransactionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
             ) {
-                listOf("Income" to "INCOME", "Expense" to "EXPENSE", "Transfer" to "TRANSFER").forEach { (label, value) ->
+                listOf(
+                    stringResource(R.string.add_expense) to "EXPENSE",
+                    stringResource(R.string.add_income) to "INCOME",
+                    stringResource(R.string.add_transfer) to "TRANSFER"
+                ).forEach { (label, value) ->
                     val isSelected = selectedType == value
                     Text(
                         text = label,
-                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                        color = if (isSelected) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = dimens.textM,
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(dimens.cornerRadiusMedium)
+                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
+                                RoundedCornerShape(dimens.shapeCornerPill)
                             )
                             .clickable {
                                 selectedType = value
                                 confirmedAmount = null
+                                hapticManager.fire(HapticEvent.TOGGLE)
                             }
                             .padding(vertical = 12.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingXXLarge))
 
             // === Amount display ===
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
                 ) {
-                    if (isAmountConfirmed) {
+                    calculatorExpression?.let { expression ->
                         Text(
-                            text = currencySymbol,
-                            color = LocalMakeFlowColors.current.colorSuccess,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = amountForDisplay,
-                            color = LocalMakeFlowColors.current.colorSuccess,
-                            fontSize = dimens.textDisplayLarge,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                    } else {
-                        Text(
-                            text = currencySymbol,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = calculatorDisplay,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = dimens.textDisplayLarge,
-                            fontWeight = FontWeight.Bold,
+                            text = expression,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
+                            fontSize = dimens.textM,
                             textAlign = TextAlign.Center,
-                            maxLines = 1
                         )
                     }
+                    Text(
+                        text = "$currencySymbol ${CurrencyFormatter.formatNumber((amountForDisplay.toDoubleOrNull() ?: 0.0), if ((amountForDisplay.toDoubleOrNull() ?: 0.0) % 1.0 == 0.0 || currencyCode == "UGX" || currencyCode == "TZS") 0 else 2)}",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = dimens.textAmount,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(dimens.spacingMedium))
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
+
+            if (selectedType == "TRANSFER") {
+                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
+                    PickerChip("${stringResource(R.string.add_from)} · ${accounts.find { it.id == selectedTransferFromId }?.name ?: stringResource(R.string.add_account)}", Modifier.weight(1f)) { showAccountPicker = true }
+                    PickerChip("${stringResource(R.string.add_to)} · ${accounts.find { it.id == selectedTransferToId }?.name ?: stringResource(R.string.add_account)}", Modifier.weight(1f)) { showCategoryPicker = true }
+                }
+            } else {
+                val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: stringResource(R.string.add_category)
+                val isSmartPick = resolvedCategoryId != null && categorySuggestion?.categoryId == resolvedCategoryId
+                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
+                    PickerChip(
+                        text = if (isSmartPick) "$categoryName · ${stringResource(R.string.add_smart_pick)}" else categoryName,
+                        modifier = Modifier.weight(1f),
+                        emphasized = true
+                    ) {
+                        showCategoryPicker = true
+                    }
+                    PickerChip(accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account), Modifier.weight(1f)) { showAccountPicker = true }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(dimens.spacingLarge))
+            if (selectedType != "TRANSFER") {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                    Text(stringResource(R.string.add_usual), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f), fontSize = dimens.textSm, fontWeight = FontWeight.Medium)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+                        (usualAmounts.distinct().take(4).ifEmpty { listOf(100.0, 200.0, 500.0, 1000.0) }).forEach { value ->
+                            Text(
+                                text = CurrencyFormatter.formatNumber(value, 0),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
+                                fontSize = dimens.textSm,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(dimens.shapeCornerPill))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                    .clickable {
+                                        engine.onClear()
+                                        val amount = value.toLong().toString()
+                                        amount.forEach { digit -> engine.onDigit(digit.digitToInt()) }
+                                        calculatorDisplay = engine.displayValue
+                                        confirmedAmount = null
+                                        calculatorRevision++
+                                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                                    }
+                                    .padding(horizontal = dimens.paddingSmall, vertical = dimens.spacingMedium)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(dimens.spacingSmall))
+            }
+
+            Spacer(modifier = Modifier.height(dimens.spacingSmall))
 
             // === Calculator keypad ===
             CalculatorKeypad(
                 engine = engine,
-                displayValue = calculatorDisplay,
-                onDisplayChanged = { calculatorDisplay = engine.displayValue },
+                onDisplayChanged = {
+                    calculatorDisplay = engine.displayValue
+                    confirmedAmount = null
+                    calculatorRevision++
+                },
                 onConfirm = {
                     val amt = engine.onConfirm()
                     calculatorDisplay = engine.displayValue
@@ -679,7 +707,6 @@ fun AddTransactionScreen(
                         hapticManager.fire(HapticEvent.NAV_SELECT)
                     }
                 },
-                context = context,
                 hapticManager = hapticManager
             )
 
@@ -737,47 +764,6 @@ fun AddTransactionScreen(
 
             Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
-            // === Three pills row ===
-            if (selectedType == "TRANSFER") {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-                ) {
-                    PickerPill(
-                        label = "From",
-                        value = accounts.find { it.id == selectedTransferFromId }?.name ?: "Account",
-                        modifier = Modifier.weight(1f),
-                        onClick = { showAccountPicker = true }
-                    )
-                    PickerPill(
-                        label = "To",
-                        value = accounts.find { it.id == selectedTransferToId }?.name ?: "Account",
-                        modifier = Modifier.weight(1f),
-                        onClick = { showCategoryPicker = true }
-                    )
-                }
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-                ) {
-                    PickerPill(
-                        label = "Account",
-                        value = accounts.find { it.id == selectedAccountId }?.name ?: "Account",
-                        modifier = Modifier.weight(1f),
-                        onClick = { showAccountPicker = true }
-                    )
-                    PickerPill(
-                        label = "Category",
-                        value = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "Category",
-                        modifier = Modifier.weight(1f),
-                        onClick = { showCategoryPicker = true }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(dimens.spacingMedium))
-
             PickerPill(
                 label = "Date & Time",
                 value = displayDate,
@@ -825,8 +811,10 @@ fun AddTransactionScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 16.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
+                .widthIn(max = dimens.navbarMaxWidth)
+                .align(Alignment.CenterHorizontally)
+                .padding(horizontal = dimens.paddingMedium)
+                .padding(bottom = dimens.paddingMedium + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
             Button(
                 onClick = {
@@ -836,17 +824,17 @@ fun AddTransactionScreen(
                 enabled = isSaveEnabled,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onSurface,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                     disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ),
-                shape = RoundedCornerShape(dimens.shapeCornerMedium),
+                shape = RoundedCornerShape(dimens.shapeCornerPill),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(dimens.primaryButtonHeight)
             ) {
                 Text(
-                    text = if (isEditMode) "Update Transaction" else "Save Transaction",
+                    text = if (isEditMode) stringResource(R.string.add_update) else stringResource(R.string.add_save),
                     fontSize = dimens.textL,
                     fontWeight = FontWeight.Bold
                 )
@@ -923,11 +911,10 @@ fun AddTransactionScreen(
         )
     }
 
-    duplicateWarning?.let { warning ->
+    commitHandler.duplicateWarning?.let { warning ->
         AlertDialog(
             onDismissRequest = {
-                duplicateWarning = null
-                pendingEntity = null
+                commitHandler.clearAlerts()
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -942,25 +929,16 @@ fun AddTransactionScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    val entity = pendingEntity ?: return@TextButton
+                    val entity = commitHandler.pendingEntity ?: return@TextButton
                     scope.launch {
-                        val fromId = if (entity.type == "TRANSFER") entity.fromAccountId else null
-                        val toId = if (entity.type == "TRANSFER") entity.toAccountId else null
-                        fireCorrection()
-                        onSave(entity.amount, entity.type, entity.categoryId, entity.accountId, entity.note, entity.timestamp, fromId, toId)
-                        hapticManager.fire(HapticEvent.TRANSACTION_SAVED)
-                        if (entity.type == "EXPENSE" && entity.categoryId != null && onAnomalyCheck != null) {
-                            val result = onAnomalyCheck(entity.amount, entity.categoryId)
-                            if (result != null && result.severity != AnomalySeverity.NONE) {
-                                anomalyResult = result
-                                hapticManager.fire(HapticEvent.ANOMALY_DETECTED)
-                                delay(2500)
-                            }
-                        }
-                        duplicateWarning = null
-                        pendingEntity = null
-                        onDismiss()
-                        anomalyResult = null
+                        commitHandler.saveIgnoringDuplicate(
+                            entity = entity,
+                            onSave = { saved ->
+                                onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId)
+                                fireCorrection()
+                            },
+                            onComplete = onDismiss
+                        )
                     }
                 }) {
                     Text("Save Anyway", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
@@ -968,8 +946,7 @@ fun AddTransactionScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    duplicateWarning = null
-                    pendingEntity = null
+                    commitHandler.clearAlerts()
                 }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }
@@ -981,138 +958,70 @@ fun AddTransactionScreen(
 @Composable
 private fun CalculatorKeypad(
     engine: CalculatorEngine,
-    displayValue: String,
     onDisplayChanged: () -> Unit,
     onConfirm: () -> Unit,
-    context: Context,
     hapticManager: HapticManager
 ) {
     val dimens = LocalAppDimens.current
-    val buttonTextColor = MaterialTheme.colorScheme.onSurface
-    val operatorColor = LocalMakeFlowColors.current.colorWarning
+    val operatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
     val functionColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
     fun pressDigit(d: Int) {
         engine.onDigit(d)
         onDisplayChanged()
+        hapticManager.fire(HapticEvent.NAV_SELECT)
     }
 
     fun pressOperator(op: CalculatorEngine.Operator) {
         engine.onOperator(op)
         onDisplayChanged()
+        hapticManager.fire(HapticEvent.NAV_SELECT)
     }
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Row 1: Clear, Backspace, ±, ÷
-        CalculatorRow {
-            CalcButton("C", functionColor, onClick = {
-                engine.onClear()
-                onDisplayChanged()
-            })
-            CalcButton(
-                label = "\u232B",
-                color = functionColor,
-                onClick = {
-                    engine.onBackspace()
-                    onDisplayChanged()
-                },
-                modifier = Modifier.pointerInput(Unit) {
-                    detectTapGestures(
-                        onLongPress = {
-                            engine.onClear()
-                            onDisplayChanged()
-                        },
-                        onTap = {
-                            engine.onBackspace()
-                            onDisplayChanged()
-                        }
-                    )
-                }
-            )
-            CalcButton("±", functionColor, onClick = {
-                engine.toggleSign()
-                onDisplayChanged()
-            })
-            CalcButton("÷", operatorColor, onClick = { pressOperator(CalculatorEngine.Operator.DIVIDE) })
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf(CalculatorEngine.Operator.ADD, CalculatorEngine.Operator.SUBTRACT,
+                CalculatorEngine.Operator.MULTIPLY, CalculatorEngine.Operator.DIVIDE).forEach { op ->
+                Text(op.symbol.toString(), color = operatorColor, fontSize = dimens.textXl,
+                    modifier = Modifier.clickable { pressOperator(op) }.padding(horizontal = dimens.spacingMedium, vertical = dimens.spacingSmall))
+            }
+            Text("=", color = MaterialTheme.colorScheme.primary, fontSize = dimens.textXl, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(onClick = onConfirm).padding(horizontal = dimens.spacingMedium, vertical = dimens.spacingSmall))
         }
-
-        // Row 2: 7, 8, 9, ×
-        CalculatorRow {
-            CalcButton("7") { pressDigit(7) }
-            CalcButton("8") { pressDigit(8) }
-            CalcButton("9") { pressDigit(9) }
-            CalcButton("×", operatorColor) { pressOperator(CalculatorEngine.Operator.MULTIPLY) }
-        }
-
-        // Row 3: 4, 5, 6, −
-        CalculatorRow {
-            CalcButton("4") { pressDigit(4) }
-            CalcButton("5") { pressDigit(5) }
-            CalcButton("6") { pressDigit(6) }
-            CalcButton("−", operatorColor) { pressOperator(CalculatorEngine.Operator.SUBTRACT) }
-        }
-
-        // Row 4: 1, 2, 3, +
+        // Digits follow the familiar keypad order.
         CalculatorRow {
             CalcButton("1") { pressDigit(1) }
             CalcButton("2") { pressDigit(2) }
             CalcButton("3") { pressDigit(3) }
-            CalcButton("+", operatorColor) { pressOperator(CalculatorEngine.Operator.ADD) }
         }
 
-        // Row 5: 0 (wide), ., copy, ✓
         CalculatorRow {
-            Box(
-                modifier = Modifier
-                    .weight(2f)
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .clickable { pressDigit(0) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("0", color = buttonTextColor, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-            }
-            CalcButton(".", onClick = { engine.onDecimalPoint(); onDisplayChanged() })
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .clickable {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                        val clip = ClipData.newPlainText("Amount", displayValue)
-                        clipboard?.setPrimaryClip(clip)
-                        Toast.makeText(context, "Copied", Toast.LENGTH_SHORT).show()
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.ContentCopy,
-                    contentDescription = "Copy",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable { onConfirm() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Check,
-                    contentDescription = "Confirm amount",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(24.dp)
-                )
+            CalcButton("4") { pressDigit(4) }
+            CalcButton("5") { pressDigit(5) }
+            CalcButton("6") { pressDigit(6) }
+        }
+
+        CalculatorRow {
+            CalcButton("7") { pressDigit(7) }
+            CalcButton("8") { pressDigit(8) }
+            CalcButton("9") { pressDigit(9) }
+        }
+
+        // Row 5: decimal, zero, backspace
+        CalculatorRow {
+            CalcButton(".", onClick = {
+                engine.onDecimalPoint()
+                onDisplayChanged()
+                hapticManager.fire(HapticEvent.NAV_SELECT)
+            })
+            CalcButton("0") { pressDigit(0) }
+            CalcButton("⌫", functionColor, onLongClick = { engine.onClear(); onDisplayChanged() }) {
+                engine.onBackspace()
+                onDisplayChanged()
+                hapticManager.fire(HapticEvent.NAV_SELECT)
             }
         }
     }
@@ -1132,26 +1041,25 @@ private fun CalculatorRow(
 }
 
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun RowScope.CalcButton(
     label: String,
     color: Color = MaterialTheme.colorScheme.onSurface,
-    modifier: Modifier = Modifier,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     Box(
-        modifier = modifier
+        modifier = Modifier
             .weight(1f)
-            .height(52.dp)
-            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick),
+            .height(dimens.primaryButtonHeight)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = label,
             color = color,
-            fontSize = 22.sp,
+            fontSize = dimens.textDisplay,
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -1196,4 +1104,27 @@ private fun PickerPill(
             fontSize = 18.sp
         )
     }
+}
+
+@Composable
+private fun PickerChip(
+    text: String,
+    modifier: Modifier = Modifier,
+    emphasized: Boolean = false,
+    onClick: () -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    Text(
+        text = text,
+        color = if (emphasized) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        fontSize = dimens.textSm,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+        modifier = modifier
+            .clip(RoundedCornerShape(dimens.shapeCornerPill))
+            .background(if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(onClick = onClick)
+            .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
+    )
 }

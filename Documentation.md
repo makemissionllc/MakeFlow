@@ -8,6 +8,24 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-03 — Match Add Transaction to the mockup
+
+- **Scope:** Add Transaction screen, calculator expression state, recent amount shortcuts,
+  transaction commit flow, and UI strings.
+- **What:** reordered the form around the mockup's type selector, grouped amount and
+  expression, smart category/account chips, usual amounts, open numeric keypad, and
+  pill-shaped Save action. Usual amounts now come from recent matching transactions,
+  falling back to familiar amounts when there is no history. The default type is Expense.
+  Routed save, duplicate confirmation, anomaly feedback, and edits through
+  `TransactionCommitHandler`; blocked invalid, negative, incomplete, and account-less
+  saves; and replaced the keypad's overlapping tap/long-press handling with a single
+  combined gesture. Added calculator expression coverage and localized the new labels.
+- **Verification:** `:app:compileDebugKotlin test` passed with the cached JDK 21 and
+  Gradle 9.6. The first compile identified the need to opt the long-press gesture into
+  Compose's experimental foundation API; that was fixed before the passing run.
+
+---
+
 ## 2026-10-03 — Redesign the Home dashboard around daily money actions
 
 - **Scope:** Home dashboard, dashboard view model, weekly budget calculation, and tests.

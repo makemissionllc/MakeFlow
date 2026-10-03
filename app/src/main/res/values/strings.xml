@@ -43,4 +43,17 @@
     <string name="home_recent_empty">Your latest entries will appear here. Add an expense, income, or transfer whenever you like.</string>
     <string name="home_transfer">Transfer</string>
     <string name="home_uncategorized">Uncategorized</string>
+    <string name="add_new_title">New</string>
+    <string name="add_edit_title">Edit transaction</string>
+    <string name="add_expense">Expense</string>
+    <string name="add_income">Income</string>
+    <string name="add_transfer">Transfer</string>
+    <string name="add_usual">Usual</string>
+    <string name="add_smart_pick">smart pick</string>
+    <string name="add_account">Account</string>
+    <string name="add_category">Category</string>
+    <string name="add_from">From</string>
+    <string name="add_to">To</string>
+    <string name="add_save">Save</string>
+    <string name="add_update">Update</string>
 </resources>

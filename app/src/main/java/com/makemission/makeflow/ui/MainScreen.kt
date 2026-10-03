@@ -901,7 +901,7 @@ fun MainScreen(
             }
             BackHandler { onDismissAction() }
             AddTransactionScreen(
-                initialType = editingTransaction?.type ?: mpesaInitialType ?: shortcutPendingType.value ?: "INCOME",
+                initialType = editingTransaction?.type ?: mpesaInitialType ?: shortcutPendingType.value ?: "EXPENSE",
                 initialAmount = mpesaInitialAmount,
                 initialNote = mpesaInitialNote,
                 initialTimestamp = mpesaInitialTimestamp,
@@ -990,6 +990,19 @@ fun MainScreen(
                             timestamp = tx.timestamp
                         )
                     }
+                },
+                onGetUsualAmounts = { accountId, type, categoryId ->
+                    val cutoff = System.currentTimeMillis() - (90L * 24 * 60 * 60 * 1000)
+                    repository.getTransactionsInRange(cutoff, System.currentTimeMillis()).first()
+                        .asSequence()
+                        .filter { it.accountId == accountId && it.type == type }
+                        .filter { categoryId == null || it.categoryId == categoryId }
+                        .groupingBy { it.amount }
+                        .eachCount()
+                        .entries
+                        .sortedWith(compareByDescending<Map.Entry<Double, Int>> { it.value }.thenBy { it.key })
+                        .take(4)
+                        .map { it.key }
                 },
                 categoryClassifier = categoryClassifier,
                 smartCategorizationEnabled = smartCategorizationEnabled,

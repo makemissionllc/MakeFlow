@@ -43,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
@@ -64,6 +66,7 @@ import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
+import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 
@@ -77,6 +80,7 @@ fun BudgetScreen(
 ) {
     val dimens = LocalAppDimens.current
     val budgets by viewModel.budgets.collectAsState()
+    val context = LocalContext.current
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
@@ -120,6 +124,10 @@ fun BudgetScreen(
     var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
     val scope = rememberCoroutineScope()
 
+    LaunchedEffect(budgets) {
+        WidgetUpdateHelper.updateWidgets(context)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -139,11 +147,9 @@ fun BudgetScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Savings,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            modifier = Modifier.size(64.dp)
+                        AnimatedDoodle(
+                            icon = Icons.Outlined.Savings,
+                            tint = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f)
                         )
                         Text(
                             text = "No budgets yet",

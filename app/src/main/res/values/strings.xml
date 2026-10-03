@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">Mindful</string>
     <string name="app_name_full">Mindful Wallet</string>
-    <string name="widget_description">Your financial snapshot at a glance</string>
-    <string name="quick_action_widget_description">Quick expense and income entry</string>
+    <string name="widget_name_snapshot">Mindful snapshot</string>
+    <string name="widget_name_quick_actions">Mindful quick actions</string>
+    <string name="widget_description">Balance, monthly totals and useful account alerts</string>
+    <string name="quick_action_widget_description">Fast expense and income entry with a balance glance</string>
     <string name="shortcut_add_expense">Add expense</string>
     <string name="shortcut_add_expense_long">Add a new expense</string>
     <string name="shortcut_add_income">Add income</string>

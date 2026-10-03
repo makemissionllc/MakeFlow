@@ -81,6 +81,7 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -624,16 +625,26 @@ fun FeaturesStageView(modifier: Modifier = Modifier) {
             .padding(horizontal = dimens.paddingLarge),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
-            Text(
-                text = "Mindful Wallet",
-                style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = "Your intelligent finance companion",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+            ) {
+                Text(
+                    text = "Mindful Wallet",
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "Your intelligent finance companion",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            AnimatedDoodle(
+                icon = Icons.Rounded.Savings,
+                doodleSize = 56.dp,
+                tint = MaterialTheme.colorScheme.tertiary
             )
         }
 

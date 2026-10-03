@@ -5,11 +5,15 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +25,13 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,9 +48,12 @@ fun StaggeredItem(
 ) {
     val reduced = LocalReducedMotion.current
     val progress = remember { Animatable(if (reduced) 1f else 0f) }
-    LaunchedEffect(Unit) {
-        if (!reduced) {
-            delay((index * delayPerItem).toLong())
+    LaunchedEffect(reduced, index) {
+        if (reduced) {
+            progress.snapTo(1f)
+        } else {
+            progress.snapTo(0f)
+            delay((index.coerceIn(0, 8) * delayPerItem).toLong())
             progress.animateTo(
                 targetValue = 1f,
                 animationSpec = spring(
@@ -77,7 +89,7 @@ fun AnimatedCounter(
 ) {
     val animatedValue by animateFloatAsState(
         targetValue = targetValue.toFloat(),
-        animationSpec = animationSpec,
+        animationSpec = if (LocalReducedMotion.current) snap() else animationSpec,
         label = "counter"
     )
     Text(
@@ -94,12 +106,81 @@ fun Modifier.pressScale(
 ): Modifier = composed {
     val source = remember { interactionSource ?: MutableInteractionSource() }
     val isPressed by source.collectIsPressedAsState()
+    val reduced = LocalReducedMotion.current
     val targetScale by animateFloatAsState(
-        targetValue = if (isPressed) motionSpec.pressScale else motionSpec.releaseScale,
-        animationSpec = motionSpec.scaleAnimationSpec,
+        targetValue = if (!reduced && isPressed) motionSpec.pressScale else motionSpec.releaseScale,
+        animationSpec = if (reduced) snap() else motionSpec.scaleAnimationSpec,
         label = "pressScale"
     )
     scale(scaleX = targetScale, scaleY = targetScale)
+}
+
+@Composable
+fun AnimatedDoodle(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    doodleSize: Dp = 76.dp,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    contentDescription: String? = null
+) {
+    val reduced = LocalReducedMotion.current
+    val progress = remember { Animatable(if (reduced) 1f else 0f) }
+    LaunchedEffect(reduced) {
+        if (reduced) {
+            progress.snapTo(1f)
+        } else {
+            progress.snapTo(0f)
+            progress.animateTo(
+                1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            )
+        }
+    }
+    Box(modifier = modifier.size(doodleSize), contentAlignment = androidx.compose.ui.Alignment.Center) {
+        Canvas(Modifier.size(doodleSize)) {
+            val p = progress.value.coerceIn(0f, 1f)
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val unit = size.minDimension / 76f
+            val stroke = 2.dp.toPx()
+            drawArc(
+                color = tint.copy(alpha = 0.26f * p),
+                startAngle = 206f,
+                sweepAngle = 292f * p,
+                useCenter = false,
+                topLeft = Offset(cx - 27f * unit, cy - 27f * unit),
+                size = Size(54f * unit, 54f * unit),
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            val rays = listOf(
+                Offset(cx - 30f * unit, cy - 24f * unit) to Offset(cx - 36f * unit, cy - 30f * unit),
+                Offset(cx + 28f * unit, cy - 27f * unit) to Offset(cx + 35f * unit, cy - 34f * unit),
+                Offset(cx + 31f * unit, cy + 23f * unit) to Offset(cx + 37f * unit, cy + 28f * unit),
+                Offset(cx - 29f * unit, cy + 24f * unit) to Offset(cx - 35f * unit, cy + 31f * unit)
+            )
+            rays.forEach { (from, to) ->
+                val delta = to - from
+                drawLine(
+                    color = tint.copy(alpha = 0.68f * p),
+                    start = from,
+                    end = from + delta * p,
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+        val iconSize = doodleSize * (38f / 76f)
+        val scale = if (reduced) 1f else 0.92f + 0.08f * progress.value
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint.copy(alpha = 0.78f),
+            modifier = Modifier.size(iconSize).scale(scale)
+        )
+    }
 }
 
 @Composable

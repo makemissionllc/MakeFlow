@@ -47,6 +47,7 @@
 
         <receiver
             android:name=".widget.MakeFlowWidgetReceiver"
+            android:label="@string/widget_name_snapshot"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -58,6 +59,7 @@
 
         <receiver
             android:name=".widget.QuickActionWidgetReceiver"
+            android:label="@string/widget_name_quick_actions"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

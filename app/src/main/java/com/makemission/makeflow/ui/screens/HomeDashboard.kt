@@ -27,9 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.CloudOff
-import androidx.compose.material.icons.rounded.FilterList
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,6 +62,7 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.domain.VelocityAlert
@@ -79,6 +82,7 @@ import kotlin.math.roundToInt
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Calendar
 
 data class AccountChip(
     val name: String,
@@ -95,9 +99,13 @@ data class CategoryLegend(
 @Composable
 fun HomeDashboard(
     viewModel: HomeDashboardViewModel,
+    username: String = "",
     onOpenAccounts: () -> Unit = {},
     onOpenSavingsGoals: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
+    onOpenHistory: () -> Unit = {},
+    onAddTransaction: (String) -> Unit = {},
+    onEditTransaction: (TransactionEntity) -> Unit = {},
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
@@ -118,6 +126,8 @@ fun HomeDashboard(
     val cardOrder by viewModel.cardOrder.collectAsState()
     val cashFlowProjection by viewModel.cashFlowProjection.collectAsState()
     val velocityAlerts by viewModel.velocityAlerts.collectAsState()
+    val recentTransactions by viewModel.recentTransactions.collectAsState()
+    val categories by viewModel.categories.collectAsState()
 
     var showReorderSheet by remember { mutableStateOf(false) }
     var showAccountFocusSheet by remember { mutableStateOf(false) }
@@ -173,6 +183,9 @@ fun HomeDashboard(
             item {
                 LargeTitleItem(title = "Home", scrollState = listState)
             }
+            item {
+                HomeWelcomeHeader(username = username)
+            }
             if (focusedAccountReady) {
                 item {
                     AccountFocusSelector(
@@ -183,8 +196,27 @@ fun HomeDashboard(
                 item {
                     TotalBalanceCard(
                         balance = formattedBalance,
-                        monthLabel = currentMonthLabel,
-                        label = focusedAccountName ?: "Total balance"
+                        label = focusedAccountName ?: "Total balance",
+                        supportingLabel = if (focusedAccountName == null) {
+                            when (accounts.size) {
+                                0 -> "No accounts yet"
+                                1 -> "Across 1 account"
+                                else -> "Across ${accounts.size} accounts"
+                            }
+                        } else {
+                            "Focused account"
+                        }
+                    )
+                }
+                item {
+                    RecentActivityCard(
+                        transactions = recentTransactions,
+                        accounts = accounts,
+                        categories = categories,
+                        currencyCode = selectedCurrency,
+                        onAddTransaction = onAddTransaction,
+                        onOpenHistory = onOpenHistory,
+                        onEditTransaction = onEditTransaction
                     )
                 }
             } else {
@@ -274,7 +306,7 @@ fun HomeDashboard(
                     }
                 }
             }
-            item {
+            if (categoryLegends.isNotEmpty()) item {
                 CategoriesCard(categories = categoryLegends.take(5), monthLabel = currentMonthLabel)
             }
             if (velocityAlerts.isNotEmpty()) {
@@ -366,10 +398,42 @@ fun HomeDashboard(
 }
 
 @Composable
-fun TotalBalanceCard(
-    balance: String = "KES 0.00",
-    monthLabel: String = "June 2026",
-    label: String = "Total balance"
+private fun HomeWelcomeHeader(username: String) {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val greeting = when (hour) {
+        in 5..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
+    }
+    val today = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = if (username.isBlank()) "$greeting" else "$greeting, ${username.trim()}.",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = "$today | Your money at a glance",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
+        )
+    }
+}
+
+@Composable
+private fun RecentActivityCard(
+    transactions: List<TransactionEntity>,
+    accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
+    categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
+    currencyCode: String,
+    onAddTransaction: (String) -> Unit,
+    onOpenHistory: () -> Unit,
+    onEditTransaction: (TransactionEntity) -> Unit
 ) {
     val dimens = LocalAppDimens.current
     CardContainer {
@@ -378,16 +442,154 @@ fun TotalBalanceCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Recent activity",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (transactions.isEmpty()) "Your latest entries will appear here" else "Your latest money moves",
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                )
+            }
+            if (transactions.isNotEmpty()) {
+                TextButton(onClick = onOpenHistory) {
+                    Text("View all")
+                    Icon(Icons.Rounded.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(dimens.spacingMedium))
+
+        if (transactions.isEmpty()) {
+            Text(
+                text = "Keep a simple record of what comes in and goes out. You can add an entry whenever it suits you.",
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            QuickAddActions(onAddTransaction)
+        } else {
+            transactions.forEachIndexed { index, transaction ->
+                val category = categories.find { it.id == transaction.categoryId }
+                val account = accounts.find { it.id == transaction.accountId }
+                val title = if (transaction.type == "TRANSFER") "Transfer" else category?.name ?: "Uncategorized"
+                val accountLabel = when (transaction.type) {
+                    "TRANSFER" -> {
+                        val from = accounts.find { it.id == transaction.fromAccountId }?.name
+                        val to = accounts.find { it.id == transaction.toAccountId }?.name
+                        listOfNotNull(from, to).joinToString(" to ").ifBlank { "Transfer" }
+                    }
+                    else -> account?.name ?: ""
+                }
+                val amountColor = when (transaction.type) {
+                    "INCOME" -> LocalMakeFlowColors.current.colorSuccess
+                    "TRANSFER" -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.error
+                }
+                val amountPrefix = when (transaction.type) {
+                    "INCOME" -> "+"
+                    "EXPENSE" -> "-"
+                    else -> ""
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                        .clickable { onEditTransaction(transaction) }
+                        .padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val categoryColor = runCatching {
+                        Color(android.graphics.Color.parseColor(category?.colorHex ?: "#6C8F72"))
+                    }.getOrElse { MaterialTheme.colorScheme.primary }
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .background(categoryColor, CircleShape)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = title,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                            maxLines = 1
+                        )
+                        val dateLabel = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+                            .format(Date(transaction.timestamp))
+                        val subtitle = listOf(accountLabel, transaction.note, dateLabel)
+                            .filter { it.isNotBlank() }
+                            .joinToString(" | ")
+                        Text(
+                            text = subtitle,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1
+                        )
+                    }
+                    Text(
+                        text = "$amountPrefix${CurrencyFormatter.format(transaction.amount, currencyCode)}",
+                        color = amountColor,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                        maxLines = 1
+                    )
+                }
+                if (index < transactions.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), thickness = 0.5.dp)
+                }
+            }
+            QuickAddActions(onAddTransaction)
+        }
+    }
+}
+
+@Composable
+private fun QuickAddActions(onAddTransaction: (String) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextButton(onClick = { onAddTransaction("EXPENSE") }) {
+            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("Expense")
+        }
+        TextButton(onClick = { onAddTransaction("INCOME") }) {
+            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text("Income")
+        }
+    }
+}
+
+@Composable
+fun TotalBalanceCard(
+    balance: String = "KES 0.00",
+    label: String = "Total balance",
+    supportingLabel: String = "Across all accounts"
+) {
+    val dimens = LocalAppDimens.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(dimens.cornerRadiusLarge))
+            .padding(20.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                 text = label,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium
             )
             Icon(
-                imageVector = Icons.Rounded.FilterList,
-                contentDescription = "Filter",
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                imageVector = Icons.Rounded.AccountBalanceWallet,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                 modifier = Modifier.size(20.dp)
             )
         }
@@ -396,7 +598,7 @@ fun TotalBalanceCard(
 
         Text(
             text = balance,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold
         )
@@ -411,11 +613,11 @@ fun TotalBalanceCard(
                 modifier = Modifier
                     .width(40.dp)
                     .height(4.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f), RoundedCornerShape(2.dp))
             )
             Text(
-                text = monthLabel,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                text = supportingLabel,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
                 fontSize = 13.sp
             )
         }

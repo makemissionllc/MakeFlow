@@ -125,6 +125,19 @@ class HomeDashboardViewModel(
 
     private val allTransactions = financeRepository.getAllTransactions()
 
+    val recentTransactions: StateFlow<List<TransactionEntity>> = combine(
+        allTransactions,
+        focusedAccountId
+    ) { transactions, accountId ->
+        transactions.asSequence()
+            .filter { transaction ->
+                accountId == null || transaction.accountId == accountId ||
+                    transaction.fromAccountId == accountId || transaction.toAccountId == accountId
+            }
+            .take(3)
+            .toList()
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val parentCategorySpending: StateFlow<List<ParentCategorySpending>> = combine(
         allTransactions, categories
     ) { txs, cats ->

@@ -543,27 +543,34 @@ fun MainScreen(
                     ) {
                         TabContentAnimated(
                             activeTab = activeTab,
+                            username = username,
                             reducedMotion = reducedMotion,
                             homeViewModel = homeViewModel,
                             insightsViewModel = insightsViewModel,
                             historyViewModel = historyViewModel,
                             hapticManager = hapticManager,
                             notificationGate = notificationGate,
-                    onOpenAccounts = { showAccountsScreen = true },
-                    onOpenSavingsGoals = { showSavingsGoalsScreen = true },
-                    onOpenSettings = { showSettingsScreen = true },
-                    onOpenBudgets = { showBudgetScreen = true },
-                    onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
-                    onNavigateToHome = { activeTab = MakeFlowTab.HOME },
-                    onSetUpRecurringFromInsights = { amount ->
-                        recurringSetupAmount = amount
-                        showRecurringSetupFromInsights = true
-                    },
-                    onEditTransaction = { tx ->
-                        editingTransaction = tx
-                        showAddTransaction = true
-                    }
-                )
+                            onOpenAccounts = { showAccountsScreen = true },
+                            onOpenSavingsGoals = { showSavingsGoalsScreen = true },
+                            onOpenSettings = { showSettingsScreen = true },
+                            onOpenBudgets = { showBudgetScreen = true },
+                            onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
+                            onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
+                            onAddTransaction = { type ->
+                                hapticManager.fire(HapticEvent.NAV_SELECT)
+                                shortcutPendingType.value = type
+                                showAddTransaction = true
+                            },
+                            onNavigateToHome = { activeTab = MakeFlowTab.HOME },
+                            onSetUpRecurringFromInsights = { amount ->
+                                recurringSetupAmount = amount
+                                showRecurringSetupFromInsights = true
+                            },
+                            onEditTransaction = { tx ->
+                                editingTransaction = tx
+                                showAddTransaction = true
+                            }
+                        )
             }
 
             Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
@@ -635,6 +642,7 @@ fun MainScreen(
             ) {
                 TabContentAnimated(
                     activeTab = activeTab,
+                    username = username,
                     reducedMotion = reducedMotion,
                     homeViewModel = homeViewModel,
                     insightsViewModel = insightsViewModel,
@@ -646,6 +654,12 @@ fun MainScreen(
                     onOpenSettings = { showSettingsScreen = true },
                     onOpenBudgets = { showBudgetScreen = true },
                     onOpenRecurringTransactions = { showRecurringTransactionsScreen = true },
+                    onOpenHistory = { activeTab = MakeFlowTab.HISTORY },
+                    onAddTransaction = { type ->
+                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                        shortcutPendingType.value = type
+                        showAddTransaction = true
+                    },
                     onNavigateToHome = { activeTab = MakeFlowTab.HOME },
                     onSetUpRecurringFromInsights = { amount ->
                         recurringSetupAmount = amount
@@ -763,6 +777,7 @@ fun MainScreen(
             onSaveRate = { rate ->
                 scope.launch(Dispatchers.IO) {
                     exchangeRateRepository.upsertRate(rate)
+                    WidgetUpdateHelper.updateWidgets(context)
                 }
             }
         )
@@ -959,6 +974,7 @@ fun MainScreen(
                         WidgetUpdateHelper.updateWidgets(context)
                         mpesaExternalReference = null
                         mpesaTransactionCost = null
+                        shortcutPendingType.value = null
                         showAddTransaction = false
                     }
                 },
@@ -1139,6 +1155,7 @@ fun MainScreen(
 @Composable
 private fun TabContentAnimated(
     activeTab: MakeFlowTab,
+    username: String,
     reducedMotion: Boolean,
     homeViewModel: HomeDashboardViewModel,
     insightsViewModel: InsightsViewModel,
@@ -1150,6 +1167,8 @@ private fun TabContentAnimated(
     onOpenSettings: () -> Unit,
     onOpenBudgets: () -> Unit,
     onOpenRecurringTransactions: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onAddTransaction: (String) -> Unit,
     onNavigateToHome: () -> Unit,
     onSetUpRecurringFromInsights: (Double) -> Unit = {},
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
@@ -1186,9 +1205,13 @@ private fun TabContentAnimated(
             MakeFlowTab.HOME -> {
                 HomeDashboard(
                     viewModel = homeViewModel,
+                    username = username,
                     onOpenAccounts = onOpenAccounts,
                     onOpenSavingsGoals = onOpenSavingsGoals,
                     onOpenSettings = onOpenSettings,
+                    onOpenHistory = onOpenHistory,
+                    onAddTransaction = onAddTransaction,
+                    onEditTransaction = { tx -> onEditTransaction?.invoke(tx) },
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
                 )

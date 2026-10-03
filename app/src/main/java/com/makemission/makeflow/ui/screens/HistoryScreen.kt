@@ -68,6 +68,7 @@ import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
+import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -407,11 +408,9 @@ private fun HistoryListContent(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Receipt,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                modifier = Modifier.size(64.dp)
+                            AnimatedDoodle(
+                                icon = Icons.Rounded.Receipt,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                             )
                             Text(
                                 text = "No transactions yet",

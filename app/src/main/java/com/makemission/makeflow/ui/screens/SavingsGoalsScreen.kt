@@ -61,6 +61,7 @@ import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.GoalWithFeasibility
@@ -126,11 +127,9 @@ fun SavingsGoalsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Outlined.EmojiEvents,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                modifier = Modifier.size(64.dp)
+                            AnimatedDoodle(
+                                icon = Icons.Outlined.EmojiEvents,
+                                tint = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f)
                             )
                             Spacer(Modifier.height(dimens.spacingXLarge))
                             Text(

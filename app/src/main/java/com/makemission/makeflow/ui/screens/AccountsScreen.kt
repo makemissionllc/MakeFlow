@@ -48,11 +48,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.ui.components.AnimatedCounter
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -61,6 +63,7 @@ import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
@@ -80,6 +83,7 @@ fun AccountsScreen(
     val totalBalance by viewModel.totalBalance.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
+    val context = LocalContext.current
 
     val config = LocalAdaptiveConfig.current
     val listState = rememberLazyListState()
@@ -90,6 +94,10 @@ fun AccountsScreen(
     var selectedAccount by remember { mutableStateOf<AccountEntity?>(null) }
     val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(accounts) {
+        WidgetUpdateHelper.updateWidgets(context)
+    }
 
     if (layoutMode == DeviceLayoutMode.EXPANDED && accounts.isNotEmpty()) {
         Row(
@@ -297,11 +305,9 @@ fun AccountsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            modifier = Modifier.size(64.dp)
+                        AnimatedDoodle(
+                            icon = Icons.Outlined.AccountBalanceWallet,
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                         )
                         Text(
                             text = "No accounts yet",

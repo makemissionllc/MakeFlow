@@ -286,7 +286,7 @@ fun TransactionRow(
         }
         Spacer(Modifier.width(dimens.spacingSmall))
         Text(
-            text = amountPrefix + CurrencyFormatter.format(amount, currencyCode),
+            text = amountPrefix + CurrencyFormatter.formatCompact(amount, currencyCode),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = amountColor,
             maxLines = 1,
@@ -320,6 +320,7 @@ fun InfoBanner(
     message: String,
     onClick: (() -> Unit)? = null,
     hapticManager: HapticManager? = null,
+    emphasized: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val dimens = LocalAppDimens.current
@@ -337,7 +338,11 @@ fun InfoBanner(
     ) {
         Text(
             text = message,
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+            style = if (emphasized) {
+                MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            } else {
+                MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+            },
             color = LocalMakeFlowColors.current.onWarningBanner
         )
     }

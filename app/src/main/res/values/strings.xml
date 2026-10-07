@@ -26,7 +26,7 @@
     <string name="home_greeting_morning">Good morning</string>
     <string name="home_greeting_afternoon">Good afternoon</string>
     <string name="home_greeting_evening">Good evening</string>
-    <string name="home_greeting_name">%1$s, %2$s.</string>
+    <string name="home_greeting_name">%1$s, %2$s</string>
     <string name="home_money_at_a_glance">%1$s | Your money at a glance</string>
     <string name="home_open_settings">Open settings</string>
     <string name="home_total_balance">Total balance</string>
@@ -40,6 +40,13 @@
     <string name="home_weekly_spent">%1$s spent of %2$s</string>
     <string name="home_weekly_budget_setup">Set a weekly budget</string>
     <string name="home_weekly_budget_setup_support">Choose a limit and keep this week in view.</string>
+    <string name="home_mpesa_import_banner">Import an M-PESA message</string>
+    <string name="home_mpesa_import_title">Import M-PESA message</string>
+    <string name="home_mpesa_import_support">Paste a Safaricom confirmation. We will prepare it for review before saving.</string>
+    <string name="home_mpesa_message_label">Transaction message</string>
+    <string name="home_mpesa_message_invalid">We could not recognize that message. Paste the complete Safaricom confirmation.</string>
+    <string name="home_mpesa_review_action">Review transaction</string>
+    <string name="home_mpesa_cancel">Cancel</string>
     <string name="home_recent">Recent</string>
     <string name="home_view_all">View all</string>
     <string name="home_recent_empty">Your latest entries will appear here. Add an expense, income, or transfer whenever you like.</string>

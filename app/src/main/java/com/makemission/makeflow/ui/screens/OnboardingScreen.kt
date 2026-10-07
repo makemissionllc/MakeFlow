@@ -614,7 +614,7 @@ fun FeaturesStageView(modifier: Modifier = Modifier) {
             FeatureItem(Icons.Rounded.AccountBalance, "Budget Forecasting", "Predict future expenses and stay ahead of your budget"),
             FeatureItem(Icons.Rounded.AutoAwesome, "Smart Categories", "Learns from your corrections to sort transactions automatically"),
             FeatureItem(Icons.Rounded.Savings, "Savings Goals", "Set goals with personalized feasibility insights"),
-            FeatureItem(Icons.Rounded.Sync, "M-PESA Import", "Auto-sync transactions from M-PESA messages"),
+            FeatureItem(Icons.Rounded.Sync, "M-PESA Import", "Share or paste a Safaricom confirmation to review a transaction"),
             FeatureItem(Icons.Rounded.Warning, "Anomaly Detection", "Get alerts for duplicate transactions and unusual activity"),
         )
     }

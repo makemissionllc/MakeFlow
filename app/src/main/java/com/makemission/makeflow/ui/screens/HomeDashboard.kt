@@ -1,5 +1,9 @@
 package com.makemission.makeflow.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -19,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -29,7 +34,6 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.MoreVert
@@ -37,10 +41,12 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -55,6 +61,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -63,8 +71,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import com.makemission.makeflow.R
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.data.RecurringPattern
 import com.makemission.makeflow.data.local.entity.BudgetEntity
@@ -73,11 +83,14 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.domain.VelocityAlert
+import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
-import com.makemission.makeflow.ui.components.BigAmount
+import com.makemission.makeflow.ui.components.FittedAmountText
 import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.ui.components.InfoBanner
+import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.PrimaryButton
 import com.makemission.makeflow.ui.components.ProgressBar
 import com.makemission.makeflow.ui.components.PrimaryDockContentInset
@@ -87,6 +100,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
@@ -121,6 +135,7 @@ fun HomeDashboard(
     onOpenHistory: () -> Unit = {},
     onAddTransaction: (String) -> Unit = {},
     onEditTransaction: (TransactionEntity) -> Unit = {},
+    onImportMpesaMessage: (MpesaMessageParser.MpesaParsedMessage) -> Unit = {},
     hapticManager: HapticManager? = null,
     notificationGate: NotificationGate? = null
 ) {
@@ -147,10 +162,13 @@ fun HomeDashboard(
 
     var showReorderSheet by remember { mutableStateOf(false) }
     var showAccountFocusSheet by remember { mutableStateOf(false) }
+    var showMpesaImportDialog by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val config = LocalAdaptiveConfig.current
+    val isCompact = config.layoutMode == DeviceLayoutMode.COMPACT
+    val horizontalPadding = if (isCompact) dimens.paddingLarge else config.horizontalPadding
     val focusedAccountName = when (val state = focusedAccountState) {
         is FocusedAccountState.Loading -> null
         is FocusedAccountState.ShowAll -> null
@@ -184,71 +202,100 @@ fun HomeDashboard(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = config.horizontalPadding)
+                .padding(horizontal = horizontalPadding)
                 .verticalFadingEdge(
                     topFadeHeight = config.fadingEdgeHeight,
                     bottomFadeHeight = config.fadingEdgeHeight
                 ),
-            verticalArrangement = Arrangement.spacedBy(config.cardSpacing),
+            verticalArrangement = Arrangement.spacedBy(if (isCompact) dimens.spacingXLarge else config.cardSpacing),
             contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() +
+                    if (isCompact) dimens.paddingLarge else config.barHeight,
                 bottom = PrimaryDockContentInset()
             )
         ) {
             item {
-                HomeWelcomeHeader(
-                    username = username,
-                    onOpenSettings = onOpenSettings,
-                    hapticManager = hapticManager
-                )
+                StaggeredItem(index = 0) {
+                    HomeWelcomeHeader(
+                        username = username,
+                        onOpenSettings = onOpenSettings,
+                        hapticManager = hapticManager,
+                        compact = isCompact
+                    )
+                }
             }
             if (focusedAccountReady) {
-                item {
-                    AccountFocusSelector(
-                        focusedAccountName = focusedAccountName,
-                        onClick = {
-                            hapticManager?.fire(HapticEvent.NAV_SELECT)
-                            showAccountFocusSheet = true
-                        }
-                    )
-                }
-                item {
-                    HomeBalanceHero(
-                        balance = totalBalance,
-                        currencyCode = balanceCurrencyCode,
-                        label = focusedAccountName ?: stringResource(R.string.home_total_balance),
-                        supportingLabel = if (focusedAccountName == null) {
-                            when (accounts.size) {
-                                0 -> stringResource(R.string.home_no_accounts)
-                                1 -> stringResource(R.string.home_across_one_account)
-                                else -> stringResource(R.string.home_across_accounts, accounts.size)
+                if (!isCompact) {
+                    item {
+                        AccountFocusSelector(
+                            focusedAccountName = focusedAccountName,
+                            onClick = {
+                                hapticManager?.fire(HapticEvent.TAB_SWITCH)
+                                showAccountFocusSheet = true
                             }
-                        } else {
-                            stringResource(R.string.home_focused_account)
-                        },
-                        onAddTransaction = onAddTransaction,
-                        hapticManager = hapticManager
-                    )
+                        )
+                    }
                 }
                 item {
-                    WeeklySpendingSummary(
-                        status = weeklyBudgetStatus,
-                        currencyCode = selectedCurrency,
-                        onOpenBudgets = onOpenBudgets,
-                        hapticManager = hapticManager
-                    )
+                    StaggeredItem(index = 1) {
+                        HomeBalanceHero(
+                            balance = totalBalance,
+                            currencyCode = balanceCurrencyCode,
+                            label = focusedAccountName ?: stringResource(R.string.home_total_balance),
+                            supportingLabel = if (focusedAccountName == null) {
+                                when (accounts.size) {
+                                    0 -> stringResource(R.string.home_no_accounts)
+                                    1 -> stringResource(R.string.home_across_one_account)
+                                    else -> stringResource(R.string.home_across_accounts, accounts.size)
+                                }
+                            } else {
+                                stringResource(R.string.home_focused_account)
+                            },
+                            showSupportingLabel = !isCompact,
+                            canChangeFocus = isCompact && accounts.size > 1,
+                            onChangeFocus = {
+                                hapticManager?.fire(HapticEvent.TAB_SWITCH)
+                                showAccountFocusSheet = true
+                            },
+                            onAddTransaction = onAddTransaction,
+                            hapticManager = hapticManager
+                        )
+                    }
                 }
                 item {
-                    RecentActivityCard(
-                        transactions = recentTransactions,
-                        accounts = accounts,
-                        categories = categories,
-                        currencyCode = selectedCurrency,
-                        onAddTransaction = onAddTransaction,
-                        onOpenHistory = onOpenHistory,
-                        onEditTransaction = onEditTransaction,
-                        hapticManager = hapticManager
-                    )
+                    StaggeredItem(index = 2) {
+                        WeeklySpendingSummary(
+                            status = weeklyBudgetStatus,
+                            currencyCode = selectedCurrency,
+                            onOpenBudgets = onOpenBudgets,
+                            hapticManager = hapticManager
+                        )
+                    }
+                }
+                if (isCompact) {
+                    item {
+                        StaggeredItem(index = 3) {
+                            InfoBanner(
+                                message = stringResource(R.string.home_mpesa_import_banner),
+                                onClick = { showMpesaImportDialog = true },
+                                hapticManager = hapticManager,
+                                emphasized = true
+                            )
+                        }
+                    }
+                }
+                item {
+                    StaggeredItem(index = 4) {
+                        RecentActivitySection(
+                            transactions = recentTransactions,
+                            accounts = accounts,
+                            categories = categories,
+                            currencyCode = selectedCurrency,
+                            onOpenHistory = onOpenHistory,
+                            onEditTransaction = onEditTransaction,
+                            hapticManager = hapticManager
+                        )
+                    }
                 }
             } else {
                 item {
@@ -370,30 +417,32 @@ fun HomeDashboard(
             }
         }
 
-        CollapsingTopBar(
-            title = "Home",
-            scrollState = listState,
-            modifier = Modifier.align(Alignment.TopStart),
-            actions = {
-                Box(
-                    modifier = Modifier.size(48.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.CloudOff,
-                        contentDescription = "Local storage",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(22.dp)
-                    )
+        if (!isCompact) {
+            CollapsingTopBar(
+                title = "Home",
+                scrollState = listState,
+                modifier = Modifier.align(Alignment.TopStart),
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
+                            contentDescription = "Settings",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
                 }
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        imageVector = Icons.Rounded.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
+            )
+        }
+    }
+
+    if (showMpesaImportDialog) {
+        MpesaMessageImportDialog(
+            onDismiss = { showMpesaImportDialog = false },
+            onImport = { parsedMessage ->
+                hapticManager?.fire(HapticEvent.NAV_SELECT)
+                onImportMpesaMessage(parsedMessage)
+                showMpesaImportDialog = false
             }
         )
     }
@@ -418,6 +467,7 @@ fun HomeDashboard(
             accounts = accounts,
             focusedAccountId = focusedAccountId,
             onSelectAccount = { accountId ->
+                hapticManager?.fire(HapticEvent.TAB_SWITCH)
                 viewModel.setFocusedAccountId(accountId)
                 showAccountFocusSheet = false
             },
@@ -429,10 +479,75 @@ fun HomeDashboard(
 }
 
 @Composable
+private fun MpesaMessageImportDialog(
+    onDismiss: () -> Unit,
+    onImport: (MpesaMessageParser.MpesaParsedMessage) -> Unit
+) {
+    var message by remember { mutableStateOf("") }
+    val parsedMessage = remember(message) { MpesaMessageParser.parse(message) }
+    val showParseError = message.isNotBlank() && parsedMessage == null
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        title = {
+            Text(
+                text = stringResource(R.string.home_mpesa_import_title),
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(LocalAppDimens.current.spacingMedium)) {
+                Text(
+                    text = stringResource(R.string.home_mpesa_import_support),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.home_mpesa_message_label)) },
+                    minLines = 4,
+                    maxLines = 7,
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    isError = showParseError
+                )
+                if (showParseError) {
+                    Text(
+                        text = stringResource(R.string.home_mpesa_message_invalid),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { parsedMessage?.let(onImport) },
+                enabled = parsedMessage != null
+            ) {
+                Text(stringResource(R.string.home_mpesa_review_action))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.home_mpesa_cancel))
+            }
+        }
+    )
+}
+
+@Composable
 private fun HomeWelcomeHeader(
     username: String,
     onOpenSettings: () -> Unit,
-    hapticManager: HapticManager?
+    hapticManager: HapticManager?,
+    compact: Boolean
 ) {
     val dimens = LocalAppDimens.current
     val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -461,10 +576,10 @@ private fun HomeWelcomeHeader(
             contentAlignment = Alignment.Center
         ) {
             if (username.isBlank()) {
-                Icon(
-                    imageVector = Icons.Rounded.AccountBalanceWallet,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = "M",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             } else {
                 Text(
@@ -484,17 +599,23 @@ private fun HomeWelcomeHeader(
                     greeting,
                     username.trim()
                 ),
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onBackground,
+                style = if (compact) {
+                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal)
+                } else {
+                    MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                },
+                color = if (compact) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = stringResource(R.string.home_money_at_a_glance, today),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+            if (!compact) {
+                Text(
+                    text = stringResource(R.string.home_money_at_a_glance, today),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -505,10 +626,14 @@ private fun HomeBalanceHero(
     currencyCode: String,
     label: String,
     supportingLabel: String,
+    showSupportingLabel: Boolean,
+    canChangeFocus: Boolean,
+    onChangeFocus: () -> Unit,
     onAddTransaction: (String) -> Unit,
     hapticManager: HapticManager?
 ) {
     val dimens = LocalAppDimens.current
+    val reducedMotion = LocalReducedMotion.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -517,31 +642,46 @@ private fun HomeBalanceHero(
     ) {
         Text(
             text = label,
+            modifier = if (canChangeFocus) {
+                Modifier.clickable(role = Role.Button, onClick = onChangeFocus)
+            } else {
+                Modifier
+            },
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        BigAmount(
-            amount = balance,
-            currencyCode = currencyCode,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = supportingLabel,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        AnimatedContent(
+            targetState = CurrencyFormatter.formatCompact(balance, currencyCode),
+            transitionSpec = {
+                if (reducedMotion) {
+                    fadeIn(OverlayTransition.reducedEnter) togetherWith
+                        fadeOut(OverlayTransition.reducedExit)
+                } else {
+                    fadeIn(OverlayTransition.enterSpring) togetherWith
+                        fadeOut(OverlayTransition.exitSpring)
+                }
+            },
+            label = "homeBalance"
+        ) { amount ->
+            FittedAmountText(text = amount, color = MaterialTheme.colorScheme.onSurface)
+        }
+        if (showSupportingLabel) {
+            Text(
+                text = supportingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             PrimaryButton(
                 label = stringResource(R.string.home_action_add),
                 onClick = { onAddTransaction("EXPENSE") },
-                hapticManager = hapticManager,
-                modifier = Modifier.weight(1f)
+                hapticManager = hapticManager
             )
             SoftButton(
                 label = stringResource(R.string.home_action_transfer),
                 onClick = { onAddTransaction("TRANSFER") },
-                hapticManager = hapticManager,
-                modifier = Modifier.weight(1f)
+                hapticManager = hapticManager
             )
         }
     }
@@ -563,94 +703,92 @@ private fun WeeklySpendingSummary(
             onOpenBudgets()
         }
     }
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(dimens.cardCornerRadius))
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .then(clickModifier)
             .padding(dimens.paddingMedium),
-        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(R.string.home_weekly_left),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        if (!status.hasBudget) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_weekly_budget_setup),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = stringResource(R.string.home_weekly_budget_setup_support),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Rounded.ChevronRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            BigAmount(
-                amount = (status.limit - status.spent).coerceAtLeast(0.0),
-                currencyCode = currencyCode,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+        ) {
             Text(
-                text = stringResource(
-                    R.string.home_weekly_spent,
-                    CurrencyFormatter.format(status.spent, currencyCode),
-                    CurrencyFormatter.format(status.limit, currencyCode)
-                ),
-                style = MaterialTheme.typography.bodySmall,
+                text = stringResource(R.string.home_weekly_left),
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            ProgressBar(
-                progress = if (status.limit > 0.0) (status.spent / status.limit).toFloat() else 0f
+            Text(
+                text = if (status.hasBudget) {
+                    CurrencyFormatter.formatCompact(
+                        (status.limit - status.spent).coerceAtLeast(0.0),
+                        currencyCode
+                    )
+                } else {
+                    stringResource(R.string.home_weekly_budget_setup)
+                },
+                style = if (status.hasBudget) {
+                    MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                } else {
+                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                },
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (!status.hasBudget) {
+                Text(
+                    text = stringResource(R.string.home_weekly_budget_setup_support),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        if (status.hasBudget) {
+            AnimatedProgressBar(
+                progress = if (status.limit > 0.0) (status.spent / status.limit).toFloat() else 0f,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .width(dimens.dashboardMeterWidth)
+                    .height(dimens.progressTrackHeight)
+                    .clip(CircleShape)
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Rounded.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
 }
 
 @Composable
-private fun RecentActivityCard(
+private fun RecentActivitySection(
     transactions: List<TransactionEntity>,
     accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
     categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
     currencyCode: String,
-    onAddTransaction: (String) -> Unit,
     onOpenHistory: () -> Unit,
     onEditTransaction: (TransactionEntity) -> Unit,
     hapticManager: HapticManager?
 ) {
     val dimens = LocalAppDimens.current
-    CardContainer {
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    text = stringResource(R.string.home_recent),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
-                )
-            }
+            Text(
+                text = stringResource(R.string.home_recent),
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
             if (transactions.isNotEmpty()) {
                 TextButton(onClick = {
                     hapticManager?.fire(HapticEvent.NAV_SELECT)
@@ -662,33 +800,37 @@ private fun RecentActivityCard(
             }
         }
 
-        Spacer(Modifier.height(dimens.spacingMedium))
-
         if (transactions.isEmpty()) {
             Text(
                 text = stringResource(R.string.home_recent_empty),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = dimens.spacingMedium)
             )
-            QuickAddActions(onAddTransaction, hapticManager)
         } else {
-            transactions.forEachIndexed { index, transaction ->
+            val visibleTransactions = transactions.take(3)
+            visibleTransactions.forEach { transaction ->
                 val category = categories.find { it.id == transaction.categoryId }
                 val account = accounts.find { it.id == transaction.accountId }
-                val title = if (transaction.type == "TRANSFER") stringResource(R.string.home_transfer) else category?.name ?: stringResource(R.string.home_uncategorized)
+                val title = transaction.note
+                    .takeIf { it.isNotBlank() }
+                    ?: if (transaction.type == "TRANSFER") stringResource(R.string.home_transfer)
+                    else category?.name ?: stringResource(R.string.home_uncategorized)
                 val accountLabel = when (transaction.type) {
                     "TRANSFER" -> {
                         val from = accounts.find { it.id == transaction.fromAccountId }?.name
                         val to = accounts.find { it.id == transaction.toAccountId }?.name
-                        listOfNotNull(from, to).joinToString(" to ").ifBlank { "Transfer" }
+                        listOfNotNull(from, to).joinToString(" to ").ifBlank { account?.name.orEmpty() }
                     }
                     else -> account?.name ?: ""
                 }
-                val dateLabel = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
-                    .format(Date(transaction.timestamp))
-                val subtitle = listOf(accountLabel, transaction.note, dateLabel)
+                val subtitle = listOfNotNull(
+                    category?.name?.takeIf { it != title },
+                    accountLabel.takeIf { it.isNotBlank() }
+                )
                     .filter { it.isNotBlank() }
-                    .joinToString(" | ")
+                    .distinct()
+                    .joinToString(" · ")
                 TransactionRow(
                     title = title,
                     subtitle = subtitle,
@@ -698,31 +840,7 @@ private fun RecentActivityCard(
                     onClick = { onEditTransaction(transaction) },
                     hapticManager = hapticManager
                 )
-                if (index < transactions.lastIndex) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f), thickness = 0.5.dp)
-                }
             }
-            QuickAddActions(onAddTransaction, hapticManager)
-        }
-    }
-}
-
-@Composable
-private fun QuickAddActions(onAddTransaction: (String) -> Unit, hapticManager: HapticManager?) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        TextButton(onClick = {
-            hapticManager?.fire(HapticEvent.NAV_SELECT)
-            onAddTransaction("EXPENSE")
-        }) {
-            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Expense")
-        }
-        TextButton(onClick = {
-            hapticManager?.fire(HapticEvent.NAV_SELECT)
-            onAddTransaction("INCOME")
-        }) {
-            Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text("Income")
         }
     }
 }

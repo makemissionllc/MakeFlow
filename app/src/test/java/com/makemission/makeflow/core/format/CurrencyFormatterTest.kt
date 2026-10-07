@@ -47,4 +47,16 @@ class CurrencyFormatterTest {
         assertTrue(result.contains("1234567") || result.contains("1,234,567") || result.contains("1 234 567") || result.contains("1.234.567"))
         assertTrue(result.contains("89"))
     }
+
+    @Test
+    fun compactFormat_omitsDecimalsForWholeAmounts() {
+        val result = CurrencyFormatter.formatCompact(1_234.0, "KES")
+
+        assertEquals("KSh ${CurrencyFormatter.formatNumber(1_234.0, 0)}", result)
+    }
+
+    @Test
+    fun compactFormat_keepsFractionalPrecisionAndLeadingSign() {
+        assertEquals("-$500.25", CurrencyFormatter.formatCompact(-500.25, "USD"))
+    }
 }

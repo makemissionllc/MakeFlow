@@ -35,6 +35,14 @@ object CurrencyFormatter {
         }
     }
 
+    fun formatCompact(amount: Double, currencyCode: String): String {
+        val symbol = if (currencyCode == "KES") "KSh" else symbolFor(currencyCode)
+        val decimalPlaces = if (currencyCode in zeroDecimalCurrencies || amount % 1.0 == 0.0) 0 else 2
+        val separator = if (symbol.length == 1) "" else " "
+        val sign = if (amount < 0.0) "-" else ""
+        return sign + symbol + separator + formatNumber(kotlin.math.abs(amount), decimalPlaces)
+    }
+
     fun symbolFor(currencyCode: String): String {
         return try {
             val locale = currencyLocaleMap[currencyCode] ?: Locale.getDefault()

@@ -8,6 +8,29 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Polish Home around the mockup and complete M-PESA review import
+
+- **Scope:** compact Home dashboard, shared banner/button styling, primary navigation,
+  onboarding copy, and transaction import handoff.
+- **What:** aligned the phone Home layout to the reference with a compact greeting and
+  avatar, compact currency balance, naturally sized actions, horizontal weekly summary,
+  emphasized yellow import banner, and unboxed recent transaction rows. Recent rows now
+  prioritize merchant notes and show category/account context without dates; navigation
+  icons match the Home, Insights, Budget, and Goals references. Added a paste-and-review
+  M-PESA path that uses the existing parser, duplicate check, and transaction editor,
+  without implying SMS inbox access. Updated onboarding to describe share/paste import.
+  Balance changes use shared reduced-motion-aware transition specs; action haptics remain
+  connected through the existing haptic manager. Compact currency formatting is covered
+  by unit tests.
+- **Fixes:** the initial compile found a stale composable argument and a removed shared
+  divider import still used by dashboard modules; both were corrected. Kotlin also fell
+  back from a damaged incremental cache entry to a full compile.
+- **Verification:** `:app:compileDebugKotlin test` passed with the Android Studio JDK
+  and Gradle 9.3.1. Device screenshot verification was unavailable because `adb` is not
+  installed in this environment.
+
+---
+
 ## 2026-10-03 — Unify app screens around the mockup system
 
 - **Scope:** Shared amounts, navigation dock, primary tab actions, Accounts, and Settings.

@@ -41,11 +41,11 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.SpaceDashboard
-import androidx.compose.material.icons.rounded.AccountBalanceWallet
-import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.PieChart
+import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -302,9 +302,19 @@ fun MainScreen(
     var mpesaInitialTransferFromId by remember { mutableStateOf<String?>(null) }
     var mpesaInitialTransferToId by remember { mutableStateOf<String?>(null) }
     var mpesaTransactionCost by remember { mutableStateOf<Double?>(null) }
+    var pendingMpesaImport by remember { mutableStateOf<MpesaMessageParser.MpesaParsedMessage?>(null) }
+    val mpesaImportRequestId = remember { mutableIntStateOf(0) }
 
     LaunchedEffect(sharedMpesaData) {
-        val data = sharedMpesaData ?: return@LaunchedEffect
+        sharedMpesaData?.let { data ->
+            pendingMpesaImport = data
+            mpesaImportRequestId.intValue++
+        }
+    }
+
+    LaunchedEffect(mpesaImportRequestId.intValue) {
+        val data = pendingMpesaImport ?: return@LaunchedEffect
+        pendingMpesaImport = null
         if (data.code.isNotEmpty()) {
             val isDuplicate = repository.hasExternalReference(data.code)
             if (isDuplicate) {
@@ -603,6 +613,10 @@ fun MainScreen(
                             onEditTransaction = { tx ->
                                 editingTransaction = tx
                                 showAddTransaction = true
+                            },
+                            onImportMpesaMessage = { data ->
+                                pendingMpesaImport = data
+                                mpesaImportRequestId.intValue++
                             }
                         )
             }
@@ -709,6 +723,10 @@ fun MainScreen(
                     onEditTransaction = { tx ->
                         editingTransaction = tx
                         showAddTransaction = true
+                    },
+                    onImportMpesaMessage = { data ->
+                        pendingMpesaImport = data
+                        mpesaImportRequestId.intValue++
                     }
                 )
 
@@ -724,10 +742,10 @@ fun MainScreen(
                 ) {
                     FloatingPillNav(
                         items = listOf(
-                            PillNavItem(stringResource(R.string.nav_home), Icons.Rounded.SpaceDashboard),
-                            PillNavItem(stringResource(R.string.nav_insights), Icons.Rounded.Insights),
-                            PillNavItem(stringResource(R.string.nav_budget), Icons.Rounded.AccountBalanceWallet),
-                            PillNavItem(stringResource(R.string.nav_goals), Icons.Rounded.Savings)
+                            PillNavItem(stringResource(R.string.nav_home), Icons.Rounded.Home),
+                            PillNavItem(stringResource(R.string.nav_insights), Icons.Rounded.BarChart),
+                            PillNavItem(stringResource(R.string.nav_budget), Icons.Rounded.PieChart),
+                            PillNavItem(stringResource(R.string.nav_goals), Icons.Rounded.TrackChanges)
                         ),
                         selectedIndex = primaryTabs.indexOf(activeTab),
                         onTabSelected = { activeTab = primaryTabs[it] },
@@ -1213,7 +1231,8 @@ private fun TabContentAnimated(
     onNavigateToHome: () -> Unit,
     onSetUpRecurringFromInsights: (Double) -> Unit = {},
     onExportPdf: () -> Unit = {},
-    onEditTransaction: ((TransactionEntity) -> Unit)? = null
+    onEditTransaction: ((TransactionEntity) -> Unit)? = null,
+    onImportMpesaMessage: (MpesaMessageParser.MpesaParsedMessage) -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     val tabIndex = when (activeTab) {
@@ -1257,6 +1276,7 @@ private fun TabContentAnimated(
                     onOpenHistory = onOpenHistory,
                     onAddTransaction = onAddTransaction,
                     onEditTransaction = { tx -> onEditTransaction?.invoke(tx) },
+                    onImportMpesaMessage = onImportMpesaMessage,
                     hapticManager = hapticManager,
                     notificationGate = notificationGate
                 )
@@ -1485,10 +1505,10 @@ private fun MakeFlowNavRail(
                 icon = {
                     Icon(
                         imageVector = when (tab) {
-                            MakeFlowTab.HOME -> Icons.Rounded.SpaceDashboard
-                            MakeFlowTab.INSIGHTS -> Icons.Rounded.Insights
-                            MakeFlowTab.BUDGET -> Icons.Rounded.AccountBalanceWallet
-                            MakeFlowTab.GOALS -> Icons.Rounded.Savings
+                            MakeFlowTab.HOME -> Icons.Rounded.Home
+                            MakeFlowTab.INSIGHTS -> Icons.Rounded.BarChart
+                            MakeFlowTab.BUDGET -> Icons.Rounded.PieChart
+                            MakeFlowTab.GOALS -> Icons.Rounded.TrackChanges
                             MakeFlowTab.HISTORY -> Icons.Rounded.History
                         },
                         contentDescription = tab.name
@@ -1553,10 +1573,10 @@ fun FloatingCapsuleNavBar(
             ) {
                 Icon(
                     imageVector = when (tab) {
-                        MakeFlowTab.HOME -> Icons.Rounded.SpaceDashboard
-                        MakeFlowTab.INSIGHTS -> Icons.Rounded.Insights
-                        MakeFlowTab.BUDGET -> Icons.Rounded.AccountBalanceWallet
-                        MakeFlowTab.GOALS -> Icons.Rounded.Savings
+                        MakeFlowTab.HOME -> Icons.Rounded.Home
+                        MakeFlowTab.INSIGHTS -> Icons.Rounded.BarChart
+                        MakeFlowTab.BUDGET -> Icons.Rounded.PieChart
+                        MakeFlowTab.GOALS -> Icons.Rounded.TrackChanges
                         MakeFlowTab.HISTORY -> Icons.Rounded.History
                     },
                     contentDescription = tab.name,

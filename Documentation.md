@@ -8,6 +8,44 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Prepare the 2.0.0 release and complete first-run follow-up
+
+- **Scope:** Play release metadata, Settings scrolling, onboarding, widget discovery,
+  optional finance reminders, and privacy-policy access.
+- **What:** moved the Play app to version 2.0.0 / code 3. Added Play and Community product
+  flavors from one source branch: Play does not declare `RECEIVE_SMS`; the separately named Community
+  release uses the existing opt-in receiver and `.community` application ID. The Community
+  package is intended for GitHub side-loading and not Play submission. Onboarding now includes a skippable
+  practical tour; after setup, a one-time sheet offers Android's supported widget-pinning
+  flow and uses the optional profile name. Added opt-in weekly finance-review notifications
+  through WorkManager, with a seven-day first delay, a dedicated notification channel, and
+  a name-aware message. The in-app privacy page now opens
+  `https://makemission.gt.tc/privacy`.
+- **Settings scroll:** staggered entrance effects now settle immediately when the user is
+  actively scrolling, and an instrumented regression test scrolls to the final privacy row.
+  No device crash trace was available, so the original device-specific trigger still needs
+  confirmation on a representative phone.
+- **SMS policy:** the Play release manifest has neither `RECEIVE_SMS` nor its receiver. Current Play
+  guidance does not allow alternate APIs to derive SMS content, so a notification listener
+  or accessibility service is not an acceptable workaround. User-initiated share/paste
+  import remains the Play-compatible path. SMS Retriever is not used for M-PESA because
+  its app-hash-matched message must be sent by a system MakeFlow controls; SMS User Consent
+  is a one-message OTP flow, not persistent transaction monitoring. Only the Community
+  flavor uses the disclosed direct permission flow.
+- **Fixes:** moved the Community app label from a disabled custom `resValue` path into its
+  flavor resource file. Fixed onboarding widget-sheet lambda typing, a missing layout import,
+  and a misplaced privacy-screen list item found during the first compile. Android-test
+  compilation then exposed a stale savings-goal/account test API; updated it to the current
+  default-currency and four-argument save callback.
+- **Verification:** `gradle test --offline` passed for Play and Community. Both Android-test
+  source sets compiled; both release AAB tasks completed. The merged Play manifest contains
+  no SMS permission or receiver; Community contains both. `git diff --check` passed. There is
+  no attached device/ADB here, so instrumented tests and device QA were not run. The public
+  policy URL, Play Console declarations, production signing, and store submission remain
+  publisher-side checks.
+
+---
+
 ## 2026-10-07 — Prepare the 1.1.0 Play release candidate
 
 - **Scope:** first-run onboarding, app-wide haptics, privacy disclosures and backup

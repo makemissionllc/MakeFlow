@@ -70,8 +70,8 @@ class SavingsGoalAccountCreationTest {
             AdaptiveSheetDialog(onDismiss = {}) {
                 AddEditAccountBottomSheet(
                     onDismiss = {},
-                    onSave = { _, _, _ -> },
-                    currencySymbol = "Ksh"
+                    onSave = { _, _, _, _ -> },
+                    defaultCurrencyCode = "KES"
                 )
             }
         }
@@ -145,9 +145,9 @@ class SavingsGoalAccountCreationTest {
             AdaptiveSheetDialog(onDismiss = {}) {
                 AddEditAccountBottomSheet(
                     onDismiss = {},
-                    onSave = { _, _, _ -> },
+                    onSave = { _, _, _, _ -> },
                     account = existingAccount,
-                    currencySymbol = "Ksh"
+                    defaultCurrencyCode = "KES"
                 )
             }
         }

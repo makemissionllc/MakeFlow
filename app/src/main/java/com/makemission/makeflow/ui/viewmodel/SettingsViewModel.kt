@@ -71,6 +71,9 @@ class SettingsViewModel(
     val hasPromptedNotificationPermission: StateFlow<Boolean> = userPreferencesDataStore.hasPromptedNotificationPermission
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val financeReviewRemindersEnabled: StateFlow<Boolean> = userPreferencesDataStore.financeReviewRemindersEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
@@ -114,6 +117,12 @@ class SettingsViewModel(
     fun saveMpesaAutoImportEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveMpesaAutoImportEnabled(enabled)
+        }
+    }
+
+    fun saveFinanceReviewRemindersEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveFinanceReviewRemindersEnabled(enabled)
         }
     }
 

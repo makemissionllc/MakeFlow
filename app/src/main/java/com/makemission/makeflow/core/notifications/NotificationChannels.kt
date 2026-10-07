@@ -9,6 +9,7 @@ object NotificationChannels {
     const val CHANNEL_BUDGET_ALERTS = "budget_alerts"
     const val CHANNEL_BILL_REMINDERS = "bill_reminders"
     const val CHANNEL_MPESA_IMPORTS = "mpesa_imports"
+    const val CHANNEL_FINANCE_REVIEW = "finance_review_reminders"
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -38,6 +39,14 @@ object NotificationChannels {
             description = "Review new M-PESA transaction detections before saving"
         }
 
-        nm.createNotificationChannels(listOf(budgetChannel, billChannel, mpesaChannel))
+        val financeReviewChannel = NotificationChannel(
+            CHANNEL_FINANCE_REVIEW,
+            "Finance Review Reminders",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Optional reminders to review your finances"
+        }
+
+        nm.createNotificationChannels(listOf(budgetChannel, billChannel, mpesaChannel, financeReviewChannel))
     }
 }

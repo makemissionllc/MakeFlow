@@ -45,6 +45,26 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val shouldOfferHomeWidget: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[OFFER_HOME_WIDGET_KEY] ?: false
+    }
+
+    suspend fun setShouldOfferHomeWidget(shouldOffer: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[OFFER_HOME_WIDGET_KEY] = shouldOffer
+        }
+    }
+
+    val financeReviewRemindersEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[FINANCE_REVIEW_REMINDERS_ENABLED_KEY] ?: false
+    }
+
+    suspend fun saveFinanceReviewRemindersEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[FINANCE_REVIEW_REMINDERS_ENABLED_KEY] = enabled
+        }
+    }
+
     val hapticLevel: Flow<String> = dataStore.data.map { prefs ->
         val stored = prefs[HAPTIC_LEVEL_KEY]
         HapticStrength.fromStorage(stored ?: if (prefs[HAPTICS_ENABLED_KEY] == false) "off" else null)
@@ -202,6 +222,8 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
+        private val OFFER_HOME_WIDGET_KEY = booleanPreferencesKey("offer_home_widget")
+        private val FINANCE_REVIEW_REMINDERS_ENABLED_KEY = booleanPreferencesKey("finance_review_reminders_enabled")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
         private val HAPTIC_LEVEL_KEY = stringPreferencesKey("haptic_level")
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")

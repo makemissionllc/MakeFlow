@@ -1,5 +1,9 @@
 package com.makemission.makeflow.ui.screens
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +24,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import com.makemission.makeflow.BuildConfig
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -49,7 +55,7 @@ private val privacyPolicySections = listOf(
     ),
     PrivacyPolicySection(
         "Permissions and imports",
-        "Notifications are used for reminders and transaction review when you enable them. Biometric authentication can protect app access, and vibration is used for touch feedback. The Google Play release does not request SMS access or listen to messages; M-PESA confirmations can be shared or pasted into the app for review."
+        "Optional weekly finance reminders use Android notifications and can be turned off in Settings. Biometric authentication can protect app access, and vibration is used for touch feedback. The Google Play build does not request SMS access. The separately labeled Community build can optionally detect new M-PESA messages after you grant SMS permission; it filters to the M-PESA sender and requires review before saving. Share and paste import are also available."
     ),
     PrivacyPolicySection(
         "Backups and deleting data",
@@ -65,6 +71,7 @@ private val privacyPolicySections = listOf(
 fun PrivacyPolicyScreen(onBack: () -> Unit) {
     val dimens = LocalAppDimens.current
     val listState = rememberLazyListState()
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -111,6 +118,22 @@ fun PrivacyPolicyScreen(onBack: () -> Unit) {
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+            item {
+                TextButton(
+                    onClick = {
+                        try {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://makemission.gt.tc/privacy"))
+                            )
+                        } catch (_: ActivityNotFoundException) {
+                            Toast.makeText(context, "No browser is available to open the privacy policy.", Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Open online privacy policy")
                 }
             }
         }

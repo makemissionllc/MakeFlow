@@ -222,7 +222,10 @@ fun AppNavigationEngine(
                         }
                     },
                     onOnboardingComplete = {
-                        scope.launch { userPrefDataStore.setProfiled() }
+                        scope.launch {
+                            userPrefDataStore.setProfiled()
+                            userPrefDataStore.setShouldOfferHomeWidget(true)
+                        }
                     },
                     hapticManager = hapticManager
                 )

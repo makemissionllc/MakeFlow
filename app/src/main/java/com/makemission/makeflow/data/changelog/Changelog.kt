@@ -12,6 +12,16 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 
 val changelogEntries = listOf(
     ChangelogEntry(
+        version = "2.0.0",
+        date = "2026-10-07",
+        changes = listOf(
+            "A four-step onboarding flow with an optional name and a skippable app tour",
+            "A one-time offer to pin a Mindful widget after setup",
+            "Optional weekly reminders for a finance check-in",
+            "A direct link to the public privacy policy"
+        )
+    ),
+    ChangelogEntry(
         version = "1.1.0",
         date = "2026-10-07",
         changes = listOf(

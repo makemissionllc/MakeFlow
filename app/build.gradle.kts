@@ -16,19 +16,29 @@ android {
         applicationId = "com.makemission.makeflow"
         minSdk = 28
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
-        buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
+        versionCode = 3
+        versionName = "2.0.0"
+        buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        debug {
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("play") {
+            dimension = "distribution"
+            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
+        }
+        create("community") {
+            dimension = "distribution"
+            applicationIdSuffix = ".community"
+            versionNameSuffix = "-community"
             buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
         }
+    }
+
+    buildTypes {
         release {
-            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -50,6 +60,7 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

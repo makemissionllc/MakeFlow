@@ -1,5 +1,7 @@
 package com.makemission.makeflow.ui
 
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,6 +29,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -48,6 +51,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
+import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
@@ -95,6 +101,7 @@ import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.widget.WidgetUpdateHelper
+import com.makemission.makeflow.widget.MakeFlowWidgetReceiver
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
@@ -206,6 +213,7 @@ fun MainScreen(
     val goalRepository = remember { com.makemission.makeflow.data.repository.GoalRepositoryImpl(db.goalDao()) }
     val correctionRepository = remember { CorrectionRepositoryImpl(db.correctionDao(), db.correctionMemoryDao()) as CorrectionRepository }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
+    val shouldOfferHomeWidget by userPrefDataStore.shouldOfferHomeWidget.collectAsState(initial = false)
     val homeViewModel: HomeDashboardViewModel = viewModel(
         factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao(), exchangeRateRepository)
     )
@@ -460,6 +468,7 @@ fun MainScreen(
     var showExchangeRates by remember { mutableStateOf(false) }
     var showChangelogScreen by remember { mutableStateOf(false) }
     var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
+    var showHomeWidgetOffer by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val exchangeRateSyncer = remember(exchangeRateRepository) { ExchangeRateSyncer(exchangeRateRepository) }
     var exchangeRatesRefreshing by remember { mutableStateOf(false) }
@@ -477,6 +486,10 @@ fun MainScreen(
         if (lastSeen != CURRENT_CHANGELOG_VERSION) {
             showChangelogScreen = true
         }
+    }
+
+    LaunchedEffect(shouldOfferHomeWidget, showChangelogScreen, showPrivacyPolicyScreen) {
+        showHomeWidgetOffer = shouldOfferHomeWidget && !showChangelogScreen && !showPrivacyPolicyScreen
     }
 
     val scope = rememberCoroutineScope()
@@ -976,6 +989,54 @@ fun MainScreen(
         ) {
             BackHandler { showPrivacyPolicyScreen = false }
             PrivacyPolicyScreen(onBack = { showPrivacyPolicyScreen = false })
+        }
+    }
+
+    if (showHomeWidgetOffer) {
+        val appWidgetManager = remember(context) { AppWidgetManager.getInstance(context) }
+        val widgetProvider = remember(context) { ComponentName(context, MakeFlowWidgetReceiver::class.java) }
+        val dismissWidgetOffer: () -> Unit = {
+            showHomeWidgetOffer = false
+            scope.launch { userPrefDataStore.setShouldOfferHomeWidget(false) }
+            Unit
+        }
+        AdaptiveSheetDialog(onDismiss = dismissWidgetOffer) {
+            AdaptiveSheetHeader(
+                title = "Keep Mindful close",
+                subtitle = if (username.isBlank()) {
+                    "Add a balance widget or quick action to your home screen."
+                } else {
+                    "${username.trim().substringBefore(' ')}, add a balance widget or quick action to your home screen."
+                },
+                onDismiss = dismissWidgetOffer
+            )
+            Text(
+                text = if (appWidgetManager.isRequestPinAppWidgetSupported()) {
+                    "See your money at a glance and open logging in a tap. Your launcher will ask before adding it."
+                } else {
+                    "Your launcher can add Mindful widgets from its widget picker whenever you're ready."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (appWidgetManager.isRequestPinAppWidgetSupported()) {
+                AdaptiveSheetPrimaryButton(
+                    label = "Add a home-screen widget",
+                    onClick = {
+                        val requested = appWidgetManager.requestPinAppWidget(widgetProvider, null, null)
+                        if (!requested) {
+                            Toast.makeText(context, "Open your launcher's widget picker to add Mindful.", Toast.LENGTH_LONG).show()
+                        }
+                        dismissWidgetOffer()
+                    }
+                )
+            }
+            TextButton(
+                onClick = dismissWidgetOffer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Maybe later")
+            }
         }
     }
 

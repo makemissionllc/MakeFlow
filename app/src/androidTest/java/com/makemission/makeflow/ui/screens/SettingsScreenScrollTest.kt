@@ -1,0 +1,61 @@
+package com.makemission.makeflow.ui.screens
+
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.room.Room
+import androidx.test.platform.app.InstrumentationRegistry
+import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.userPrefDataStore
+import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
+import com.makemission.makeflow.ui.theme.MakeFlowTheme
+import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+
+class SettingsScreenScrollTest {
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    private lateinit var database: AppDatabase
+
+    @Before
+    fun setUp() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        val repository = FinanceRepositoryImpl(
+            categoryDao = database.categoryDao(),
+            transactionDao = database.transactionDao(),
+            taskDao = database.taskDao(),
+            accountDao = database.accountDao(),
+            budgetDao = database.budgetDao(),
+            recurringPatternDao = database.recurringPatternDao(),
+            recurringTransactionDao = database.recurringTransactionDao(),
+            exchangeRateDao = database.exchangeRateDao()
+        )
+        val preferences = UserPreferencesDataStore(context.userPrefDataStore)
+        val viewModel = SettingsViewModel(repository, preferences)
+
+        composeTestRule.setContent {
+            MakeFlowTheme {
+                SettingsScreen(onBack = {}, viewModel = viewModel)
+            }
+        }
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+    }
+
+    @Test
+    fun scrollsThroughSettingsToPrivacySection() {
+        composeTestRule.onNodeWithText("Privacy & data").performScrollTo().assertIsDisplayed()
+    }
+}

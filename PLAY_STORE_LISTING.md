@@ -17,10 +17,12 @@ your bank accounts.
 - See your total balance in your chosen currency, with daily reference exchange rates.
 - Set monthly budgets and savings goals.
 - Explore spending patterns and forecasts, then revisit the month in a finance recap.
+- Opt in to a gentle weekly reminder to review your finances.
 - Import an M-PESA confirmation by sharing or pasting it, then review it before saving.
 - Add transactions quickly from home-screen widgets.
 - Protect app access with device authentication, including fingerprint on supported phones.
 - Export statements and create a backup file when you choose.
+- Learn the basics from a skippable onboarding tour.
 
 Your transaction records stay on your device. Exchange-rate requests use currency codes,
 not your account details or transaction history. There is no bank connection or account

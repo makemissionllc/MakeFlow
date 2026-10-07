@@ -2,7 +2,7 @@
 
 Last updated: 7 October 2026.
 
-Applies to app version: 1.1.0.
+Applies to Play version 2.0.0 and Community version 2.0.0-community.
 
 ## At a glance
 
@@ -33,10 +33,14 @@ yours to review.
 
 ## Permissions and imports
 
-Notifications are used for reminders and transaction review when you enable them.
+Optional weekly finance reminders use Android notifications and can be turned off in
+Settings. Notification permission is requested only after you enable that setting.
 Biometric authentication can protect app access, and vibration is used for touch feedback.
-The Google Play release does not request SMS access or listen to messages; M-PESA
-confirmations can be shared or pasted into the app for review.
+The Google Play build does not request SMS access. The separately labeled Community build
+can optionally request permission to process new M-PESA messages; it checks only new
+message broadcasts, filters for the M-PESA sender, and requires review before saving.
+Message history is not read. M-PESA confirmations can also be shared or pasted into either
+build for review.
 
 ## Backups and deleting data
 

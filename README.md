@@ -16,7 +16,7 @@ import, multi-currency support, JSON backup/restore, and Glance home-screen widg
 | UI | Jetpack Compose (BOM `2024.12.01`) + Material 3 Expressive, adaptive layouts (phone/tablet) |
 | Charts | Vico (`2.0.0-beta.2`) |
 | Persistence | Room 2.7.1 via KSP (`makeflow_database`, version 22), DataStore Preferences (`user_preferences`) |
-| Async | Coroutines 1.9.0 + Flow, Lifecycle Runtime Compose |
+| Async | Coroutines 1.9.0 + Flow, Lifecycle Runtime Compose, WorkManager 2.12.0 |
 | ML | LiteRT (`com.google.ai.edge.litert` 1.4.2), on-device TFLite classifier + retraining |
 | Widgets | Glance AppWidget (`1.1.0`), 6 widgets |
 | System | Splash Screen API, Biometric, NotificationCompat, Material3 WindowSizeClass |
@@ -31,9 +31,9 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Accounts** — multiple accounts with per-account currency, balances, guarded delete.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts.
-- **M-PESA import** — rule-based parsing for share/paste. Background SMS detection is
-  available only in debug builds and is excluded from the Google Play release manifest;
-  the Play build does not request SMS permission. On supported devices, Gemini Nano may
+- **M-PESA import** — rule-based parsing for share/paste. The optional new-message listener
+  is available in the Community flavor only (debug or release); Play builds do not request SMS permission.
+  The listener is opt-in, sender-filtered, and review-before-save. On supported devices, Gemini Nano may
   offer an on-device fallback for shared messages and receipt totals. Suggestions must be
   reviewed before use. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` for the release decision.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
@@ -54,12 +54,24 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Backup/restore** — versioned JSON export/import (`BackupManager`), atomic Room restore.
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.
+- **Reminders** — optional weekly finance-review reminders, scheduled locally and disabled
+  until the user opts in.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
   app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
-  onboarding, adaptive phone/tablet navigation.
+  skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation.
 - **Privacy and release** — local finance storage, automatic Android backup disabled,
-  user-initiated export/restore, in-app privacy policy, and a release manifest without
-  SMS listener access. See `PRIVACY_POLICY.md` and `PLAY_STORE_RELEASE_CHECKLIST.md`.
+  user-initiated export/restore, in-app privacy policy, and a Play manifest without SMS
+  listener access. See `PRIVACY_POLICY.md` and `PLAY_STORE_RELEASE_CHECKLIST.md`.
+
+## Release variants
+
+- `:app:bundlePlayRelease` creates the Play-safe AAB without `RECEIVE_SMS` or the SMS receiver.
+- `:app:assembleCommunityRelease` creates a separately named GitHub APK with the optional
+  M-PESA listener. Its application ID is `com.makemission.makeflow.community`.
+- Both variants share one source tree and version history. Keep the Play variant free of SMS
+  permissions; the Community build is not a route for submitting that feature to Play.
+- SMS Retriever is not used for M-PESA: it only returns messages containing this app's
+  verification hash, which a third-party sender such as M-PESA cannot add.
 
 ## Project structure
 

@@ -27,7 +27,9 @@ import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Savings
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -85,7 +87,7 @@ fun OnboardingScreen(
 ) {
     val dimens = LocalAppDimens.current
     val reducedMotion = LocalReducedMotion.current
-    val pagerState = rememberPagerState(pageCount = { 3 })
+    val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
     val accounts = remember {
         mutableStateListOf(
@@ -171,12 +173,13 @@ fun OnboardingScreen(
                         selectedCurrency = selectedCurrency,
                         onChooseCurrency = { showCurrencySheet = true }
                     )
-                    else -> AccountSetupStageView(
+                    2 -> AccountSetupStageView(
                         accounts = accounts,
                         selectedCurrency = selectedCurrency,
                         onAddAccount = { showAccountSheet = true },
                         onRemoveAccount = { account -> accounts.remove(account) }
                     )
+                    else -> TutorialStageView()
                 }
             }
 
@@ -197,6 +200,7 @@ fun OnboardingScreen(
                         when (pagerState.currentPage) {
                             0 -> moveToPage(1)
                             1 -> moveToPage(2)
+                            2 -> moveToPage(3)
                             else -> finishOnboarding()
                         }
                     },
@@ -218,10 +222,20 @@ fun OnboardingScreen(
                             isSaving -> "Setting things up..."
                             pagerState.currentPage == 0 -> "Get started"
                             pagerState.currentPage == 1 -> "Continue"
+                            pagerState.currentPage == 2 -> "Continue"
                             else -> "Start using Mindful"
                         },
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
+                }
+                if (pagerState.currentPage == 3) {
+                    androidx.compose.material3.TextButton(
+                        onClick = { finishOnboarding() },
+                        enabled = !isSaving,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Skip tour")
+                    }
                 }
             }
         }
@@ -271,13 +285,13 @@ private fun OnboardingHeader(page: Int, onBack: () -> Unit) {
                 Spacer(Modifier.size(dimens.iconSizeLarge))
             }
             Text(
-                text = "STEP ${page + 1} OF 3",
+                text = "STEP ${page + 1} OF 4",
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         AnimatedProgressBar(
-            progress = (page + 1) / 3f,
+            progress = (page + 1) / 4f,
             color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             modifier = Modifier
@@ -285,6 +299,89 @@ private fun OnboardingHeader(page: Int, onBack: () -> Unit) {
                 .height(dimens.progressTrackHeight)
                 .clip(CircleShape)
         )
+    }
+}
+
+@Composable
+private fun TutorialStageView() {
+    val dimens = LocalAppDimens.current
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+            Text(
+                text = "A quick tour",
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "A few small habits make Mindful more useful from day one.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TutorialStep(
+            icon = Icons.Rounded.Add,
+            title = "Log as you go",
+            description = "Use the plus button for income or spending, or share an M-PESA confirmation into Mindful to review it."
+        )
+        TutorialStep(
+            icon = Icons.Rounded.Savings,
+            title = "Give your plans a place",
+            description = "Set a category budget or savings goal, then check progress from the matching tab."
+        )
+        TutorialStep(
+            icon = Icons.Rounded.BarChart,
+            title = "Make time for a check-in",
+            description = "Insights show patterns; the monthly review brings the month's activity together."
+        )
+        TutorialStep(
+            icon = Icons.Rounded.AccountBalanceWallet,
+            title = "Your records stay yours",
+            description = "Transactions stay on this device. You choose when to export or share a summary."
+        )
+    }
+}
+
+@Composable
+private fun TutorialStep(
+    icon: ImageVector,
+    title: String,
+    description: String
+) {
+    val dimens = LocalAppDimens.current
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier.padding(dimens.paddingMedium),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(dimens.iconSizeMedium)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
 

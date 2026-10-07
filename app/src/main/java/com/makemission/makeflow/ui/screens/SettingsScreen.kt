@@ -58,6 +58,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,6 +80,7 @@ import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
+import com.makemission.makeflow.core.notifications.FinanceReviewReminderScheduler
 import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -134,6 +136,7 @@ fun SettingsScreen(
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
     val logMpesaCosts by viewModel.logMpesaCosts.collectAsState()
     val mpesaAutoImportEnabled by viewModel.mpesaAutoImportEnabled.collectAsState()
+    val financeReviewRemindersEnabled by viewModel.financeReviewRemindersEnabled.collectAsState()
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
@@ -180,6 +183,30 @@ fun SettingsScreen(
             Toast.makeText(context, "M-PESA auto-import remains off without SMS access.", Toast.LENGTH_LONG).show()
         }
     }
+    val financeReviewPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.saveFinanceReviewRemindersEnabled(true)
+            FinanceReviewReminderScheduler.setEnabled(context, true)
+        } else {
+            Toast.makeText(context, "Weekly review reminders remain off.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val onFinanceReviewReminderToggle: (Boolean) -> Unit = { enable ->
+        if (!enable) {
+            viewModel.saveFinanceReviewRemindersEnabled(false)
+            FinanceReviewReminderScheduler.setEnabled(context, false)
+        } else if (!androidx.core.app.NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            Toast.makeText(context, "Allow notifications to receive weekly reminders.", Toast.LENGTH_LONG).show()
+            openAppNotificationSettings(context)
+        } else if (isNotificationPermissionGranted(context)) {
+            viewModel.saveFinanceReviewRemindersEnabled(true)
+            FinanceReviewReminderScheduler.setEnabled(context, true)
+        } else {
+            financeReviewPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
     val smsPermissionGranted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.RECEIVE_SMS
@@ -192,17 +219,20 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = config.horizontalPadding),
-            contentPadding = PaddingValues(
-                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                bottom = 32.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+        CompositionLocalProvider(
+            LocalReducedMotion provides (reducedMotion || listState.isScrollInProgress)
         ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = config.horizontalPadding),
+                contentPadding = PaddingValues(
+                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                    bottom = 32.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+            ) {
             item {
                 LargeTitleItem(title = "Settings", scrollState = listState)
             }
@@ -310,6 +340,15 @@ fun SettingsScreen(
                         enabled = logMpesaCosts,
                         onToggle = { viewModel.saveLogMpesaCosts(it) }
                     )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 12) {
+                        FinanceReviewReminderToggleRow(
+                            enabled = financeReviewRemindersEnabled,
+                            onToggle = onFinanceReviewReminderToggle
+                        )
                     }
                 }
 
@@ -505,6 +544,15 @@ fun SettingsScreen(
                     }
                 }
 
+                item {
+                    StaggeredItem(index = 13) {
+                        FinanceReviewReminderToggleRow(
+                            enabled = financeReviewRemindersEnabled,
+                            onToggle = onFinanceReviewReminderToggle
+                        )
+                    }
+                }
+
                 if (hasPromptedNotif && !isNotificationPermissionGranted(context)) {
                     item {
                         StaggeredItem(index = 11) {
@@ -582,6 +630,7 @@ fun SettingsScreen(
                         }
                     }
                 }
+            }
             }
         }
 
@@ -1062,6 +1111,40 @@ private fun NotificationEnableRow() {
             title = "Enable notifications",
             subtitle = "Notifications are disabled",
             subtitleColor = LocalMakeFlowColors.current.colorWarning
+        )
+    }
+}
+
+@Composable
+private fun FinanceReviewReminderToggleRow(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clickable { onToggle(!enabled) }
+            .padding(vertical = dimens.spacingSmall),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        SettingText(
+            title = "Weekly finance review",
+            subtitle = "A gentle reminder to check in on your money",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
         )
     }
 }

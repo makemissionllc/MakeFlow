@@ -6,10 +6,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -80,6 +76,7 @@ import com.makemission.makeflow.ui.components.AdaptiveConfig
 import com.makemission.makeflow.ui.components.FloatingPillNav
 import com.makemission.makeflow.ui.components.PillNavItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.components.animateAppContentSize
 import com.makemission.makeflow.ui.components.rememberAdaptiveConfig
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.makemission.makeflow.core.device.LocalReducedMotion
@@ -621,22 +618,25 @@ fun MainScreen(
                         androidx.compose.animation.AnimatedVisibility(
                             visible = !showAddTransaction,
                             enter = scaleIn(
-                                animationSpec = if (reducedMotion) tween(150) else spring(
-                                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ) + fadeIn(tween(150)),
+                                animationSpec = if (reducedMotion) {
+                                    OverlayTransition.reducedEnter
+                                } else {
+                                    OverlayTransition.bouncyEnter
+                                }
+                            ) + fadeIn(
+                                if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.bouncyEnter
+                            ),
                             exit = scaleOut(
-                                animationSpec = if (reducedMotion) tween(100) else spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ) + fadeOut(tween(100)) + slideOutVertically(
-                                animationSpec = if (reducedMotion) tween(100) else spring(
-                                    dampingRatio = Spring.DampingRatioNoBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                ),
-                                targetOffsetY = { -it / 3 }
+                                animationSpec = if (reducedMotion) {
+                                    OverlayTransition.reducedExit
+                                } else {
+                                    OverlayTransition.bouncyExit
+                                }
+                            ) + fadeOut(
+                                if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.bouncyExit
+                            ) + slideOutVertically(
+                                animationSpec = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide,
+                                targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
                             )
                         ) {
                             AddTransactionFloatingActionButton(
@@ -1245,17 +1245,15 @@ private fun TabContentAnimated(
         transitionSpec = {
             val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
             previousTabIndex.value = tabIndex
-            val slideSpec = if (reducedMotion) tween<androidx.compose.ui.unit.IntOffset>(200) else spring(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-            (fadeIn(if (reducedMotion) tween(150) else tween(220)) + slideInHorizontally(
-                animationSpec = slideSpec,
-                initialOffsetX = { it / 6 * direction }
+            val enterSlide = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
+            val exitSlide = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
+            (fadeIn(if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring) + slideInHorizontally(
+                animationSpec = enterSlide,
+                initialOffsetX = { (it * OverlayTransition.TabSlideFraction * direction).toInt() }
             )) togetherWith
-            (fadeOut(if (reducedMotion) tween(120) else tween(180)) + slideOutHorizontally(
-                animationSpec = slideSpec,
-                targetOffsetX = { -it / 6 * direction }
+            (fadeOut(if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring) + slideOutHorizontally(
+                animationSpec = exitSlide,
+                targetOffsetX = { -(it * OverlayTransition.TabSlideFraction * direction).toInt() }
             ))
         },
         label = "TabContent"
@@ -1557,12 +1555,7 @@ fun FloatingCapsuleNavBar(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
                     ) { onTabSelected(tab) }
-                    .animateContentSize(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    )
+                    .animateAppContentSize()
                     .padding(horizontal = if (isSelected) (if (config.isTablet) 20.dp else 16.dp) else (if (config.isTablet) 16.dp else 12.dp), vertical = if (config.isTablet) 14.dp else 10.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -1583,24 +1576,15 @@ fun FloatingCapsuleNavBar(
                 AnimatedVisibility(
                     visible = isSelected,
                     enter = fadeIn(
-                        animationSpec = if (reducedMotion) tween(100) else spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.bouncyEnter
                     ) + slideInVertically(
-                        animationSpec = if (reducedMotion) tween(100) else spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        ),
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.bouncyEnterSlide,
                         initialOffsetY = { it }
                     ),
                     exit = fadeOut(
-                        animationSpec = if (reducedMotion) tween(80) else spring(stiffness = Spring.StiffnessHigh)
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.bouncyExit
                     ) + slideOutVertically(
-                        animationSpec = if (reducedMotion) tween(80) else spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessHigh
-                        ),
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.bouncyExitSlide,
                         targetOffsetY = { -it / 2 }
                     )
                 ) {

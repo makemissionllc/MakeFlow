@@ -8,6 +8,23 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Strengthen type hierarchy and unify motion
+
+- **Scope:** shared typography and motion tokens, navigation, dashboard, onboarding,
+  transaction feedback, history, and expandable content.
+- **What:** separated display, heading, title, body, and label roles with clearer size
+  and weight steps, including a declared SemiBold font face. Standardized navigation,
+  content-size, progress, value, and reduced-motion specs in the shared transition
+  system. Applied them to onboarding paging, tab and FAB transitions, balance changes,
+  staggered reveals, selection colors, anomaly banners, swipe feedback, and expanding
+  rows; centralized stagger and movement ratios. Screen and section titles now carry
+  clearer emphasis.
+- **Verification:** `:app:compileDebugKotlin test --rerun-tasks` passed with the bundled
+  Android Studio JDK and Gradle 9.3.1. `git diff --check` passed. Device screenshot
+  verification was unavailable because `adb` is not installed in this environment.
+
+---
+
 ## 2026-10-07 — Standardize sheets and rebuild onboarding
 
 - **Scope:** shared modal surfaces, date selection, onboarding, and account setup.

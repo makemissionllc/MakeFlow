@@ -1,7 +1,6 @@
 package com.makemission.makeflow.ui.navigation
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.tween
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -34,6 +33,7 @@ import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import com.makemission.makeflow.ui.theme.MindfulAccentHex
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -169,7 +169,11 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
         if (currentIsProfiled != null) {
         Crossfade(
             targetState = currentIsProfiled,
-            animationSpec = tween(durationMillis = 400),
+            animationSpec = if (LocalReducedMotion.current) {
+                OverlayTransition.reducedNavigationCrossfade
+            } else {
+                OverlayTransition.navigationCrossfade
+            },
             label = "AppNavigationEngineCrossfade"
         ) { profiled ->
             if (profiled) {

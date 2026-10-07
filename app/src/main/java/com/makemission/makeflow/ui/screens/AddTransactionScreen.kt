@@ -80,6 +80,7 @@ import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.components.FittedAmountText
 import com.makemission.makeflow.domain.CalculatorEngine
 import com.makemission.makeflow.domain.CategoryLabelResolver
@@ -473,8 +474,22 @@ fun AddTransactionScreen(
     val reducedMotion = LocalReducedMotion.current
     AnimatedVisibility(
         visible = commitHandler.anomalyResult != null,
-        enter = if (reducedMotion) fadeIn() else slideInVertically { -it } + fadeIn(),
-        exit = if (reducedMotion) fadeOut() else slideOutVertically { -it } + fadeOut()
+        enter = if (reducedMotion) {
+            fadeIn(OverlayTransition.reducedEnter)
+        } else {
+            slideInVertically(
+                animationSpec = OverlayTransition.enterSlide,
+                initialOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+            ) + fadeIn(OverlayTransition.enterSpring)
+        },
+        exit = if (reducedMotion) {
+            fadeOut(OverlayTransition.reducedExit)
+        } else {
+            slideOutVertically(
+                animationSpec = OverlayTransition.exitSlide,
+                targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+            ) + fadeOut(OverlayTransition.exitSpring)
+        }
     ) {
         commitHandler.anomalyResult?.let { result ->
             val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"

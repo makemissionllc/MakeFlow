@@ -1,7 +1,6 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.components.CollapsingTopBar
@@ -75,7 +75,9 @@ import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.viewmodel.HistoryViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import java.text.SimpleDateFormat
@@ -478,7 +480,11 @@ private fun HistoryListContent(
                                 val bgColor by animateColorAsState(
                                     targetValue = if (dismissState.progress > 0f)
                                         MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    animationSpec = tween(300),
+                                    animationSpec = if (LocalReducedMotion.current) {
+                                        OverlayTransition.reducedColor
+                                    } else {
+                                        LocalExpressiveMotion.current.colorAnimationSpec
+                                    },
                                     label = "swipeBg"
                                 )
                                 Box(

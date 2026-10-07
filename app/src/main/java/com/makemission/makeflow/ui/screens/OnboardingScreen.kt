@@ -65,6 +65,7 @@ import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.MindfulAccentHex
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -102,7 +103,14 @@ fun OnboardingScreen(
 
     fun moveToPage(page: Int) {
         coroutineScope.launch {
-            if (reducedMotion) pagerState.scrollToPage(page) else pagerState.animateScrollToPage(page)
+            if (reducedMotion) {
+                pagerState.scrollToPage(page)
+            } else {
+                pagerState.animateScrollToPage(
+                    page = page,
+                    animationSpec = OverlayTransition.navigationCrossfade
+                )
+            }
             hapticManager?.fire(HapticEvent.ONBOARDING_STEP_COMPLETE)
         }
     }

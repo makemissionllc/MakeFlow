@@ -70,6 +70,7 @@ import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -299,8 +300,22 @@ fun AddTransactionBottomSheet(
         val reducedMotion = LocalReducedMotion.current
         AnimatedVisibility(
                 visible = commitHandler?.anomalyResult != null,
-                enter = if (reducedMotion) fadeIn() else slideInVertically { -it } + fadeIn(),
-                exit = if (reducedMotion) fadeOut() else slideOutVertically { -it } + fadeOut()
+                enter = if (reducedMotion) {
+                    fadeIn(OverlayTransition.reducedEnter)
+                } else {
+                    slideInVertically(
+                        animationSpec = OverlayTransition.enterSlide,
+                        initialOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                    ) + fadeIn(OverlayTransition.enterSpring)
+                },
+                exit = if (reducedMotion) {
+                    fadeOut(OverlayTransition.reducedExit)
+                } else {
+                    slideOutVertically(
+                        animationSpec = OverlayTransition.exitSlide,
+                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                    ) + fadeOut(OverlayTransition.exitSpring)
+                }
             ) {
                 commitHandler?.anomalyResult?.let { result ->
                     val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"

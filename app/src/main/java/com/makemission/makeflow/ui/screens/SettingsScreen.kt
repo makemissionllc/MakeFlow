@@ -635,10 +635,9 @@ private fun SectionHeader(text: String) {
     val dimens = LocalAppDimens.current
     Text(
         text = text,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-        fontSize = dimens.textS,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelLarge,
+        modifier = Modifier.padding(vertical = dimens.spacingMedium, horizontal = dimens.spacingXSmall)
     )
 }
 

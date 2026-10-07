@@ -120,7 +120,7 @@ fun LargeTitleItem(
     Text(
         text = title,
         style = MaterialTheme.typography.headlineLarge,
-        fontWeight = FontWeight.Bold,
+        fontWeight = FontWeight.ExtraBold,
         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 1f - collapseFraction),
         fontSize = config.titleFontSize,
         modifier = modifier

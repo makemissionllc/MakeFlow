@@ -11,6 +11,7 @@ import com.makemission.makeflow.R
 val MindfulFontFamily = FontFamily(
     Font(R.font.dm_sans_variable, weight = FontWeight.Normal),
     Font(R.font.dm_sans_variable, weight = FontWeight.Medium),
+    Font(R.font.dm_sans_variable, weight = FontWeight.SemiBold),
     Font(R.font.dm_sans_variable, weight = FontWeight.Bold),
     Font(R.font.dm_sans_variable, weight = FontWeight.ExtraBold)
 )
@@ -38,37 +39,37 @@ val Typography = Typography(
     headlineLarge = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 32.sp,
-        lineHeight = 40.sp
+        fontSize = 30.sp,
+        lineHeight = 38.sp
     ),
     headlineMedium = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp
+        fontSize = 26.sp,
+        lineHeight = 34.sp
     ),
     headlineSmall = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 24.sp,
-        lineHeight = 32.sp
+        fontSize = 22.sp,
+        lineHeight = 30.sp
     ),
     titleLarge = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Bold,
-        fontSize = 22.sp,
+        fontSize = 20.sp,
         lineHeight = 28.sp
     ),
     titleMedium = TextStyle(
         fontFamily = MindfulFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
         letterSpacing = 0.sp
     ),
     titleSmall = TextStyle(
         fontFamily = MindfulFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp
     ),
@@ -82,20 +83,20 @@ val Typography = Typography(
     bodyMedium = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
         letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = MindfulFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 12.sp,
+        lineHeight = 18.sp,
         letterSpacing = 0.sp
     ),
     labelLarge = TextStyle(
         fontFamily = MindfulFontFamily,
-        fontWeight = FontWeight.Medium,
+        fontWeight = FontWeight.SemiBold,
         fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.sp

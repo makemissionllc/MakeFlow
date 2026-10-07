@@ -3,6 +3,8 @@ package com.makemission.makeflow.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -600,7 +602,7 @@ private fun HomeWelcomeHeader(
                     username.trim()
                 ),
                 style = if (compact) {
-                    MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal)
+                    MaterialTheme.typography.titleMedium
                 } else {
                     MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 },
@@ -654,11 +656,21 @@ private fun HomeBalanceHero(
             targetState = CurrencyFormatter.formatCompact(balance, currencyCode),
             transitionSpec = {
                 if (reducedMotion) {
-                    fadeIn(OverlayTransition.reducedEnter) togetherWith
-                        fadeOut(OverlayTransition.reducedExit)
+                    (fadeIn(OverlayTransition.reducedEnter) + slideInVertically(
+                        animationSpec = OverlayTransition.reducedEnterSlide,
+                        initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
+                    )) togetherWith (fadeOut(OverlayTransition.reducedExit) + slideOutVertically(
+                        animationSpec = OverlayTransition.reducedExitSlide,
+                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                    ))
                 } else {
-                    fadeIn(OverlayTransition.enterSpring) togetherWith
-                        fadeOut(OverlayTransition.exitSpring)
+                    (fadeIn(OverlayTransition.enterSpring) + slideInVertically(
+                        animationSpec = OverlayTransition.enterSlide,
+                        initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
+                    )) togetherWith (fadeOut(OverlayTransition.exitSpring) + slideOutVertically(
+                        animationSpec = OverlayTransition.exitSlide,
+                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                    ))
                 }
             },
             label = "homeBalance"

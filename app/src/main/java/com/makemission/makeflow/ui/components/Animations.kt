@@ -2,11 +2,9 @@ package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.snap
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -36,14 +34,17 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.makemission.makeflow.core.device.LocalReducedMotion
+import com.makemission.makeflow.ui.theme.ExpressiveMotion
 import com.makemission.makeflow.ui.theme.ExpressiveMotionSpec
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
+import com.makemission.makeflow.ui.theme.OverlayTransition
 import kotlinx.coroutines.delay
 
 @Composable
 fun StaggeredItem(
     index: Int,
-    delayPerItem: Int = 50,
-    offsetY: Dp = 16.dp,
+    delayPerItem: Int = ExpressiveMotion.StaggerDelayMillis,
+    offsetY: Dp = ExpressiveMotion.StaggerOffset,
     content: @Composable () -> Unit
 ) {
     val reduced = LocalReducedMotion.current
@@ -53,13 +54,10 @@ fun StaggeredItem(
             progress.snapTo(1f)
         } else {
             progress.snapTo(0f)
-            delay((index.coerceIn(0, 8) * delayPerItem).toLong())
+            delay((index.coerceIn(0, ExpressiveMotion.MaxStaggerIndex) * delayPerItem).toLong())
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
+                animationSpec = OverlayTransition.enterSpring
             )
         }
     }
@@ -81,10 +79,7 @@ fun AnimatedCounter(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
-    animationSpec: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    ),
+    animationSpec: AnimationSpec<Float> = OverlayTransition.valueSpring,
     formatter: (Double) -> String = { String.format("%,.2f", it) }
 ) {
     val animatedValue by animateFloatAsState(
@@ -102,14 +97,15 @@ fun AnimatedCounter(
 
 fun Modifier.pressScale(
     interactionSource: MutableInteractionSource? = null,
-    motionSpec: ExpressiveMotionSpec = ExpressiveMotionSpec.Default
+    motionSpec: ExpressiveMotionSpec? = null
 ): Modifier = composed {
     val source = remember { interactionSource ?: MutableInteractionSource() }
+    val resolvedMotion = motionSpec ?: LocalExpressiveMotion.current
     val isPressed by source.collectIsPressedAsState()
     val reduced = LocalReducedMotion.current
     val targetScale by animateFloatAsState(
-        targetValue = if (!reduced && isPressed) motionSpec.pressScale else motionSpec.releaseScale,
-        animationSpec = if (reduced) snap() else motionSpec.scaleAnimationSpec,
+        targetValue = if (!reduced && isPressed) resolvedMotion.pressScale else resolvedMotion.releaseScale,
+        animationSpec = if (reduced) snap() else resolvedMotion.scaleAnimationSpec,
         label = "pressScale"
     )
     scale(scaleX = targetScale, scaleY = targetScale)
@@ -132,10 +128,7 @@ fun AnimatedDoodle(
             progress.snapTo(0f)
             progress.animateTo(
                 1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow
-                )
+                animationSpec = OverlayTransition.bouncyEnter
             )
         }
     }
@@ -189,13 +182,10 @@ fun AnimatedProgressBar(
     color: Color,
     trackColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier,
-    animationSpec: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
+    animationSpec: AnimationSpec<Float> = OverlayTransition.progressSpring
 ) {
     val reduced = LocalReducedMotion.current
-    val spec = if (reduced) tween<Float>(150) else animationSpec
+    val spec = if (reduced) OverlayTransition.reducedProgress else animationSpec
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = spec,
@@ -207,5 +197,17 @@ fun AnimatedProgressBar(
         color = color,
         trackColor = resolvedTrackColor,
         modifier = modifier
+    )
+}
+
+@Composable
+fun Modifier.animateAppContentSize(): Modifier {
+    val reduced = LocalReducedMotion.current
+    return animateContentSize(
+        animationSpec = if (reduced) {
+            OverlayTransition.reducedContentSize
+        } else {
+            OverlayTransition.contentSizeSpring
+        }
     )
 }

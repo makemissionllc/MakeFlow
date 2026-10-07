@@ -1,6 +1,5 @@
 package com.makemission.makeflow.ui.screens
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +54,7 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
+import com.makemission.makeflow.ui.components.animateAppContentSize
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
@@ -256,7 +256,7 @@ private fun RecurringTransactionCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .animateContentSize()
+            .animateAppContentSize()
             .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .pressScale()

@@ -1,9 +1,6 @@
 package com.makemission.makeflow.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -64,9 +61,11 @@ import com.makemission.makeflow.core.layout.DeviceLayoutMode
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.ui.theme.ExpressiveShapes
 import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.MindfulFontFamily
 import com.makemission.makeflow.ui.theme.NavbarPillShape
+import com.makemission.makeflow.ui.theme.OverlayTransition
 
 @Composable
 fun PrimaryDockContentInset(): androidx.compose.ui.unit.Dp {
@@ -402,10 +401,11 @@ fun FloatingPillNav(
                 val selected = index == selectedIndex
                 val selectedColor = animateColorAsState(
                     targetValue = if (selected) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
-                    animationSpec = if (reducedMotion) tween(durationMillis = 100) else spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMediumLow
-                    ),
+                    animationSpec = if (reducedMotion) {
+                        OverlayTransition.reducedColor
+                    } else {
+                        LocalExpressiveMotion.current.colorAnimationSpec
+                    },
                     label = "navSelection"
                 ).value
                 Column(

@@ -8,6 +8,23 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Standardize sheets and rebuild onboarding
+
+- **Scope:** shared modal surfaces, date selection, onboarding, and account setup.
+- **What:** routed app prompts and date pickers through the shared Material 3 bottom
+  sheet pattern on compact and larger layouts. Added a reusable alert-sheet layout and
+  consistent themed surface, spacing, and scrolling. Reworked onboarding into a guided
+  three-step flow for a quick app preview, profile/currency, and starter accounts, with
+  add-account and currency selection sheets, inline validation, save feedback, haptics,
+  and reduced-motion-aware paging. New accounts use the app's signature accent.
+- **Fixes:** the first compile caught an inaccessible explicit `weight` import in the
+  shared sheet; removed it and relied on the `RowScope` extension.
+- **Verification:** `:app:compileDebugKotlin test --rerun-tasks` passed with the bundled
+  Android Studio JDK and Gradle 9.3.1. `git diff --check` passed. Device screenshot
+  verification was unavailable because `adb` is not installed in this environment.
+
+---
+
 ## 2026-10-07 — Unify the app around one signature color
 
 - **Scope:** shared Material theme, Settings, saved preferences, Glance widgets, and

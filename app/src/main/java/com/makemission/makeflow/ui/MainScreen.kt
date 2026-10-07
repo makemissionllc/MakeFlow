@@ -51,7 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.res.stringResource
@@ -393,7 +393,7 @@ fun MainScreen(
     }
 
     if (mpesaDuplicateMessage != null) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { mpesaDuplicateMessage = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -411,7 +411,7 @@ fun MainScreen(
     }
 
     if (mpesaShareErrorMessage != null) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { mpesaShareErrorMessage = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -429,11 +429,7 @@ fun MainScreen(
     }
 
     if (mpesaCreatedAccountMessage != null) {
-        LaunchedEffect(mpesaCreatedAccountMessage) {
-            kotlinx.coroutines.delay(5000)
-            mpesaCreatedAccountMessage = null
-        }
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { mpesaCreatedAccountMessage = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -856,7 +852,7 @@ fun MainScreen(
     }
 
     if (showRestoreConfirm && backupJson != null) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { showRestoreConfirm = false; backupJson = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -902,7 +898,7 @@ fun MainScreen(
     }
 
     if (restoreError != null) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { restoreError = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {

@@ -28,7 +28,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -213,7 +213,7 @@ fun RecurringTransactionsScreen(
     }
 
     entityToDelete?.let { entity ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { entityToDelete = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {

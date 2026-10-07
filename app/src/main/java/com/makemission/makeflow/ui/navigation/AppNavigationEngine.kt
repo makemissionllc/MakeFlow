@@ -33,6 +33,7 @@ import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.MainScreen
 import com.makemission.makeflow.ui.screens.OnboardingScreen
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
+import com.makemission.makeflow.ui.theme.MindfulAccentHex
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -193,7 +194,7 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
                     onSaveName = { name -> userPrefDataStore.saveName(name) },
                     onSaveAccounts = { accounts ->
                         for (account in accounts) {
-                            val entity = account.copy(colorHex = account.colorHex.ifEmpty { "#4CAF50" })
+                            val entity = account.copy(colorHex = account.colorHex.ifEmpty { MindfulAccentHex })
                             repository.insertAccount(entity)
                         }
                     },

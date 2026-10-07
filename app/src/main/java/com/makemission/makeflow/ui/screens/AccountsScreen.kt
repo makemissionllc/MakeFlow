@@ -31,7 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -497,7 +497,7 @@ fun AccountsScreen(
     }
 
     accountToDelete?.let { account ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { accountToDelete = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -537,7 +537,7 @@ fun AccountsScreen(
     }
 
     deleteError?.let { msg ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { deleteError = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Cannot Delete", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },

@@ -15,8 +15,6 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.AdaptiveDatePickerSheet
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.SavingsGoalEntity
@@ -89,20 +88,15 @@ fun AddEditSavingsGoalBottomSheet(
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = targetDate ?: (Calendar.getInstance().timeInMillis + 30L * 24 * 60 * 60 * 1000)
         )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    targetDate = datePickerState.selectedDateMillis
-                    showDatePicker = false
-                }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)) }
+        AdaptiveDatePickerSheet(
+            title = "Choose a goal date",
+            state = datePickerState,
+            onDismiss = { showDatePicker = false },
+            onConfirm = {
+                targetDate = datePickerState.selectedDateMillis
+                showDatePicker = false
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     AdaptiveSheetDialog(onDismiss = onDismiss) {

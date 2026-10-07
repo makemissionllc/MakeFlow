@@ -20,7 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -183,7 +183,7 @@ fun ManageTemplatesSheet(
     }
 
     deleteTarget?.let { template ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { deleteTarget = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {

@@ -47,10 +47,11 @@ import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.MindfulAccentHex
 import kotlinx.coroutines.launch
 
 private val accountColors = listOf(
-    "#4CAF50", "#2196F3", "#FF9800", "#E91E63",
+    MindfulAccentHex, "#2196F3", "#FF9800", "#E91E63",
     "#9C27B0", "#00BCD4", "#FF5722", "#607D8B"
 )
 

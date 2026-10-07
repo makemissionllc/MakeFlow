@@ -2,6 +2,7 @@ package com.makemission.makeflow.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+const val MindfulAccentHex = "#C4D42E"
 val MindfulAccent = Color(0xFFC4D42E)
 val MindfulWarningBanner = Color(0xFFF3E9B8)
 val MindfulLightBackground = Color(0xFFF4F3E8)

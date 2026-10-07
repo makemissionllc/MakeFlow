@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FlagCircle
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -232,7 +232,7 @@ fun SavingsGoalsScreen(
     }
 
     goalToDelete?.let { goal ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { goalToDelete = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Delete Goal", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
@@ -250,7 +250,7 @@ fun SavingsGoalsScreen(
     }
 
     goalToAbandon?.let { goal ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { goalToAbandon = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Abandon Goal", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },

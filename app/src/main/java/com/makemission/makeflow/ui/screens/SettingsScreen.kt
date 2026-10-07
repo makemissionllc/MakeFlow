@@ -38,7 +38,7 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -510,7 +510,7 @@ fun SettingsScreen(
     }
 
     if (showCurrencyPicker) {
-        PickerDialog(
+        PickerSheet(
             title = "Select Currency",
             items = currencies.map { it.code },
             currentItem = currentCurrency,
@@ -523,7 +523,7 @@ fun SettingsScreen(
     }
 
     if (showModePicker) {
-        PickerDialog(
+        PickerSheet(
             title = "Select Mode",
             items = modeOptions.map { modeLabels[it] ?: it },
             currentItem = modeLabels[currentThemeMode] ?: "System",
@@ -537,7 +537,7 @@ fun SettingsScreen(
     }
 
     if (showClearConfirm) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { showClearConfirm = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -563,7 +563,7 @@ fun SettingsScreen(
     }
 
     if (showResetPersonalizationConfirm) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { showResetPersonalizationConfirm = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -589,7 +589,7 @@ fun SettingsScreen(
     }
 
     if (showPdfExportDialog) {
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { showPdfExportDialog = false },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -934,7 +934,7 @@ private fun ResetPersonalizationRow(
 }
 
 @Composable
-private fun PickerDialog(
+private fun PickerSheet(
     title: String,
     items: List<String>,
     currentItem: String,
@@ -942,7 +942,7 @@ private fun PickerDialog(
     onSelect: (String) -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    AlertDialog(
+    AdaptiveAlertSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {

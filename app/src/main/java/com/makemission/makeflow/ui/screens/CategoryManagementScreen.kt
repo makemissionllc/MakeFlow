@@ -25,7 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -188,7 +188,7 @@ fun CategoryManagementScreen(
     mergeSource?.let { source ->
         val sameType = categories.filter { it.type == source.type && it.id != source.id }
         if (sameType.isEmpty()) {
-            AlertDialog(
+            AdaptiveAlertSheet(
                 onDismissRequest = { mergeSource = null },
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                 title = { Text("Cannot Merge", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
@@ -196,7 +196,7 @@ fun CategoryManagementScreen(
                 confirmButton = { TextButton(onClick = { mergeSource = null }) { Text("OK", color = MaterialTheme.colorScheme.onSurface) } }
             )
         } else {
-            MergeTargetDialog(
+            MergeTargetSheet(
                 source = source,
                 targets = sameType,
                 onDismiss = { mergeSource = null },
@@ -213,7 +213,7 @@ fun CategoryManagementScreen(
 
     convertTarget?.let { category ->
         val newType = if (category.type == "EXPENSE") "INCOME" else "EXPENSE"
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { convertTarget = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Convert Type", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
@@ -243,7 +243,7 @@ fun CategoryManagementScreen(
     }
 
     deleteTarget?.let { category ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { deleteTarget = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Delete Category", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
@@ -286,7 +286,7 @@ fun CategoryManagementScreen(
     }
 
     resultMessage?.let { msg ->
-        AlertDialog(
+        AdaptiveAlertSheet(
             onDismissRequest = { resultMessage = null },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text("Info", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
@@ -390,14 +390,14 @@ private fun CategoryRow(
 }
 
 @Composable
-private fun MergeTargetDialog(
+private fun MergeTargetSheet(
     source: CategoryEntity,
     targets: List<CategoryEntity>,
     onDismiss: () -> Unit,
     onConfirm: (CategoryEntity) -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    androidx.compose.material3.AlertDialog(
+    com.makemission.makeflow.core.layout.AdaptiveAlertSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {

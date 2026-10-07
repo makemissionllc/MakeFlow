@@ -41,7 +41,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
-import androidx.compose.material3.AlertDialog
+import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -437,7 +437,7 @@ fun HomeDashboard(
     }
 
     if (showMpesaImportDialog) {
-        MpesaMessageImportDialog(
+        MpesaMessageImportSheet(
             onDismiss = { showMpesaImportDialog = false },
             onImport = { parsedMessage ->
                 hapticManager?.fire(HapticEvent.NAV_SELECT)
@@ -479,7 +479,7 @@ fun HomeDashboard(
 }
 
 @Composable
-private fun MpesaMessageImportDialog(
+private fun MpesaMessageImportSheet(
     onDismiss: () -> Unit,
     onImport: (MpesaMessageParser.MpesaParsedMessage) -> Unit
 ) {
@@ -487,7 +487,7 @@ private fun MpesaMessageImportDialog(
     val parsedMessage = remember(message) { MpesaMessageParser.parse(message) }
     val showParseError = message.isNotBlank() && parsedMessage == null
 
-    AlertDialog(
+    AdaptiveAlertSheet(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         title = {

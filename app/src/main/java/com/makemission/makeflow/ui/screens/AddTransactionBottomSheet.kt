@@ -25,8 +25,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.core.layout.AdaptiveDatePickerSheet
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
@@ -283,24 +282,15 @@ fun AddTransactionBottomSheet(
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
 
     if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate = it }
-                    showDatePicker = false
-                }) {
-                    Text("OK", color = MaterialTheme.colorScheme.onSurface)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
-                }
+        AdaptiveDatePickerSheet(
+            title = "Choose a transaction date",
+            state = datePickerState,
+            onDismiss = { showDatePicker = false },
+            onConfirm = {
+                datePickerState.selectedDateMillis?.let { selectedDate = it }
+                showDatePicker = false
             }
-        ) {
-            DatePicker(state = datePickerState)
-        }
+        )
     }
 
     AdaptiveSheetDialog(
@@ -688,7 +678,7 @@ fun AddTransactionBottomSheet(
             }
 
             if (showSaveTemplateDialog) {
-                androidx.compose.material3.AlertDialog(
+                com.makemission.makeflow.core.layout.AdaptiveAlertSheet(
                     onDismissRequest = {
                         showSaveTemplateDialog = false
                         templateNameInput = ""
@@ -757,7 +747,7 @@ fun AddTransactionBottomSheet(
             }
 
             commitHandler?.duplicateWarning?.let { warning ->
-                androidx.compose.material3.AlertDialog(
+                com.makemission.makeflow.core.layout.AdaptiveAlertSheet(
                     onDismissRequest = {
                         commitHandler?.clearAlerts()
                     },

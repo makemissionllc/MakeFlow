@@ -45,7 +45,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
-  app lock, haptics, 5 theme palettes + dynamic color + AMOLED mode, changelog screen,
+  app lock, haptics, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
   onboarding, adaptive phone/tablet navigation.
 
 ## Project structure

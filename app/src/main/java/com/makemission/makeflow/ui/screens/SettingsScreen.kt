@@ -3,7 +3,6 @@ package com.makemission.makeflow.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import java.util.Calendar
 import androidx.compose.foundation.clickable
@@ -22,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,7 +31,6 @@ import androidx.compose.material.icons.outlined.Campaign
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.RestorePage
@@ -58,8 +55,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -76,22 +71,12 @@ import com.makemission.makeflow.ui.components.LargeTitleItem
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
-import com.makemission.makeflow.ui.theme.resolveColorScheme
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 
-data class ThemeOption(val key: String, val label: String)
 data class CurrencyOption(val code: String, val symbol: String)
-
-private val themes = listOf(
-    ThemeOption("forest", "Forest"),
-    ThemeOption("ocean", "Ocean"),
-    ThemeOption("sunset", "Sunset"),
-    ThemeOption("purple", "Royal Purple"),
-    ThemeOption("dynamic", "Dynamic")
-)
 
 private val modeLabels = mapOf(
     "system" to "System",
@@ -126,7 +111,6 @@ fun SettingsScreen(
 ) {
     val dimens = LocalAppDimens.current
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
-    val currentTheme by viewModel.selectedTheme.collectAsState()
     val currentThemeMode by viewModel.themeMode.collectAsState()
     val amoledMode by viewModel.amoledMode.collectAsState()
     val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
@@ -136,7 +120,6 @@ fun SettingsScreen(
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
-    var showThemePicker by remember { mutableStateOf(false) }
     var showModePicker by remember { mutableStateOf(false) }
     val isEffectivelyDark = when (currentThemeMode) {
         "light" -> false
@@ -180,26 +163,19 @@ fun SettingsScreen(
                         SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Currency", subtitle=currentCurrency, onClick={ showCurrencyPicker = true })
                         }
                         Box(Modifier.weight(1f)) {
-                        SettingsRow(icon=Icons.Outlined.Palette, title="Theme", subtitle=themes.find { it.key == currentTheme }?.label ?: "Forest", onClick={ showThemePicker = true })
+                        SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
                         }
                     }
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 2) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
-                        Box(Modifier.weight(1f)) {
-                        SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
-                        }
-                        Box(Modifier.weight(1f)) {
+                    StaggeredItem(index = 3) {
                         AmoledToggleRow(
                             enabled = amoledMode,
                             isDarkAvailable = isEffectivelyDark,
                             onToggle = { viewModel.saveAmoledMode(it) }
                         )
-                        }
-                    }
                     }
                 }
 
@@ -352,33 +328,22 @@ fun SettingsScreen(
                     }
                 }
             } else {
-                item { StaggeredItem(index = 1) { SectionHeader(text = "Theme") } }
+                item { StaggeredItem(index = 1) { SectionHeader(text = "Preferences") } }
 
                 item {
                     StaggeredItem(index = 2) {
-                        ThemePaletteRow(
-                            selectedTheme = currentTheme,
-                            isDark = isEffectivelyDark,
-                            hapticManager = hapticManager,
-                            onSelect = viewModel::saveTheme
-                        )
-                    }
-                }
-
-                item {
-                    StaggeredItem(index = 3) {
                     SettingsRow(icon=Icons.Outlined.SwapHoriz, title="Currency", subtitle=currentCurrency, onClick={ showCurrencyPicker = true })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 4) {
+                    StaggeredItem(index = 3) {
                     SettingsRow(icon=Icons.Outlined.DarkMode, title="Mode", subtitle=modeLabels[currentThemeMode] ?: "System", onClick={ showModePicker = true })
                     }
                 }
 
                 item {
-                    StaggeredItem(index = 3) {
+                    StaggeredItem(index = 4) {
                     AmoledToggleRow(
                         enabled = amoledMode,
                         isDarkAvailable = isEffectivelyDark,
@@ -557,21 +522,6 @@ fun SettingsScreen(
         )
     }
 
-    if (showThemePicker) {
-        PickerDialog(
-            title = "Select Theme",
-            items = themes.map { it.label },
-            currentItem = themes.find { it.key == currentTheme }?.label ?: "Forest",
-            onDismiss = { showThemePicker = false },
-            onSelect = { label ->
-                themes.find { it.label == label }?.key?.let { key ->
-                    viewModel.saveTheme(key)
-                }
-                showThemePicker = false
-            }
-        )
-    }
-
     if (showModePicker) {
         PickerDialog(
             title = "Select Mode",
@@ -690,54 +640,6 @@ private fun SectionHeader(text: String) {
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
     )
-}
-
-@Composable
-private fun ThemePaletteRow(
-    selectedTheme: String,
-    isDark: Boolean,
-    hapticManager: HapticManager?,
-    onSelect: (String) -> Unit
-) {
-    val dimens = LocalAppDimens.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        themes.forEach { theme ->
-            val swatch = if (theme.key == "dynamic") {
-                MaterialTheme.colorScheme.primary
-            } else {
-                resolveColorScheme(theme.key, isDark).primary
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
-                    .semantics { contentDescription = "${theme.label} theme" }
-                    .clickable {
-                        hapticManager?.fire(HapticEvent.TAB_SWITCH)
-                        onSelect(theme.key)
-                    }
-                    .padding(vertical = dimens.spacingSmall),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(dimens.iconSizeLarge)
-                        .clip(CircleShape)
-                        .background(swatch)
-                        .then(
-                            if (theme.key == selectedTheme) {
-                                Modifier.border(dimens.spacingXSmall / 2, MaterialTheme.colorScheme.onSurface, CircleShape)
-                            } else Modifier
-                        )
-                )
-            }
-        }
-    }
 }
 
 @Composable

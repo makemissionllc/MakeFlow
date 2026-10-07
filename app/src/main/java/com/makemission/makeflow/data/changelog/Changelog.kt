@@ -24,7 +24,7 @@ val changelogEntries = listOf(
             "Data backup and restore via JSON file export/import",
             "App lock with biometric / PIN authentication",
             "Home screen widget for quick account balance glance",
-            "Customizable themes: Forest, Ocean, Sunset, Royal Purple, Dynamic",
+            "A unified ivory, sage, and chartreuse design with light, dark, and AMOLED modes",
             "Dark theme optimized for low-light use",
             "Privacy-first: all data stored securely on your device"
         )

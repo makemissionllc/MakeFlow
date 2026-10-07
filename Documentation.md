@@ -8,6 +8,21 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Unify the app around one signature color
+
+- **Scope:** shared Material theme, Settings, saved preferences, Glance widgets, and
+  theme-resolution tests.
+- **What:** replaced selectable/dynamic palettes with a fixed chartreuse brand accent,
+  warm ivory light surfaces, sage containers, and olive-ink text. Dark and AMOLED modes
+  remain available, with a consistent accent and semantic status colors. Removed palette
+  selection from Settings, ViewModel, DataStore, and app startup; existing saved palette
+  values are now ignored. Added night-qualified widget and splash colors.
+- **Verification:** `:app:compileDebugKotlin test` passed with the Android Studio JDK
+  and Gradle 9.3.1. The first token refactor surfaced duplicate legacy alias names;
+  the role tokens were renamed before the passing run.
+
+---
+
 ## 2026-10-07 — Polish Home around the mockup and complete M-PESA review import
 
 - **Scope:** compact Home dashboard, shared banner/button styling, primary navigation,

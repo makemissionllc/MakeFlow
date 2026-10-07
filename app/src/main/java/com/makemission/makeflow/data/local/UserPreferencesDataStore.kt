@@ -44,16 +44,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    val selectedTheme: Flow<String> = dataStore.data.map { prefs ->
-        prefs[SELECTED_THEME_KEY] ?: "forest"
-    }
-
-    suspend fun saveTheme(theme: String) {
-        dataStore.edit { prefs ->
-            prefs[SELECTED_THEME_KEY] = theme
-        }
-    }
-
     val hapticsEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[HAPTICS_ENABLED_KEY] ?: true
     }
@@ -186,7 +176,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SELECTED_CURRENCY_KEY = stringPreferencesKey("selected_currency")
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
-        private val SELECTED_THEME_KEY = stringPreferencesKey("selected_theme")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
         private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")

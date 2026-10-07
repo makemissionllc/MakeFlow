@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.makemission.makeflow.core.haptics.HapticStrength
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -44,13 +45,28 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    val hapticsEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
-        prefs[HAPTICS_ENABLED_KEY] ?: true
+    val hapticLevel: Flow<String> = dataStore.data.map { prefs ->
+        val stored = prefs[HAPTIC_LEVEL_KEY]
+        HapticStrength.fromStorage(stored ?: if (prefs[HAPTICS_ENABLED_KEY] == false) "off" else null)
+            .storageValue
+    }
+
+    val hapticsEnabled: Flow<Boolean> = hapticLevel.map { it != HapticStrength.OFF.storageValue }
+
+    suspend fun saveHapticLevel(level: String) {
+        val normalized = HapticStrength.fromStorage(level)
+        dataStore.edit { prefs ->
+            prefs[HAPTIC_LEVEL_KEY] = normalized.storageValue
+            prefs[HAPTICS_ENABLED_KEY] = normalized != HapticStrength.OFF
+        }
     }
 
     suspend fun saveHapticsEnabled(enabled: Boolean) {
         dataStore.edit { prefs ->
             prefs[HAPTICS_ENABLED_KEY] = enabled
+            val current = HapticStrength.fromStorage(prefs[HAPTIC_LEVEL_KEY])
+            val next = if (!enabled) HapticStrength.OFF else current.takeUnless { it == HapticStrength.OFF } ?: HapticStrength.STANDARD
+            prefs[HAPTIC_LEVEL_KEY] = next.storageValue
         }
     }
 
@@ -187,6 +203,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
+        private val HAPTIC_LEVEL_KEY = stringPreferencesKey("haptic_level")
         private val DISMISSED_SUGGESTIONS_KEY = stringPreferencesKey("dismissed_suggestions")
         private val HAS_PROMPTED_NOTIFICATION_PERMISSION = booleanPreferencesKey("has_prompted_notification_permission")
         private val APP_LOCK_ENABLED_KEY = booleanPreferencesKey("app_lock_enabled")

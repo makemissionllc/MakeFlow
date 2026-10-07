@@ -120,6 +120,7 @@ import com.makemission.makeflow.ui.screens.ManageTemplatesSheet
 import com.makemission.makeflow.ui.screens.RecurringTransactionsScreen
 import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
 import com.makemission.makeflow.ui.screens.ChangelogScreen
+import com.makemission.makeflow.ui.screens.PrivacyPolicyScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.data.changelog.CURRENT_CHANGELOG_VERSION
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -229,12 +230,11 @@ fun MainScreen(
     val savingsGoalsViewModel: SavingsGoalsViewModel = viewModel(
         factory = SavingsGoalsViewModelFactory(goalRepository, repository, userPrefDataStore)
     )
-    val hapticsEnabled by settingsViewModel.hapticsEnabled.collectAsState()
+    val hapticLevel by settingsViewModel.hapticLevel.collectAsState()
     val smartCategorizationEnabled by settingsViewModel.smartCategorizationEnabled.collectAsState()
     val logMpesaCosts by settingsViewModel.logMpesaCosts.collectAsState()
 
-    val hapticManager = rememberHapticManager()
-    hapticManager.isEnabled = hapticsEnabled
+    val hapticManager = rememberHapticManager(hapticLevel)
 
     var categoryClassifier by remember { mutableStateOf<CategoryClassifier?>(null) }
     var labelSet by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -459,6 +459,7 @@ fun MainScreen(
     var showAddAccountSheet by remember { mutableStateOf(false) }
     var showExchangeRates by remember { mutableStateOf(false) }
     var showChangelogScreen by remember { mutableStateOf(false) }
+    var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val exchangeRateSyncer = remember(exchangeRateRepository) { ExchangeRateSyncer(exchangeRateRepository) }
     var exchangeRatesRefreshing by remember { mutableStateOf(false) }
@@ -699,6 +700,7 @@ fun MainScreen(
                         onBackup = { performBackup() },
                         onRestore = { pickRestoreFile() },
                         onOpenChangelog = { showChangelogScreen = true },
+                        onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
                         onDeleteAccount = { account ->
                             savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                                 .let { count ->
@@ -817,6 +819,7 @@ fun MainScreen(
                     onBackup = { performBackup() },
                     onRestore = { pickRestoreFile() },
                     onOpenChangelog = { showChangelogScreen = true },
+                    onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
                     onDeleteAccount = { account ->
                         savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                             .let { count ->
@@ -962,6 +965,17 @@ fun MainScreen(
                     }
                 }
             )
+        }
+    }
+
+    if (showPrivacyPolicyScreen) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            BackHandler { showPrivacyPolicyScreen = false }
+            PrivacyPolicyScreen(onBack = { showPrivacyPolicyScreen = false })
         }
     }
 
@@ -1399,6 +1413,7 @@ private fun OverlayPanels(
     onBackup: () -> Unit = {},
     onRestore: () -> Unit = {},
     onOpenChangelog: () -> Unit = {},
+    onOpenPrivacyPolicy: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     val dimens = LocalAppDimens.current
@@ -1473,7 +1488,8 @@ private fun OverlayPanels(
                 onOpenExchangeRates = onOpenExchangeRates,
                 onBackup = onBackup,
                 onRestore = onRestore,
-                onOpenChangelog = onOpenChangelog
+                onOpenChangelog = onOpenChangelog,
+                onOpenPrivacyPolicy = onOpenPrivacyPolicy
             )
         }
     }

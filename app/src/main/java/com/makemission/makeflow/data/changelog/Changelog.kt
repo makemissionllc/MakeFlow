@@ -1,14 +1,26 @@
 package com.makemission.makeflow.data.changelog
 
+import com.makemission.makeflow.BuildConfig
+
 data class ChangelogEntry(
     val version: String,
     val date: String,
     val changes: List<String>
 )
 
-val CURRENT_CHANGELOG_VERSION = "1.0"
+val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 
 val changelogEntries = listOf(
+    ChangelogEntry(
+        version = "1.1.0",
+        date = "2026-10-07",
+        changes = listOf(
+            "A simpler first setup: choose a currency and accounts, with an optional name",
+            "Choose haptic feedback strength: off, soft, standard, or strong",
+            "A clearer privacy view, with automatic device backup turned off",
+            "M-PESA messages can still be shared or pasted for review; background SMS detection is not included in the Google Play build"
+        )
+    ),
     ChangelogEntry(
         version = "1.0",
         date = "2026-07-16",

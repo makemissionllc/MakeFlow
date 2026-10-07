@@ -95,7 +95,6 @@ fun OnboardingScreen(
     }
 
     var username by remember { mutableStateOf("") }
-    var showNameError by remember { mutableStateOf(false) }
     var showCurrencySheet by remember { mutableStateOf(false) }
     var showAccountSheet by remember { mutableStateOf(false) }
     var isSaving by remember { mutableStateOf(false) }
@@ -168,10 +167,8 @@ fun OnboardingScreen(
                         username = username,
                         onNameChange = {
                             username = it
-                            if (it.isNotBlank()) showNameError = false
                         },
                         selectedCurrency = selectedCurrency,
-                        showNameError = showNameError,
                         onChooseCurrency = { showCurrencySheet = true }
                     )
                     else -> AccountSetupStageView(
@@ -199,10 +196,7 @@ fun OnboardingScreen(
                     onClick = {
                         when (pagerState.currentPage) {
                             0 -> moveToPage(1)
-                            1 -> if (username.isNotBlank()) moveToPage(2) else {
-                                showNameError = true
-                                hapticManager?.fire(HapticEvent.VALIDATION_ERROR)
-                            }
+                            1 -> moveToPage(2)
                             else -> finishOnboarding()
                         }
                     },
@@ -331,7 +325,7 @@ fun WelcomeStageView(selectedCurrency: String = "KES") {
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "Private by design. Your finance data stays on this device.",
+                text = "Your finance records stay on this device. Exchange rates are fetched online using currency codes only.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
@@ -430,7 +424,6 @@ private fun ProfileStageView(
     username: String,
     onNameChange: (String) -> Unit,
     selectedCurrency: String,
-    showNameError: Boolean,
     onChooseCurrency: () -> Unit
 ) {
     val dimens = LocalAppDimens.current
@@ -442,12 +435,12 @@ private fun ProfileStageView(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
             Text(
-                text = "Make it yours",
+                text = "Personalize your view",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "A few details help Mindful feel like your space.",
+                text = "Choose a home currency and add your name if you would like a personal greeting.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -456,11 +449,8 @@ private fun ProfileStageView(
             value = username,
             onValueChange = onNameChange,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Your name") },
-            supportingText = {
-                Text(if (showNameError) "Enter your name to continue" else "You can change this later")
-            },
-            isError = showNameError,
+            label = { Text("Your name (optional)") },
+            supportingText = { Text("You can add or change this later") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,

@@ -8,7 +8,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.FlowRow
 import java.util.Calendar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +50,7 @@ import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
 import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
@@ -73,6 +76,7 @@ import androidx.core.content.ContextCompat
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
 import com.makemission.makeflow.core.notifications.openAppNotificationSettings
@@ -85,6 +89,7 @@ import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.BuildConfig
 
 data class CurrencyOption(val code: String, val symbol: String)
 
@@ -117,13 +122,14 @@ fun SettingsScreen(
     onOpenExchangeRates: () -> Unit = {},
     onBackup: () -> Unit = {},
     onRestore: () -> Unit = {},
-    onOpenChangelog: () -> Unit = {}
+    onOpenChangelog: () -> Unit = {},
+    onOpenPrivacyPolicy: () -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
     val currentThemeMode by viewModel.themeMode.collectAsState()
     val amoledMode by viewModel.amoledMode.collectAsState()
-    val hapticsEnabled by viewModel.hapticsEnabled.collectAsState()
+    val hapticLevel by viewModel.hapticLevel.collectAsState()
     val smartCategorizationEnabled by viewModel.smartCategorizationEnabled.collectAsState()
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
     val logMpesaCosts by viewModel.logMpesaCosts.collectAsState()
@@ -268,10 +274,11 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 8) {
-                    HapticToggleRow(
-                        enabled = hapticsEnabled,
-                        onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
-                    )
+                        HapticLevelRow(
+                            selected = hapticLevel,
+                            hapticManager = hapticManager,
+                            onSelect = { viewModel.saveHapticLevel(it) }
+                        )
                     }
                 }
 
@@ -284,7 +291,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (BuildConfig.MPESA_SMS_AUTO_IMPORT_ENABLED) item {
                     StaggeredItem(index = 10) {
                     MpesaAutoImportToggleRow(
                         enabled = mpesaAutoImportActive,
@@ -373,7 +380,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 106) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
+                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version ${BuildConfig.VERSION_NAME}")
                     }
                 }
                 item {
@@ -381,9 +388,14 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
                     }
                 }
+                item {
+                    StaggeredItem(index = 108) {
+                        SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
+                    }
+                }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 108) {
+                        StaggeredItem(index = 109) {
                         ReducedMotionRow()
                         }
                     }
@@ -454,10 +466,11 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 9) {
-                    HapticToggleRow(
-                        enabled = hapticsEnabled,
-                        onToggle = { viewModel.saveHapticsEnabled(it); hapticManager?.fire(HapticEvent.TOGGLE) }
-                    )
+                        HapticLevelRow(
+                            selected = hapticLevel,
+                            hapticManager = hapticManager,
+                            onSelect = { viewModel.saveHapticLevel(it) }
+                        )
                     }
                 }
 
@@ -470,7 +483,7 @@ fun SettingsScreen(
                     }
                 }
 
-                item {
+                if (BuildConfig.MPESA_SMS_AUTO_IMPORT_ENABLED) item {
                     StaggeredItem(index = 11) {
                     MpesaAutoImportToggleRow(
                         enabled = mpesaAutoImportActive,
@@ -549,7 +562,7 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 22) {
-                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version 1.0")
+                    SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version ${BuildConfig.VERSION_NAME}")
                     }
                 }
                 item {
@@ -557,9 +570,14 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
                     }
                 }
+                item {
+                    StaggeredItem(index = 24) {
+                        SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
+                    }
+                }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 24) {
+                        StaggeredItem(index = 25) {
                         ReducedMotionRow()
                         }
                     }
@@ -825,36 +843,51 @@ private fun SettingText(
 }
 
 @Composable
-private fun HapticToggleRow(
-    enabled: Boolean,
-    onToggle: (Boolean) -> Unit
+@OptIn(ExperimentalLayoutApi::class)
+private fun HapticLevelRow(
+    selected: HapticStrength,
+    hapticManager: HapticManager?,
+    onSelect: (HapticStrength) -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .pressScale()
-            .clickable { onToggle(!enabled) }
             .padding(vertical = dimens.spacingSmall),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
     ) {
         SettingText(
-            title = "Haptic Feedback",
-            subtitle = "",
-            modifier = Modifier.weight(1f),
+            title = "Touch feedback",
+            subtitle = "Choose how strong feedback feels",
+            modifier = Modifier.fillMaxWidth(),
             titleWeight = FontWeight.Bold
         )
-        Switch(
-            checked = enabled,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
-            )
-        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+        ) {
+            HapticStrength.entries.forEach { level ->
+                FilterChip(
+                    selected = selected == level,
+                    onClick = {
+                        onSelect(level)
+                        hapticManager?.strength = level
+                        if (level != HapticStrength.OFF) hapticManager?.fire(HapticEvent.TOGGLE)
+                    },
+                    label = {
+                        Text(
+                            when (level) {
+                                HapticStrength.OFF -> "Off"
+                                HapticStrength.SOFT -> "Soft"
+                                HapticStrength.STANDARD -> "Standard"
+                                HapticStrength.STRONG -> "Strong"
+                            }
+                        )
+                    }
+                )
+            }
+        }
     }
 }
 

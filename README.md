@@ -31,15 +31,11 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Accounts** — multiple accounts with per-account currency, balances, guarded delete.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts.
-- **M-PESA import** — rule-based parsing for share/paste plus optional, opt-in detection of
-  new SMS from the exact M-PESA sender ID. Detected transactions open a private review
-  notification and are saved only through the normal transaction flow; no SMS inbox history
-  is read. For shared messages only, Gemini Nano may offer an on-device classification
-  fallback when already available on a supported device; it never downloads the model,
-  handles background SMS, or bypasses user review. The transaction form can also use Nano
-  to suggest a receipt total and merchant from a photo the user selects; the photo isn't
-  saved, and the suggestion must be reviewed. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md`
-  before any Play release because SMS permission use requires a declaration and approval.
+- **M-PESA import** — rule-based parsing for share/paste. Background SMS detection is
+  available only in debug builds and is excluded from the Google Play release manifest;
+  the Play build does not request SMS permission. On supported devices, Gemini Nano may
+  offer an on-device fallback for shared messages and receipt totals. Suggestions must be
+  reviewed before use. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` for the release decision.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
 - **Budgets** — per-category budgets with suggestion engine, forecaster, spending velocity alerts.
@@ -59,8 +55,11 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
-  app lock, haptics, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
+  app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
   onboarding, adaptive phone/tablet navigation.
+- **Privacy and release** — local finance storage, automatic Android backup disabled,
+  user-initiated export/restore, in-app privacy policy, and a release manifest without
+  SMS listener access. See `PRIVACY_POLICY.md` and `PLAY_STORE_RELEASE_CHECKLIST.md`.
 
 ## Project structure
 

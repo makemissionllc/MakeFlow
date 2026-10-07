@@ -16,14 +16,19 @@ android {
         applicationId = "com.makemission.makeflow"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
+        buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
+        }
         release {
+            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -38,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -20,6 +20,7 @@ import com.makemission.makeflow.core.ml.MpesaGeminiNanoParser
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.device.rememberPowerState
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.core.layout.rememberDeviceLayoutMode
 import com.makemission.makeflow.core.notifications.NotificationChannels
@@ -68,7 +69,8 @@ fun AppNavigationEngine(
     val currency by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
     val themeMode by userPrefDataStore.themeMode.collectAsState(initial = "system")
     val amoledMode by userPrefDataStore.amoledMode.collectAsState(initial = false)
-    val hapticManager = rememberHapticManager()
+    val hapticLevel by userPrefDataStore.hapticLevel.collectAsState(initial = HapticStrength.STANDARD.storageValue)
+    val hapticManager = rememberHapticManager(HapticStrength.fromStorage(hapticLevel))
     val powerState by rememberPowerState()
 
     LaunchedEffect(Unit) {

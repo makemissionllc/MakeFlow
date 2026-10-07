@@ -8,6 +8,30 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Prepare the 1.1.0 Play release candidate
+
+- **Scope:** first-run onboarding, app-wide haptics, privacy disclosures and backup
+  behavior, release manifest, versioning, store materials, and release readiness checks.
+- **What:** made onboarding name entry optional and clarified that exchange-rate requests
+  use currency codes while transaction records stay local. Added saved Off, Soft, Standard,
+  and Strong haptic levels; all app entry points now apply the selected level, and waveform
+  pauses remain silent. Added an in-app privacy page, public policy copy, Play listing draft,
+  and a publisher checklist. Updated the build and in-app changelog to version 1.1.0 / code 2.
+- **Privacy and Play policy:** Android-managed backups are disabled and backup/extraction
+  rules exclude finance data. The Play release removes `RECEIVE_SMS` and the SMS receiver;
+  local debug builds retain the opt-in development path, while share/paste import remains
+  available in Play. The SMS policy note now reflects this release decision.
+- **Verification:** unit tests passed. The release bundle and lint-vital checks passed; the
+  merged release manifest was inspected and contains no `RECEIVE_SMS` or
+  `MpesaSmsReceiver`. XML parsing and `git diff --check` passed. The environment has only
+  Java 25 while the repository pins Java 21, so Gradle was run with a temporary Java 25
+  daemon selection (Kotlin reported its JVM target fallback); the repository's Java 21 pin
+  was restored afterward. The produced AAB is unsigned. Play signing, real store contact,
+  public policy URL submission, listing assets, Console declarations, and device testing
+  remain publisher-side steps.
+
+---
+
 ## 2026-10-07 — Add receipt scanning and monthly reflections with Gemini Nano
 
 - **Scope:** transaction entry, monthly finance review, on-device GenAI helpers, and unit

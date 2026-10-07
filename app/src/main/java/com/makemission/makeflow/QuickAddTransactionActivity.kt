@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.rememberHapticManager
+import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.ml.TfliteCategoryClassifier
 import com.makemission.makeflow.data.local.AppDatabase
@@ -75,9 +76,10 @@ class QuickAddTransactionActivity : ComponentActivity() {
                     val accounts by repository.getAllAccounts().collectAsState(initial = emptyList())
                     val categories by repository.getAllCategories().collectAsState(initial = emptyList())
                     val currencyCode by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
+                    val hapticLevel by userPrefDataStore.hapticLevel.collectAsState(initial = HapticStrength.STANDARD.storageValue)
                     val smartCategorizationEnabled by userPrefDataStore.smartCategorizationEnabled.collectAsState(initial = true)
 
-                    val hapticManager = rememberHapticManager()
+                    val hapticManager = rememberHapticManager(HapticStrength.fromStorage(hapticLevel))
 
                     var categoryClassifier by remember { mutableStateOf<CategoryClassifier?>(null) }
                     LaunchedEffect(Unit) {

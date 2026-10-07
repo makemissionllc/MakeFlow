@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.data.repository.CorrectionRepository
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,7 +42,12 @@ class SettingsViewModel(
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
-    val hapticsEnabled: StateFlow<Boolean> = userPreferencesDataStore.hapticsEnabled
+    val hapticLevel: StateFlow<HapticStrength> = userPreferencesDataStore.hapticLevel
+        .map(HapticStrength::fromStorage)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HapticStrength.STANDARD)
+
+    val hapticsEnabled: StateFlow<Boolean> = hapticLevel
+        .map { it != HapticStrength.OFF }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     val appLockEnabled: StateFlow<Boolean> = userPreferencesDataStore.appLockEnabled
@@ -78,6 +84,12 @@ class SettingsViewModel(
     fun saveHapticsEnabled(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveHapticsEnabled(enabled)
+        }
+    }
+
+    fun saveHapticLevel(level: HapticStrength) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveHapticLevel(level.storageValue)
         }
     }
 

@@ -22,6 +22,13 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun currencyFormatterUsesIsoFractionDigitsForAdditionalCurrencies() {
+        val result = CurrencyFormatter.format(1500.0, "JPY")
+        assertTrue("JPY should use zero decimal places", !result.contains("."))
+        assertTrue(result.contains("1,500") || result.contains("1 500") || result.contains("1500"))
+    }
+
+    @Test
     fun unknownCurrency_doesNotCrash() {
         val result = CurrencyFormatter.format(100.0, "XYZ")
         assertTrue(result.contains("KES"))

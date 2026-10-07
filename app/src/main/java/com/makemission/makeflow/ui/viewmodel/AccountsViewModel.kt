@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.repository.ExchangeRateRepository
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import java.util.UUID
 
 class AccountsViewModel(
@@ -33,18 +35,35 @@ class AccountsViewModel(
         (exchangeRateRepository?.getAllRates() ?: flowOf(emptyList()))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val conversionRates = exchangeRates.map { rates ->
+        rates.mapNotNull { rate ->
+            rate.baseCurrencyCode?.let { base ->
+                CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+            }
+        }
+    }
+
     val totalBalance: StateFlow<Double> = combine(
         accounts,
         selectedCurrency,
-        exchangeRates
+        conversionRates
     ) { accts, displayCurrency, rates ->
-        val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
         accts.sumOf { account ->
             val acctCurrency = account.currencyCode ?: displayCurrency
-            if (acctCurrency == displayCurrency) account.balance
-            else rateMap[acctCurrency]?.let { account.balance * it } ?: account.balance
+            CurrencyConverter.convert(account.balance, acctCurrency, displayCurrency, rates) ?: 0.0
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+    val unconvertedAccountCount: StateFlow<Int> = combine(
+        accounts,
+        selectedCurrency,
+        conversionRates
+    ) { accts, displayCurrency, rates ->
+        accts.count { account ->
+            val acctCurrency = account.currencyCode ?: displayCurrency
+            CurrencyConverter.convert(account.balance, acctCurrency, displayCurrency, rates) == null
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
         CurrencyFormatter.symbolFor(code)
@@ -63,7 +82,13 @@ class AccountsViewModel(
         )
     }
 
-    suspend fun updateAccount(existing: AccountEntity, newName: String, newBalance: Double, newColorHex: String, newCurrencyCode: String? = null) {
+    suspend fun updateAccount(
+        existing: AccountEntity,
+        newName: String,
+        newBalance: Double,
+        newColorHex: String,
+        newCurrencyCode: String? = existing.currencyCode
+    ) {
         financeRepository.updateAccount(
             existing.copy(
                 name = newName,

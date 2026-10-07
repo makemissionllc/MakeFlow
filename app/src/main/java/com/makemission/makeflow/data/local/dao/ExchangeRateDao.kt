@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,15 @@ interface ExchangeRateDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertRate(rate: ExchangeRateEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertRates(rates: List<ExchangeRateEntity>)
+
+    @Transaction
+    suspend fun replaceRates(rates: List<ExchangeRateEntity>) {
+        clearAll()
+        insertRates(rates)
+    }
 
     @Query("DELETE FROM exchange_rates WHERE currencyCode = :currencyCode")
     suspend fun deleteRate(currencyCode: String)

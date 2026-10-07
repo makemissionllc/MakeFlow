@@ -75,6 +75,7 @@ import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
@@ -88,6 +89,8 @@ import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.domain.CategoryUsage
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import kotlinx.coroutines.Dispatchers
@@ -105,11 +108,11 @@ private const val ML_CONFIDENCE_THRESHOLD = 0.6f
 @Composable
 fun AddTransactionScreen(
     onDismiss: () -> Unit,
-    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long, fromAccountId: String?, toAccountId: String?) -> Unit,
+    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long, fromAccountId: String?, toAccountId: String?, destinationAmount: Double?) -> Unit,
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
-    currencySymbol: String,
     currencyCode: String,
+    exchangeRates: List<ExchangeRateEntity> = emptyList(),
     hapticManager: HapticManager,
     templates: List<TransactionTemplateEntity> = emptyList(),
     onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
@@ -221,9 +224,23 @@ fun AddTransactionScreen(
 
     val isAmountConfirmed = confirmedAmount != null
     val parsedAmount = confirmedAmount ?: engine.displayValue.toDoubleOrNull()
+    val fromAccountForAmount = accounts.firstOrNull {
+        it.id == if (selectedType == "TRANSFER") selectedTransferFromId else selectedAccountId
+    }
+    val toAccountForAmount = accounts.firstOrNull { it.id == selectedTransferToId }
+    val amountCurrencyCode = fromAccountForAmount?.currencyCode ?: currencyCode
+    val destinationCurrencyCode = toAccountForAmount?.currencyCode ?: currencyCode
+    val conversionRates = exchangeRates.mapNotNull { rate ->
+        rate.baseCurrencyCode?.let { base ->
+            CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+        }
+    }
+    val transferDestinationAmount = if (selectedType == "TRANSFER" && parsedAmount != null) {
+        CurrencyConverter.convert(parsedAmount, amountCurrencyCode, destinationCurrencyCode, conversionRates)
+    } else null
     val isSaveEnabled = (confirmedAmount != null || (!engine.hasUnconfirmedOperation && engine.displayValue.toDoubleOrNull()?.let { it > 0 } == true)) &&
         (parsedAmount ?: 0.0) > 0 && selectedAccountId.isNotBlank() &&
-        (selectedType != "TRANSFER" || (selectedTransferFromId.isNotBlank() && selectedTransferToId.isNotBlank() && selectedTransferFromId != selectedTransferToId))
+        (selectedType != "TRANSFER" || (selectedTransferFromId.isNotBlank() && selectedTransferToId.isNotBlank() && selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
 
     val amountForDisplay = if (isAmountConfirmed) {
         val a = confirmedAmount!!
@@ -376,7 +393,8 @@ fun AddTransactionScreen(
                     fromAccountId = fromId,
                     toAccountId = toId,
                     note = note,
-                    timestamp = selectedDate
+                    timestamp = selectedDate,
+                    destinationAmount = transferDestinationAmount
                 )
                 commitHandler.update(updatedEntity, editTransaction, onUpdate)
                 fireCorrection()
@@ -390,12 +408,13 @@ fun AddTransactionScreen(
                     fromAccountId = fromId,
                     toAccountId = toId,
                     note = note,
-                    timestamp = selectedDate
+                    timestamp = selectedDate,
+                    destinationAmount = transferDestinationAmount
                 )
                 commitHandler.prepareSave(
                     entity = entity,
                     onSave = { saved ->
-                        onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId)
+                        onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                         fireCorrection()
                     },
                     onComplete = onDismiss
@@ -649,7 +668,7 @@ fun AddTransactionScreen(
                         )
                     }
                     FittedAmountText(
-                        text = "$currencySymbol ${CurrencyFormatter.formatNumber((amountForDisplay.toDoubleOrNull() ?: 0.0), if ((amountForDisplay.toDoubleOrNull() ?: 0.0) % 1.0 == 0.0 || currencyCode == "UGX" || currencyCode == "TZS") 0 else 2)}",
+                        text = CurrencyFormatter.format(amountForDisplay.toDoubleOrNull() ?: 0.0, amountCurrencyCode),
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.Center
                     )
@@ -660,9 +679,20 @@ fun AddTransactionScreen(
 
             if (selectedType == "TRANSFER") {
                 Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
-                    PickerChip("${stringResource(R.string.add_from)} · ${accounts.find { it.id == selectedTransferFromId }?.name ?: stringResource(R.string.add_account)}", Modifier.weight(1f)) { showAccountPicker = true }
-                    PickerChip("${stringResource(R.string.add_to)} · ${accounts.find { it.id == selectedTransferToId }?.name ?: stringResource(R.string.add_account)}", Modifier.weight(1f)) { showCategoryPicker = true }
+                    PickerChip("${stringResource(R.string.add_from)} · ${fromAccountForAmount?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
+                    PickerChip("${stringResource(R.string.add_to)} · ${toAccountForAmount?.name ?: stringResource(R.string.add_account)} · $destinationCurrencyCode", Modifier.weight(1f)) { showCategoryPicker = true }
                 }
+                val receivedAmount = transferDestinationAmount
+                val transferMessage = when {
+                    receivedAmount == null -> "A rate for $amountCurrencyCode to $destinationCurrencyCode is unavailable. Refresh exchange rates to continue."
+                    amountCurrencyCode == destinationCurrencyCode -> "The destination account receives the same amount."
+                    else -> "Estimated to receive ${CurrencyFormatter.format(receivedAmount, destinationCurrencyCode)} using the latest saved rate."
+                }
+                Text(
+                    text = transferMessage,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (receivedAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: stringResource(R.string.add_category)
                 val isSmartPick = resolvedCategoryId != null && categorySuggestion?.categoryId == resolvedCategoryId
@@ -674,7 +704,7 @@ fun AddTransactionScreen(
                     ) {
                         showCategoryPicker = true
                     }
-                    PickerChip(accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account), Modifier.weight(1f)) { showAccountPicker = true }
+                    PickerChip("${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
                 }
             }
 
@@ -957,7 +987,7 @@ fun AddTransactionScreen(
                         commitHandler.saveIgnoringDuplicate(
                             entity = entity,
                             onSave = { saved ->
-                                onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId)
+                                onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                                 fireCorrection()
                             },
                             onComplete = onDismiss

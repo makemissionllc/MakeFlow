@@ -26,6 +26,7 @@ import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
 import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
+import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
 import com.makemission.makeflow.domain.AnomalyDetector
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
@@ -67,13 +68,14 @@ class QuickAddTransactionActivity : ComponentActivity() {
                         )
                     }
                     val templateRepository = remember { TransactionTemplateRepositoryImpl(db.transactionTemplateDao()) }
+                    val exchangeRateRepository = remember { ExchangeRateRepositoryImpl(db.exchangeRateDao()) }
+                    val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
                     val templates by templateRepository.getAllTemplates().collectAsState(initial = emptyList())
                     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
                     val accounts by repository.getAllAccounts().collectAsState(initial = emptyList())
                     val categories by repository.getAllCategories().collectAsState(initial = emptyList())
                     val currencyCode by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
                     val smartCategorizationEnabled by userPrefDataStore.smartCategorizationEnabled.collectAsState(initial = true)
-                    val currencySymbol = remember(currencyCode) { CurrencyFormatter.symbolFor(currencyCode) }
 
                     val hapticManager = rememberHapticManager()
 
@@ -100,8 +102,8 @@ class QuickAddTransactionActivity : ComponentActivity() {
                         initialType = initialType,
                         accounts = accounts,
                         categories = categories,
-                        currencySymbol = currencySymbol,
                         currencyCode = currencyCode,
+                        exchangeRates = exchangeRates,
                         hapticManager = hapticManager,
                         templates = templates,
                         commitHandler = commitHandler,
@@ -129,7 +131,7 @@ class QuickAddTransactionActivity : ComponentActivity() {
                             commitHandler.clearAlerts()
                             finish()
                         },
-                        onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
+                        onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId, destinationAmount ->
                             val entity = TransactionEntity(
                                 amount = amount,
                                 type = type,
@@ -138,7 +140,8 @@ class QuickAddTransactionActivity : ComponentActivity() {
                                 fromAccountId = fromAccountId,
                                 toAccountId = toAccountId,
                                 note = note,
-                                timestamp = timestamp
+                                timestamp = timestamp,
+                                destinationAmount = destinationAmount
                             )
                             withContext(Dispatchers.IO) {
                                 repository.insertTransaction(entity)

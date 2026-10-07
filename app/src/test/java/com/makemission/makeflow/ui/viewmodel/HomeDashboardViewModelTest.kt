@@ -257,8 +257,8 @@ class HomeDashboardViewModelTest {
         val dao = FakeCardInteractionDao()
         val userPrefs = createTestUserPrefs()
 
-        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50", currencyCode = "USD")
-        val accountB = AccountEntity(id = "acc_b", name = "Checking", balance = 3000.0, initialBalance = 3000.0, colorHex = "#2196F3", currencyCode = "EUR")
+        val accountA = AccountEntity(id = "acc_a", name = "Savings", balance = 5000.0, initialBalance = 5000.0, colorHex = "#4CAF50", currencyCode = "KES")
+        val accountB = AccountEntity(id = "acc_b", name = "Checking", balance = 3000.0, initialBalance = 3000.0, colorHex = "#2196F3", currencyCode = "KES")
         repo.setAccounts(listOf(accountA, accountB))
 
         val viewModel = HomeDashboardViewModel(repo, userPrefs, dao)
@@ -283,7 +283,7 @@ class HomeDashboardViewModelTest {
         val currCollected = mutableListOf<String>()
         val currJob = launch { viewModel.balanceCurrencyCode.collect { currCollected.add(it) } }
         runCurrent()
-        assertEquals("USD", currCollected.last())
+        assertEquals("KES", currCollected.last())
         currJob.cancel()
     }
 

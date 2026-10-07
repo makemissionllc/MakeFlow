@@ -62,12 +62,15 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionTemplateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.OverlayTransition
@@ -86,11 +89,11 @@ private const val ML_CONFIDENCE_THRESHOLD = 0.6f
 @Composable
 fun AddTransactionBottomSheet(
     onDismiss: () -> Unit,
-    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long, fromAccountId: String?, toAccountId: String?) -> Unit,
+    onSave: suspend (amount: Double, type: String, categoryId: String?, accountId: String, note: String, timestamp: Long, fromAccountId: String?, toAccountId: String?, destinationAmount: Double?) -> Unit,
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
-    currencySymbol: String,
     currencyCode: String,
+    exchangeRates: List<ExchangeRateEntity> = emptyList(),
     hapticManager: HapticManager,
     templates: List<TransactionTemplateEntity> = emptyList(),
     onSaveAsTemplate: ((name: String, amount: Double, type: String, categoryId: String?, accountId: String, note: String) -> Unit)? = null,
@@ -270,8 +273,24 @@ fun AddTransactionBottomSheet(
     }
 
     val parsedAmount = amountInput.toDoubleOrNull()
+    val fromAccountForAmount = accounts.firstOrNull {
+        it.id == if (selectedType == "TRANSFER") selectedTransferFromId else selectedAccountId
+    }
+    val toAccountForAmount = accounts.firstOrNull { it.id == selectedTransferToId }
+    val amountCurrencyCode = fromAccountForAmount?.currencyCode ?: currencyCode
+    val destinationCurrencyCode = toAccountForAmount?.currencyCode ?: currencyCode
+    val amountFractionDigits = CurrencyFormatter.fractionDigits(amountCurrencyCode)
+    val amountInputPattern = remember(amountFractionDigits) {
+        if (amountFractionDigits == 0) Regex("^\\d*$") else Regex("^\\d*\\.?\\d{0,$amountFractionDigits}$")
+    }
+    val conversionRates = exchangeRates.mapNotNull { rate ->
+        rate.baseCurrencyCode?.let { base -> CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate) }
+    }
+    val transferDestinationAmount = if (selectedType == "TRANSFER" && parsedAmount != null) {
+        CurrencyConverter.convert(parsedAmount, amountCurrencyCode, destinationCurrencyCode, conversionRates)
+    } else null
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 &&
-        (selectedType != "TRANSFER" || selectedTransferFromId != selectedTransferToId)
+        (selectedType != "TRANSFER" || (selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
 
     fun fireCorrection() {
         val suggestedId = categorySuggestion?.categoryId
@@ -320,7 +339,7 @@ fun AddTransactionBottomSheet(
                 commitHandler?.anomalyResult?.let { result ->
                     val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: "this category"
                     val message = if (result.severity == AnomalySeverity.HIGH) {
-                        "This is significantly higher than your usual $categoryName spend (avg ${CurrencyFormatter.format(result.categoryAverage, currencyCode)})"
+                        "This is significantly higher than your usual $categoryName spend (avg ${CurrencyFormatter.format(result.categoryAverage, amountCurrencyCode)})"
                     } else {
                         "This is higher than your usual $categoryName spend"
                     }
@@ -419,7 +438,7 @@ fun AddTransactionBottomSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = currencySymbol,
+                    text = CurrencyFormatter.symbolFor(amountCurrencyCode),
                     color = MaterialTheme.colorScheme.onSurface,
                     fontSize = dimens.textDisplayLarge,
                     fontWeight = FontWeight.Bold
@@ -428,7 +447,7 @@ fun AddTransactionBottomSheet(
                 BasicTextField(
                     value = amountInput,
                     onValueChange = { newValue ->
-                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+                        if (newValue.isEmpty() || newValue.matches(amountInputPattern)) {
                             amountInput = newValue
                         } else {
                             hapticManager.fire(HapticEvent.VALIDATION_ERROR)
@@ -447,7 +466,7 @@ fun AddTransactionBottomSheet(
                         Box {
                             if (amountInput.isEmpty()) {
                                 Text(
-                                    text = "0.00",
+                                    text = if (amountFractionDigits == 0) "0" else "0.${"0".repeat(amountFractionDigits)}",
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                                     fontSize = dimens.textDisplayLarge,
                                     fontWeight = FontWeight.Bold
@@ -471,7 +490,7 @@ fun AddTransactionBottomSheet(
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferFromId
                             Text(
-                                text = account.name,
+                                text = "${account.name} · ${account.currencyCode ?: currencyCode}",
                                 color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
@@ -496,7 +515,7 @@ fun AddTransactionBottomSheet(
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedTransferToId
                             Text(
-                                text = account.name,
+                                text = "${account.name} · ${account.currencyCode ?: currencyCode}",
                                 color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
@@ -511,6 +530,15 @@ fun AddTransactionBottomSheet(
                         }
                     }
                 }
+                Text(
+                    text = when {
+                        transferDestinationAmount == null -> "A rate from $amountCurrencyCode to $destinationCurrencyCode is unavailable. Refresh rates to continue."
+                        amountCurrencyCode == destinationCurrencyCode -> "The destination receives the same amount."
+                        else -> "Estimated to receive ${CurrencyFormatter.format(transferDestinationAmount, destinationCurrencyCode)} using the latest saved rate."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (transferDestinationAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
@@ -522,7 +550,7 @@ fun AddTransactionBottomSheet(
                         accounts.forEach { account ->
                             val isSelected = account.id == selectedAccountId
                             Text(
-                                text = account.name,
+                                text = "${account.name} · ${account.currencyCode ?: currencyCode}",
                                 color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
@@ -787,7 +815,8 @@ fun AddTransactionBottomSheet(
                                         fireCorrection()
                                         onSave(tx.amount, tx.type, tx.categoryId, tx.accountId, tx.note, tx.timestamp,
                                             if (tx.type == "TRANSFER") tx.fromAccountId else null,
-                                            if (tx.type == "TRANSFER") tx.toAccountId else null)
+                                            if (tx.type == "TRANSFER") tx.toAccountId else null,
+                                            tx.destinationAmount)
                                     },
                                     onComplete = { onDismiss() }
                                 )
@@ -821,7 +850,8 @@ fun AddTransactionBottomSheet(
                                 fromAccountId = fromId,
                                 toAccountId = toId,
                                 note = note,
-                                timestamp = selectedDate
+                                timestamp = selectedDate,
+                                destinationAmount = transferDestinationAmount
                             )
                             if (commitHandler != null && editTransaction != null) {
                                 commitHandler.update(entity = updatedEntity, originalTransaction = editTransaction) {
@@ -843,7 +873,8 @@ fun AddTransactionBottomSheet(
                                 fromAccountId = fromId,
                                 toAccountId = toId,
                                 note = note,
-                                timestamp = selectedDate
+                                timestamp = selectedDate,
+                                destinationAmount = transferDestinationAmount
                             )
                             if (commitHandler != null) {
                                 commitHandler.prepareSave(
@@ -852,12 +883,13 @@ fun AddTransactionBottomSheet(
                                         fireCorrection()
                                         onSave(tx.amount, tx.type, tx.categoryId, tx.accountId, tx.note, tx.timestamp,
                                             if (tx.type == "TRANSFER") tx.fromAccountId else null,
-                                            if (tx.type == "TRANSFER") tx.toAccountId else null)
+                                            if (tx.type == "TRANSFER") tx.toAccountId else null,
+                                            tx.destinationAmount)
                                     },
                                     onComplete = { onDismiss() }
                                 )
                             } else {
-                                onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId)
+                                onSave(amount, selectedType, resolvedCategoryId, selectedAccountId, note, selectedDate, fromId, toId, transferDestinationAmount)
                                 fireCorrection()
                                 onDismiss()
                             }

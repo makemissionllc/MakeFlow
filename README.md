@@ -15,7 +15,7 @@ import, multi-currency support, JSON backup/restore, and Glance home-screen widg
 | Language | Kotlin 2.2.10 (`kotlin.code.style=official`), Java 11 bytecode |
 | UI | Jetpack Compose (BOM `2024.12.01`) + Material 3 Expressive, adaptive layouts (phone/tablet) |
 | Charts | Vico (`2.0.0-beta.2`) |
-| Persistence | Room 2.7.1 via KSP (`makeflow_database`, version 20), DataStore Preferences (`user_preferences`) |
+| Persistence | Room 2.7.1 via KSP (`makeflow_database`, version 22), DataStore Preferences (`user_preferences`) |
 | Async | Coroutines 1.9.0 + Flow, Lifecycle Runtime Compose |
 | ML | LiteRT (`com.google.ai.edge.litert` 1.4.2), on-device TFLite classifier + retraining |
 | Widgets | Glance AppWidget (`1.1.0`), 6 widgets |
@@ -40,7 +40,13 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Recurring** — rules with due/overdue processing plus auto-detected patterns from history.
 - **Insights** — trends, forecasts, seasonality, anomalies, frugal streaks, savings capacity,
   cash-flow projection, PDF statement export (multi-currency).
-- **Multi-currency** — per-account currencies + editable exchange-rate table.
+- **Multi-currency** — ISO currency picker, per-account balances and transaction entry,
+  daily automatic reference rates from Frankfurter, and net worth converted to the
+  selected default currency. Missing conversions are excluded rather than mixed as raw
+  amounts.
+- **Monthly finance review** — an animated, shareable-feeling recap of income, spending,
+  top category, month-over-month change, and recorded activity, with conversion-date
+  disclosures.
 - **Backup/restore** — versioned JSON export/import (`BackupManager`), atomic Room restore.
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.

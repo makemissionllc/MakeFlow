@@ -37,6 +37,9 @@ import com.makemission.makeflow.QuickAddTransactionActivity
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.userPrefDataStore
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -75,12 +78,14 @@ internal suspend fun loadQuickActionData(context: Context): QuickActionData {
         context.applicationContext.userPrefDataStore
     )
     val currencyCode = prefsDataStore.selectedCurrency.first()
-    val rates = db.exchangeRateDao().getAllRatesOnce()
-        .associate { it.currencyCode to it.rateToDisplayCurrency }
+    val rates = db.exchangeRateDao().getAllRatesOnce().mapNotNull { rate ->
+        rate.baseCurrencyCode?.let { base ->
+            CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+        }
+    }
     val totalBalance = accounts.sumOf { account ->
         val accountCurrency = account.currencyCode ?: currencyCode
-        if (accountCurrency == currencyCode) account.balance
-        else rates[accountCurrency]?.let { account.balance * it } ?: account.balance
+        CurrencyConverter.convert(account.balance, accountCurrency, currencyCode, rates) ?: 0.0
     }
 
     return QuickActionData(

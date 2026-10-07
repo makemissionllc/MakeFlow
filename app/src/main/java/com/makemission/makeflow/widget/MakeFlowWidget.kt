@@ -34,8 +34,12 @@ import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.data.local.entity.RecurringPatternEntity
+import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.CashFlowProjector
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -81,12 +85,10 @@ internal suspend fun loadWidgetData(context: Context): WidgetData {
         context.applicationContext.userPrefDataStore
     )
     val currencyCode = prefsDataStore.selectedCurrency.first()
-    val rates = db.exchangeRateDao().getAllRatesOnce()
-        .associate { it.currencyCode to it.rateToDisplayCurrency }
+    val rates = db.exchangeRateDao().getAllRatesOnce().toCurrencyRates()
     val totalBalance = accounts.sumOf { account ->
         val accountCurrency = account.currencyCode ?: currencyCode
-        if (accountCurrency == currencyCode) account.balance
-        else rates[accountCurrency]?.let { account.balance * it } ?: account.balance
+        CurrencyConverter.convert(account.balance, accountCurrency, currencyCode, rates) ?: 0.0
     }
     val accountCurrencies = accounts.associate { it.id to (it.currencyCode ?: currencyCode) }
 
@@ -100,14 +102,10 @@ internal suspend fun loadWidgetData(context: Context): WidgetData {
         cal.get(java.util.Calendar.YEAR) == today.year &&
             cal.get(java.util.Calendar.MONTH) + 1 == today.monthValue
     }
-    val displayCurrencyTransactions = thisMonthTxs.map { transaction ->
+    val displayCurrencyTransactions = thisMonthTxs.mapNotNull { transaction ->
         val transactionCurrency = accountCurrencies[transaction.accountId] ?: currencyCode
-        val convertedAmount = if (transactionCurrency == currencyCode) {
-            transaction.amount
-        } else {
-            transaction.amount * (rates[transactionCurrency] ?: 1.0)
-        }
-        transaction.copy(amount = convertedAmount)
+        CurrencyConverter.convert(transaction.amount, transactionCurrency, currencyCode, rates)
+            ?.let { convertedAmount -> transaction.copy(amount = convertedAmount) }
     }
     val monthIncome = displayCurrencyTransactions.filter { it.type == "INCOME" }.sumOf { it.amount }
     val monthExpenses = displayCurrencyTransactions.filter { it.type == "EXPENSE" }.sumOf { it.amount }
@@ -131,6 +129,12 @@ internal suspend fun loadWidgetData(context: Context): WidgetData {
         monthIncome = monthIncome,
         monthExpenses = monthExpenses
     )
+}
+
+private fun List<ExchangeRateEntity>.toCurrencyRates(): List<CurrencyRate> = mapNotNull { rate ->
+    rate.baseCurrencyCode?.let { base ->
+        CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+    }
 }
 
 @androidx.compose.runtime.Composable

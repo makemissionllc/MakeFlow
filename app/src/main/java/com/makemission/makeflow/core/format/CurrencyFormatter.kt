@@ -15,20 +15,13 @@ object CurrencyFormatter {
         "TZS" to Locale.forLanguageTag("en-TZ")
     )
 
-    private val zeroDecimalCurrencies = setOf("UGX", "TZS")
-
     fun format(amount: Double, currencyCode: String): String {
         val locale = currencyLocaleMap[currencyCode] ?: Locale.getDefault()
         return try {
             val format = NumberFormat.getCurrencyInstance(locale)
             format.currency = Currency.getInstance(currencyCode)
-            if (currencyCode in zeroDecimalCurrencies) {
-                format.maximumFractionDigits = 0
-                format.minimumFractionDigits = 0
-            } else {
-                format.maximumFractionDigits = 2
-                format.minimumFractionDigits = 2
-            }
+            format.maximumFractionDigits = fractionDigitsFor(currencyCode)
+            format.minimumFractionDigits = fractionDigitsFor(currencyCode)
             format.format(amount)
         } catch (e: Exception) {
             fallbackFormat(amount, currencyCode)
@@ -37,7 +30,8 @@ object CurrencyFormatter {
 
     fun formatCompact(amount: Double, currencyCode: String): String {
         val symbol = if (currencyCode == "KES") "KSh" else symbolFor(currencyCode)
-        val decimalPlaces = if (currencyCode in zeroDecimalCurrencies || amount % 1.0 == 0.0) 0 else 2
+        val decimalPlaces = if (fractionDigitsFor(currencyCode) == 0 || amount % 1.0 == 0.0) 0
+        else fractionDigitsFor(currencyCode).coerceAtMost(2)
         val separator = if (symbol.length == 1) "" else " "
         val sign = if (amount < 0.0) "-" else ""
         return sign + symbol + separator + formatNumber(kotlin.math.abs(amount), decimalPlaces)
@@ -55,11 +49,19 @@ object CurrencyFormatter {
     private fun fallbackFormat(amount: Double, currencyCode: String): String {
         val symbol = legacySymbolFor(currencyCode)
         val numberFormat = NumberFormat.getNumberInstance(Locale.getDefault()).apply {
-            maximumFractionDigits = if (currencyCode in zeroDecimalCurrencies) 0 else 2
-            minimumFractionDigits = if (currencyCode in zeroDecimalCurrencies) 0 else 2
+            maximumFractionDigits = fractionDigitsFor(currencyCode)
+            minimumFractionDigits = fractionDigitsFor(currencyCode)
         }
         return "$symbol${numberFormat.format(amount)}"
     }
+
+    private fun fractionDigitsFor(currencyCode: String): Int = try {
+        Currency.getInstance(currencyCode).defaultFractionDigits.coerceAtLeast(0)
+    } catch (_: Exception) {
+        2
+    }
+
+    fun fractionDigits(currencyCode: String): Int = fractionDigitsFor(currencyCode)
 
     private fun legacySymbolFor(currencyCode: String): String = when (currencyCode) {
         "USD" -> "$"

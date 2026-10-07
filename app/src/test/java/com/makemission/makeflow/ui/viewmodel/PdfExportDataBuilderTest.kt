@@ -14,8 +14,8 @@ class PdfExportDataBuilderTest {
     private val accountB = AccountEntity(id = "acc2", name = "Savings USD", balance = 1000.0, initialBalance = 1000.0, currencyCode = "USD")
     private val accountC = AccountEntity(id = "acc3", name = "Euro Wallet", balance = 500.0, initialBalance = 500.0, currencyCode = "EUR")
 
-    private val rateUSD = ExchangeRateEntity(currencyCode = "USD", rateToDisplayCurrency = 150.0)
-    private val rateEUR = ExchangeRateEntity(currencyCode = "EUR", rateToDisplayCurrency = 160.0)
+    private val rateUSD = ExchangeRateEntity(currencyCode = "USD", rateToDisplayCurrency = 150.0, baseCurrencyCode = "KES")
+    private val rateEUR = ExchangeRateEntity(currencyCode = "EUR", rateToDisplayCurrency = 160.0, baseCurrencyCode = "KES")
 
     private val accountMap = listOf(accountA, accountB, accountC).associateBy { it.id }
     private val exchangeRates = listOf(rateUSD, rateEUR).associateBy { it.currencyCode }
@@ -173,9 +173,8 @@ class PdfExportDataBuilderTest {
             dateFmt = ::dateFmt
         )
 
-        // GBP not in exchange rates, falls back to raw 200.0
-        assertEquals("200.0", result.rows[0].amount)
-        assertEquals(200.0, result.summary.totalIncome, 0.001)
+        assertEquals("200.0 GBP (unconverted)", result.rows[0].amount)
+        assertEquals(0.0, result.summary.totalIncome, 0.001)
     }
 
     @Test

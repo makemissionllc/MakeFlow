@@ -23,6 +23,8 @@ import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.domain.BudgetSuggestionEngine
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.DuplicateTransactionDetector
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -113,7 +115,7 @@ class FinanceRepositoryImpl(
                 accountDao?.updateAccount(from.copy(balance = from.balance - transaction.amount))
             }
             accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
-                accountDao?.updateAccount(to.copy(balance = to.balance + transaction.amount))
+                accountDao?.updateAccount(to.copy(balance = to.balance + (transaction.destinationAmount ?: transaction.amount)))
             }
         } else {
             accountDao?.getAccountById(transaction.accountId)?.let { account ->
@@ -136,7 +138,7 @@ class FinanceRepositoryImpl(
                     accountDao?.updateAccount(from.copy(balance = from.balance + old.amount))
                 }
                 accountDao?.getAccountById(old.toAccountId!!)?.let { to ->
-                    accountDao?.updateAccount(to.copy(balance = to.balance - old.amount))
+                    accountDao?.updateAccount(to.copy(balance = to.balance - (old.destinationAmount ?: old.amount)))
                 }
             } else {
                 accountDao?.getAccountById(old.accountId)?.let { account ->
@@ -154,7 +156,7 @@ class FinanceRepositoryImpl(
                 accountDao?.updateAccount(from.copy(balance = from.balance - transaction.amount))
             }
             accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
-                accountDao?.updateAccount(to.copy(balance = to.balance + transaction.amount))
+                accountDao?.updateAccount(to.copy(balance = to.balance + (transaction.destinationAmount ?: transaction.amount)))
             }
         } else {
             accountDao?.getAccountById(transaction.accountId)?.let { account ->
@@ -177,7 +179,7 @@ class FinanceRepositoryImpl(
                 accountDao?.updateAccount(from.copy(balance = from.balance + transaction.amount))
             }
             accountDao?.getAccountById(transaction.toAccountId!!)?.let { to ->
-                accountDao?.updateAccount(to.copy(balance = to.balance - transaction.amount))
+                accountDao?.updateAccount(to.copy(balance = to.balance - (transaction.destinationAmount ?: transaction.amount)))
             }
         } else {
             accountDao?.getAccountById(transaction.accountId)?.let { account ->
@@ -429,15 +431,14 @@ class FinanceRepositoryImpl(
             it.getAllAccounts().first()
         } ?: return 0.0
         val rates = exchangeRateDao?.getAllRatesOnce() ?: emptyList()
-        val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
+        val conversionRates = rates.mapNotNull { rate ->
+            rate.baseCurrencyCode?.let { base ->
+                CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+            }
+        }
         return accounts.sumOf { account ->
             val acctCurrency = account.currencyCode ?: displayCurrency
-            if (acctCurrency == displayCurrency) {
-                account.balance
-            } else {
-                val rate = rateMap[acctCurrency] ?: return@sumOf account.balance
-                account.balance * rate
-            }
+            CurrencyConverter.convert(account.balance, acctCurrency, displayCurrency, conversionRates) ?: 0.0
         }
     }
 }

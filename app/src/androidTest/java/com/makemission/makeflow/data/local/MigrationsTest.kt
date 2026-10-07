@@ -23,6 +23,55 @@ class MigrationsTest {
         FrameworkSQLiteOpenHelperFactory()
     )
 
+    @Test
+    fun migrateV20ToV21_addsRateBaseMetadataAndPreservesCachedRates() {
+        val testDb = "migration_test_v20_to_v21_rates"
+        helper.createDatabase(testDb, 20).apply {
+            execSQL("CREATE TABLE exchange_rates (currencyCode TEXT PRIMARY KEY NOT NULL, rateToDisplayCurrency REAL NOT NULL, lastUpdated INTEGER NOT NULL)")
+            execSQL("INSERT INTO exchange_rates (currencyCode, rateToDisplayCurrency, lastUpdated) VALUES ('USD', 0.0077, 1234)")
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(testDb, 21, true, AppDatabase.MIGRATION_20_21)
+        migratedDb.query("PRAGMA table_info('exchange_rates')").use { cursor ->
+            val columns = mutableListOf<String>()
+            while (cursor.moveToNext()) columns += cursor.getString(1)
+            assertTrue(columns.contains("baseCurrencyCode"))
+            assertTrue(columns.contains("rateDate"))
+        }
+        migratedDb.query("SELECT currencyCode, rateToDisplayCurrency, lastUpdated FROM exchange_rates").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("USD", cursor.getString(0))
+            assertEquals(0.0077, cursor.getDouble(1), 0.000001)
+            assertEquals(1234L, cursor.getLong(2))
+        }
+        migratedDb.close()
+    }
+
+    @Test
+    fun migrateV21ToV22_addsOptionalTransferDestinationAmount() {
+        val testDb = "migration_test_v21_to_v22_transfer_amount"
+        helper.createDatabase(testDb, 21).apply {
+            execSQL("CREATE TABLE transactions (id TEXT PRIMARY KEY NOT NULL, amount REAL NOT NULL, type TEXT NOT NULL, categoryId TEXT, accountId TEXT NOT NULL DEFAULT '', fromAccountId TEXT, toAccountId TEXT, note TEXT NOT NULL DEFAULT '', timestamp INTEGER NOT NULL, externalReference TEXT)")
+            execSQL("INSERT INTO transactions (id, amount, type, accountId, note, timestamp) VALUES ('tx1', 10.0, 'EXPENSE', 'acct1', '', 1234)")
+            close()
+        }
+
+        val migratedDb = helper.runMigrationsAndValidate(testDb, 22, true, AppDatabase.MIGRATION_21_22)
+        migratedDb.query("PRAGMA table_info('transactions')").use { cursor ->
+            val columns = mutableListOf<String>()
+            while (cursor.moveToNext()) columns += cursor.getString(1)
+            assertTrue(columns.contains("destinationAmount"))
+        }
+        migratedDb.query("SELECT id, amount, destinationAmount FROM transactions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("tx1", cursor.getString(0))
+            assertEquals(10.0, cursor.getDouble(1), 0.001)
+            assertTrue(cursor.isNull(2))
+        }
+        migratedDb.close()
+    }
+
     // ── Existing tests (kept as-is) ───────────────────────────────────
 
     @Test

@@ -170,8 +170,18 @@ fun HistoryScreen(
                     val account = accounts.find { it.id == tx.accountId }
                     val accountName = account?.name ?: ""
                     val prefix = if (tx.type == "INCOME") "+" else "-"
-                    val amountColor = if (tx.type == "INCOME") LocalMakeFlowColors.current.colorSuccess else MaterialTheme.colorScheme.error
-                    val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
+                    val fromAccount = accounts.find { it.id == tx.fromAccountId }
+                    val toAccount = accounts.find { it.id == tx.toAccountId }
+                    val transactionCurrency = account?.currencyCode ?: selectedCurrency
+                    val amountColor = when (tx.type) {
+                        "INCOME" -> LocalMakeFlowColors.current.colorSuccess
+                        "TRANSFER" -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.error
+                    }
+                    val formattedAmount = if (tx.type == "TRANSFER") {
+                        "${CurrencyFormatter.formatCompact(tx.amount, fromAccount?.currencyCode ?: selectedCurrency)} → " +
+                            CurrencyFormatter.formatCompact(tx.destinationAmount ?: tx.amount, toAccount?.currencyCode ?: selectedCurrency)
+                    } else CurrencyFormatter.format(tx.amount, transactionCurrency)
 
                     Box(
                         modifier = Modifier
@@ -198,7 +208,7 @@ fun HistoryScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "$prefix$formattedAmount",
+                            text = if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount",
                                 fontSize = 36.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = amountColor
@@ -459,7 +469,11 @@ private fun HistoryListContent(
                         val toAccountName = toAccount?.name ?: ""
                         val prefix = if (tx.type == "INCOME") "+" else if (tx.type == "TRANSFER") "" else "-"
                         val amountColor = if (tx.type == "INCOME") LocalMakeFlowColors.current.colorSuccess else if (tx.type == "TRANSFER") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                        val formattedAmount = CurrencyFormatter.format(tx.amount, selectedCurrency)
+                        val transactionCurrency = account?.currencyCode ?: selectedCurrency
+                        val formattedAmount = if (tx.type == "TRANSFER") {
+                            "${CurrencyFormatter.formatCompact(tx.amount, fromAccount?.currencyCode ?: selectedCurrency)} → " +
+                                CurrencyFormatter.formatCompact(tx.destinationAmount ?: tx.amount, toAccount?.currencyCode ?: selectedCurrency)
+                        } else CurrencyFormatter.format(tx.amount, transactionCurrency)
 
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
@@ -565,7 +579,7 @@ private fun HistoryListContent(
                                             maxLines = 1
                                         )
                                         Text(
-                                            text = "$prefix$formattedAmount",
+                                            text = if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount",
                                             color = amountColor,
                                             style = MaterialTheme.typography.bodyLarge,
                                             fontWeight = FontWeight.SemiBold,
@@ -612,7 +626,7 @@ private fun HistoryListContent(
                                                 Text(subtitle, style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                             }
                                         }
-                                        Text("$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))
+                                        Text(if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))
                                     }
                                 }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), thickness = 0.5.dp)

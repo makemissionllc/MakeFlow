@@ -23,6 +23,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import com.makemission.makeflow.domain.CashFlowProjection
 import com.makemission.makeflow.domain.CashFlowProjector
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.domain.DashboardCardRanker
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.domain.SpendingVelocityTracker
@@ -66,6 +68,32 @@ class HomeDashboardViewModel(
     val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
+    private val monthRange = getCurrentMonthRange()
+    private val monthStart = monthRange.first
+    private val monthEnd = monthRange.second
+
+    private val allTransactions = financeRepository.getAllTransactions()
+
+    internal val thisMonthTransactions: StateFlow<List<TransactionEntity>> =
+        focusedAccountId.flatMapLatest { focusedId ->
+            if (focusedId != null) {
+                financeRepository.getTransactionsInRangeForAccount(monthStart, monthEnd, focusedId)
+            } else {
+                financeRepository.getTransactionsInRange(monthStart, monthEnd)
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val currencyRates: StateFlow<List<CurrencyRate>> =
+        (exchangeRateRepository?.getAllRates() ?: flowOf(emptyList()))
+            .map { savedRates ->
+                savedRates.mapNotNull { rate ->
+                    rate.baseCurrencyCode?.let { base ->
+                        CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+                    }
+                }
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     private val _focusedAccountState = MutableStateFlow<FocusedAccountState>(FocusedAccountState.Loading)
     val focusedAccountState: StateFlow<FocusedAccountState> = _focusedAccountState.asStateFlow()
 
@@ -90,17 +118,15 @@ class HomeDashboardViewModel(
         accounts,
         focusedAccountId,
         selectedCurrency,
-        exchangeRateRepository?.getAllRates() ?: flowOf(emptyList())
+        currencyRates
     ) { accts, focusedId, displayCurrency, rates ->
         if (focusedId != null) {
             val focused = accts.find { it.id == focusedId }
             focused?.balance ?: 0.0
         } else {
-            val rateMap = rates.associate { it.currencyCode to it.rateToDisplayCurrency }
             accts.sumOf { account ->
                 val acctCurrency = account.currencyCode ?: displayCurrency
-                if (acctCurrency == displayCurrency) account.balance
-                else rateMap[acctCurrency]?.let { account.balance * it } ?: account.balance
+                CurrencyConverter.convert(account.balance, acctCurrency, displayCurrency, rates) ?: 0.0
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
@@ -112,20 +138,33 @@ class HomeDashboardViewModel(
         CurrencyFormatter.symbolFor(code)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
-    private val monthRange = getCurrentMonthRange()
-    private val monthStart = monthRange.first
-    private val monthEnd = monthRange.second
+    private val monthlyTotals: StateFlow<Pair<Double, Double>> = combine(
+        thisMonthTransactions,
+        accounts,
+        selectedCurrency,
+        currencyRates
+    ) { transactions, accts, displayCurrency, rates ->
+        val accountCurrencies = accts.associate { it.id to (it.currencyCode ?: displayCurrency) }
+        val converted = transactions.mapNotNull { transaction ->
+            if (transaction.type != "INCOME" && transaction.type != "EXPENSE") return@mapNotNull null
+            val sourceCurrency = accountCurrencies[transaction.accountId] ?: displayCurrency
+            CurrencyConverter.convert(transaction.amount, sourceCurrency, displayCurrency, rates)
+                ?.let { transaction.type to it }
+        }
+        converted.filter { it.first == "INCOME" }.sumOf { it.second } to
+            converted.filter { it.first == "EXPENSE" }.sumOf { it.second }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0 to 0.0)
 
-    val monthlyIncome: StateFlow<Double> = financeRepository.getMonthlyTotalIncome(monthStart, monthEnd)
+    val monthlyIncome: StateFlow<Double> = monthlyTotals
+        .map { it.first }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    val monthlyExpenses: StateFlow<Double> = financeRepository.getMonthlyTotalExpense(monthStart, monthEnd)
+    val monthlyExpenses: StateFlow<Double> = monthlyTotals
+        .map { it.second }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val categorySpending: StateFlow<List<CategorySpending>> = financeRepository.getMonthlySpendingByCategory(monthStart, monthEnd)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    private val allTransactions = financeRepository.getAllTransactions()
 
     val recentTransactions: StateFlow<List<TransactionEntity>> = combine(
         allTransactions,
@@ -141,24 +180,28 @@ class HomeDashboardViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val parentCategorySpending: StateFlow<List<ParentCategorySpending>> = combine(
-        allTransactions, categories
-    ) { txs, cats ->
+        thisMonthTransactions, categories, accounts, selectedCurrency, currencyRates
+    ) { txs, cats, accts, displayCurrency, rates ->
+        val accountCurrencies = accts.associate { it.id to (it.currencyCode ?: displayCurrency) }
         val childToParent = cats.filter { it.parentCategoryId != null }
             .associate { it.id to it.parentCategoryId!! }
         val parents = cats.filter { it.parentCategoryId == null }.associateBy { it.id }
-        val expenseTxs = txs.filter {
-            it.type == "EXPENSE" && it.timestamp in monthStart..monthEnd
-        }
-        val grouped = expenseTxs.groupBy { tx ->
-            childToParent[tx.categoryId] ?: tx.categoryId ?: ""
-        }
+        val grouped = txs.asSequence()
+            .filter { it.type == "EXPENSE" }
+            .mapNotNull { tx ->
+                val sourceCurrency = accountCurrencies[tx.accountId] ?: displayCurrency
+                val amount = CurrencyConverter.convert(tx.amount, sourceCurrency, displayCurrency, rates)
+                    ?: return@mapNotNull null
+                (childToParent[tx.categoryId] ?: tx.categoryId ?: "") to amount
+            }
+            .groupBy({ it.first }, { it.second })
         grouped.map { (parentId, parentTxs) ->
             val parent = parents[parentId]
             ParentCategorySpending(
                 categoryId = parentId,
                 categoryName = parent?.name ?: "Uncategorized",
                 color = parent?.colorHex ?: "#9E9E9E",
-                amount = parentTxs.sumOf { it.amount }
+                amount = parentTxs.sum()
             )
         }.sortedByDescending { it.amount }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -211,15 +254,6 @@ class HomeDashboardViewModel(
 
     private val _cardOrder = MutableStateFlow(defaultCardOrder)
     val cardOrder: StateFlow<List<DashboardCardType>> = _cardOrder
-
-    internal val thisMonthTransactions: StateFlow<List<TransactionEntity>> =
-        focusedAccountId.flatMapLatest { focusedId ->
-            if (focusedId != null) {
-                financeRepository.getTransactionsInRangeForAccount(monthStart, monthEnd, focusedId)
-            } else {
-                financeRepository.getTransactionsInRange(monthStart, monthEnd)
-            }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val cashFlowProjection: StateFlow<CashFlowProjection?> = combine(
         totalBalance,

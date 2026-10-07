@@ -103,6 +103,7 @@ import com.makemission.makeflow.data.repository.FinanceRepositoryImpl
 import com.makemission.makeflow.data.backup.BackupManager
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.repository.ExchangeRateRepositoryImpl
+import com.makemission.makeflow.data.repository.ExchangeRateSyncer
 import com.makemission.makeflow.data.repository.TransactionTemplateRepositoryImpl
 import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.screens.AccountsScreen
@@ -142,6 +143,7 @@ import com.makemission.makeflow.ui.viewmodel.SavingsGoalsViewModelFactory
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -210,7 +212,7 @@ fun MainScreen(
         factory = HistoryViewModelFactory(repository, userPrefDataStore)
     )
     val insightsViewModel: InsightsViewModel = viewModel(
-        factory = InsightsViewModelFactory(repository, userPrefDataStore)
+        factory = InsightsViewModelFactory(repository, userPrefDataStore, exchangeRateRepository)
     )
     val budgetViewModel: BudgetViewModel = viewModel(
         factory = BudgetViewModelFactory(repository, userPrefDataStore)
@@ -456,6 +458,9 @@ fun MainScreen(
     var showExchangeRates by remember { mutableStateOf(false) }
     var showChangelogScreen by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
+    val exchangeRateSyncer = remember(exchangeRateRepository) { ExchangeRateSyncer(exchangeRateRepository) }
+    var exchangeRatesRefreshing by remember { mutableStateOf(false) }
+    var exchangeRatesRefreshError by remember { mutableStateOf<String?>(null) }
     val previousTab = remember { mutableStateOf(activeTab) }
     LaunchedEffect(activeTab) {
         if (previousTab.value != activeTab) {
@@ -472,6 +477,29 @@ fun MainScreen(
     }
 
     val scope = rememberCoroutineScope()
+
+    fun refreshExchangeRates(force: Boolean) {
+        if (exchangeRatesRefreshing) return
+        exchangeRatesRefreshing = true
+        exchangeRatesRefreshError = null
+        scope.launch {
+            try {
+                exchangeRateSyncer.refresh(currencyCode, force)
+                WidgetUpdateHelper.updateWidgets(context)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                exchangeRatesRefreshError = "Couldn't refresh exchange rates."
+                AppLogger.error("ExchangeRates", "Automatic exchange-rate refresh failed", error)
+            } finally {
+                exchangeRatesRefreshing = false
+            }
+        }
+    }
+
+    LaunchedEffect(currencyCode) {
+        refreshExchangeRates(force = false)
+    }
 
     var backupJson by remember { mutableStateOf<String?>(null) }
     var showRestoreConfirm by remember { mutableStateOf(false) }
@@ -808,13 +836,10 @@ fun MainScreen(
         ExchangeRatesSheet(
             rates = exchangeRates,
             displayCurrency = currencyCode,
+            isRefreshing = exchangeRatesRefreshing,
+            refreshError = exchangeRatesRefreshError,
+            onRefresh = { refreshExchangeRates(force = true) },
             onDismiss = { showExchangeRates = false },
-            onSaveRate = { rate ->
-                scope.launch(Dispatchers.IO) {
-                    exchangeRateRepository.upsertRate(rate)
-                    WidgetUpdateHelper.updateWidgets(context)
-                }
-            }
         )
     }
 
@@ -974,7 +999,7 @@ fun MainScreen(
                 initialTransferFromId = mpesaInitialTransferFromId,
                 initialTransferToId = mpesaInitialTransferToId,
                 onDismiss = onDismissAction,
-                onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId ->
+                onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId, destinationAmount ->
                     scope.launch(Dispatchers.IO) {
                         repository.insertTransaction(
                             TransactionEntity(
@@ -986,7 +1011,8 @@ fun MainScreen(
                                 toAccountId = toAccountId,
                                 note = note,
                                 timestamp = timestamp,
-                                externalReference = mpesaExternalReference
+                                externalReference = mpesaExternalReference,
+                                destinationAmount = destinationAmount
                             )
                         )
                         val cost = mpesaTransactionCost
@@ -1015,8 +1041,8 @@ fun MainScreen(
                 },
                 accounts = accounts,
                 categories = categories,
-                currencySymbol = currencySymbol,
                 currencyCode = currencyCode,
+                exchangeRates = exchangeRates,
                 hapticManager = hapticManager,
                 templates = if (editingTransaction == null) templates else emptyList(),
                 onSaveAsTemplate = if (editingTransaction == null) ({ name, amount, type, categoryId, accountId, note ->
@@ -1165,18 +1191,18 @@ fun MainScreen(
     if (showAddAccountSheet) {
         AddEditAccountBottomSheet(
             onDismiss = { showAddAccountSheet = false },
-            onSave = { name, balance, colorHex ->
+            onSave = { name, balance, colorHex, accountCurrencyCode ->
                 val account = com.makemission.makeflow.data.local.entity.AccountEntity(
                     id = java.util.UUID.randomUUID().toString(),
                     name = name,
                     balance = balance,
                     initialBalance = balance,
                     colorHex = colorHex,
-                    currencyCode = null
+                    currencyCode = accountCurrencyCode
                 )
                 repository.insertAccount(account)
             },
-            currencySymbol = currencySymbol
+            defaultCurrencyCode = currencyCode
         )
     }
 

@@ -187,7 +187,11 @@ fun HomeDashboard(
         } catch (_: Exception) {
             MaterialTheme.colorScheme.primary
         }
-        AccountChip(entity.name, CurrencyFormatter.format(entity.balance, selectedCurrency), color)
+        AccountChip(
+            entity.name,
+            CurrencyFormatter.format(entity.balance, entity.currencyCode ?: selectedCurrency),
+            color
+        )
     }
 
     val categoryLegends = parentCategorySpending.map { pcs ->
@@ -836,6 +840,15 @@ private fun RecentActivitySection(
                     }
                     else -> account?.name ?: ""
                 }
+                val fromAccount = accounts.find { it.id == transaction.fromAccountId }
+                val toAccount = accounts.find { it.id == transaction.toAccountId }
+                val transactionCurrency = if (transaction.type == "TRANSFER") {
+                    fromAccount?.currencyCode ?: currencyCode
+                } else account?.currencyCode ?: currencyCode
+                val transferAmountLabel = if (transaction.type == "TRANSFER") {
+                    "${CurrencyFormatter.formatCompact(transaction.amount, fromAccount?.currencyCode ?: currencyCode)} → " +
+                        CurrencyFormatter.formatCompact(transaction.destinationAmount ?: transaction.amount, toAccount?.currencyCode ?: currencyCode)
+                } else null
                 val subtitle = listOfNotNull(
                     category?.name?.takeIf { it != title },
                     accountLabel.takeIf { it.isNotBlank() }
@@ -847,8 +860,9 @@ private fun RecentActivitySection(
                     title = title,
                     subtitle = subtitle,
                     amount = transaction.amount,
-                    currencyCode = currencyCode,
+                    currencyCode = transactionCurrency,
                     type = transaction.type,
+                    amountLabel = transferAmountLabel,
                     onClick = { onEditTransaction(transaction) },
                     hapticManager = hapticManager
                 )

@@ -71,8 +71,6 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 private val onboardingAccountColor = MindfulAccentHex
-private val supportedCurrencies = listOf("KES", "USD", "EUR", "GBP", "UGX", "TZS")
-
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(
@@ -234,7 +232,7 @@ fun OnboardingScreen(
     }
 
     if (showCurrencySheet) {
-        CurrencyPickerSheet(
+        CurrencyPickerBottomSheet(
             selectedCurrency = selectedCurrency,
             onDismiss = { showCurrencySheet = false },
             onSelect = { currency ->
@@ -605,62 +603,6 @@ fun AccountSetupStageView(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-    }
-}
-
-@Composable
-private fun CurrencyPickerSheet(
-    selectedCurrency: String,
-    onDismiss: () -> Unit,
-    onSelect: (String) -> Unit
-) {
-    val dimens = LocalAppDimens.current
-    AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Text(
-            text = "Choose your currency",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "You can change this later in Settings.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        supportedCurrencies.forEach { currency ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(MaterialTheme.shapes.large)
-                    .pressScale()
-                    .clickable { onSelect(currency) }
-                    .padding(vertical = dimens.spacingLarge, horizontal = dimens.spacingMedium),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)) {
-                    Text(
-                        text = CurrencyFormatter.symbolFor(currency),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = currency,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (currency == selectedCurrency) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Selected",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-            if (currency != supportedCurrencies.last()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            }
-        }
     }
 }
 

@@ -223,6 +223,7 @@ fun TransactionRow(
     amount: Double,
     currencyCode: String,
     type: String,
+    amountLabel: String? = null,
     onClick: (() -> Unit)? = null,
     hapticManager: HapticManager? = null,
     modifier: Modifier = Modifier
@@ -285,7 +286,7 @@ fun TransactionRow(
         }
         Spacer(Modifier.width(dimens.spacingSmall))
         Text(
-            text = amountPrefix + CurrencyFormatter.formatCompact(amount, currencyCode),
+            text = amountLabel ?: amountPrefix + CurrencyFormatter.formatCompact(amount, currencyCode),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = amountColor,
             maxLines = 1,

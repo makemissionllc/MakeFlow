@@ -7,7 +7,14 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.data.repository.ExchangeRateRepository
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
+import com.makemission.makeflow.domain.MonthlyFinanceReview
+import com.makemission.makeflow.domain.MonthlyFinanceReviewCalculator
 import com.makemission.makeflow.domain.BudgetForecast
 import com.makemission.makeflow.domain.BudgetForecaster
 import com.makemission.makeflow.domain.CashFlowProjector
@@ -58,12 +65,36 @@ data class DailyAverageSpend(
     val dailyAverage: Double
 )
 
+private data class MonthlyAnalyticsInputs(
+    val transactions: List<TransactionEntity>,
+    val categories: List<CategoryEntity>,
+    val month: YearMonth,
+    val accounts: List<AccountEntity>
+)
+
 class InsightsViewModel(
     private val financeRepository: FinanceRepository,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModel() {
 
     val selectedMonth = MutableStateFlow(YearMonth.now())
+
+    val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
+
+    val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
+        CurrencyFormatter.symbolFor(code)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
+
+    private val exchangeRates = exchangeRateRepository?.getAllRates() ?: kotlinx.coroutines.flow.flowOf(emptyList())
+    private val conversionRates = exchangeRates.map { rates ->
+        rates.mapNotNull { rate ->
+            rate.baseCurrencyCode?.let { base ->
+                CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+            }
+        }
+    }
 
     private val allTransactions = financeRepository.getAllTransactions()
     private val allCategories = financeRepository.getAllCategories()
@@ -100,6 +131,12 @@ class InsightsViewModel(
         }
     }
 
+    private val monthlyAnalyticsInputs = combine(
+        accountFilteredTransactions, allCategories, selectedMonth.asStateFlow(), accounts
+    ) { txs, cats, month, accountList ->
+        MonthlyAnalyticsInputs(txs, cats, month, accountList)
+    }
+
     init {
         viewModelScope.launch {
             userPreferencesDataStore.focusedAccountId.collect { id ->
@@ -129,21 +166,33 @@ class InsightsViewModel(
     private fun computeCategorySpending(
         txs: List<com.makemission.makeflow.data.local.entity.TransactionEntity>,
         cats: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
-        month: YearMonth
+        month: YearMonth,
+        accountList: List<AccountEntity>,
+        displayCurrency: String,
+        rates: List<CurrencyRate>
     ): List<CategorySpendingItem> {
         val (monthStart, monthEnd) = getMonthRangeMillis(month)
         val expenseTxs = txs.filter {
             it.type == "EXPENSE" && it.timestamp in monthStart..monthEnd
         }
-        val totalExpenses = expenseTxs.sumOf { it.amount }
+        val accountCurrencies = accountList.associate { it.id to (it.currencyCode ?: displayCurrency) }
+        val convertedExpenses = expenseTxs.mapNotNull { tx ->
+            CurrencyConverter.convert(
+                tx.amount,
+                accountCurrencies[tx.accountId] ?: displayCurrency,
+                displayCurrency,
+                rates
+            )?.let { tx to it }
+        }
+        val totalExpenses = convertedExpenses.sumOf { it.second }
         val childToParent = cats.filter { it.parentCategoryId != null }
             .associate { it.id to it.parentCategoryId!! }
         val parents = cats.filter { it.parentCategoryId == null }.associateBy { it.id }
-        val grouped = expenseTxs.groupBy { tx ->
+        val grouped = convertedExpenses.groupBy { (tx, _) ->
             childToParent[tx.categoryId] ?: tx.categoryId ?: ""
         }
         val items = grouped.map { (parentId, parentTxs) ->
-            val amount = parentTxs.sumOf { it.amount }
+            val amount = parentTxs.sumOf { it.second }
             val parent = parents[parentId]
             CategorySpendingItem(
                 categoryId = parentId,
@@ -157,20 +206,25 @@ class InsightsViewModel(
     }
 
     val categorySpending: StateFlow<List<CategorySpendingItem>> = combine(
-        accountFilteredTransactions, allCategories, selectedMonth.asStateFlow()
-    ) { txs, cats, month ->
-        computeCategorySpending(txs, cats, month)
+        monthlyAnalyticsInputs, selectedCurrency, conversionRates
+    ) { inputs, displayCurrency, rates ->
+        computeCategorySpending(inputs.transactions, inputs.categories, inputs.month, inputs.accounts, displayCurrency, rates)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val monthlyBarData: StateFlow<List<MonthlyBarItem>> = combine(
-        accountFilteredTransactions, selectedMonth.asStateFlow()
-    ) { txs, month ->
+        accountFilteredTransactions, selectedMonth.asStateFlow(), accounts, selectedCurrency, conversionRates
+    ) { txs, month, accountList, displayCurrency, rates ->
+        val accountCurrencies = accountList.associate { it.id to (it.currencyCode ?: displayCurrency) }
         (0L until 6L).map { offset ->
             val m = month.minusMonths(offset)
             val (start, end) = getMonthRangeMillis(m)
             val monthTxs = txs.filter { it.timestamp in start..end }
-            val income = monthTxs.filter { it.type == "INCOME" }.sumOf { it.amount }
-            val expense = monthTxs.filter { it.type == "EXPENSE" }.sumOf { it.amount }
+            val income = monthTxs.filter { it.type == "INCOME" }.sumOf { tx ->
+                CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+            }
+            val expense = monthTxs.filter { it.type == "EXPENSE" }.sumOf { tx ->
+                CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+            }
             MonthlyBarItem(
                 label = m.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()),
                 income = income,
@@ -187,10 +241,13 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val totalIncome: StateFlow<Double> = combine(
-        accountFilteredTransactions, selectedMonth.asStateFlow()
-    ) { txs, month ->
+        accountFilteredTransactions, selectedMonth.asStateFlow(), accounts, selectedCurrency, conversionRates
+    ) { txs, month, accountList, displayCurrency, rates ->
         val (start, end) = getMonthRangeMillis(month)
-        txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { it.amount }
+        val accountCurrencies = accountList.associate { it.id to (it.currencyCode ?: displayCurrency) }
+        txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { tx ->
+            CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+        }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
     val projectedMonthlyNet: StateFlow<Double> = combine(
@@ -206,33 +263,28 @@ class InsightsViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
-    val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
-
-    val currencySymbol: StateFlow<String> = selectedCurrency.map { code ->
-        CurrencyFormatter.symbolFor(code)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
-
     val momItems: StateFlow<List<MomComparisonItem>> = combine(
-        accountFilteredTransactions, allCategories, selectedMonth.asStateFlow()
-    ) { txs, cats, month ->
+        monthlyAnalyticsInputs, selectedCurrency, conversionRates
+    ) { inputs, displayCurrency, rates ->
+        val txs = inputs.transactions
+        val cats = inputs.categories
+        val month = inputs.month
+        val accountList = inputs.accounts
         val priorMonth = month.minusMonths(1)
+        val accountCurrencies = accountList.associate { it.id to (it.currencyCode ?: displayCurrency) }
 
-        val currentIncome = txs.filter {
-            it.type == "INCOME" && it.timestamp in getMonthRangeMillis(month).let { it.first..it.second }
-        }.sumOf { it.amount }
-        val priorIncome = txs.filter {
-            it.type == "INCOME" && it.timestamp in getMonthRangeMillis(priorMonth).let { it.first..it.second }
-        }.sumOf { it.amount }
+        fun convertedTotal(type: String, range: LongRange): Double = txs
+            .filter { it.type == type && it.timestamp in range }
+            .sumOf { tx ->
+                CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+            }
 
-        val currentExpense = txs.filter {
-            it.type == "EXPENSE" && it.timestamp in getMonthRangeMillis(month).let { it.first..it.second }
-        }.sumOf { it.amount }
-        val priorExpense = txs.filter {
-            it.type == "EXPENSE" && it.timestamp in getMonthRangeMillis(priorMonth).let { it.first..it.second }
-        }.sumOf { it.amount }
+        val currentIncome = convertedTotal("INCOME", getMonthRangeMillis(month).let { it.first..it.second })
+        val priorIncome = convertedTotal("INCOME", getMonthRangeMillis(priorMonth).let { it.first..it.second })
+        val currentExpense = convertedTotal("EXPENSE", getMonthRangeMillis(month).let { it.first..it.second })
+        val priorExpense = convertedTotal("EXPENSE", getMonthRangeMillis(priorMonth).let { it.first..it.second })
 
-        val topCategories = computeCategorySpending(txs, cats, month).take(3)
+        val topCategories = computeCategorySpending(txs, cats, month, accountList, displayCurrency, rates).take(3)
 
         val categoryComparisons = topCategories.map { item ->
             val priorRange = getMonthRangeMillis(priorMonth)
@@ -242,7 +294,9 @@ class InsightsViewModel(
                 val effectiveCat = childToParent[tx.categoryId] ?: tx.categoryId ?: ""
                 tx.type == "EXPENSE" && effectiveCat == item.categoryId
                         && tx.timestamp in priorRange.first..priorRange.second
-            }.sumOf { it.amount }
+            }.sumOf { tx ->
+                CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+            }
             MomComparisonItem(
                 label = item.categoryName,
                 currentAmount = item.amount,
@@ -256,6 +310,18 @@ class InsightsViewModel(
             MomComparisonItem("Expenses", currentExpense, priorExpense, pctChange(currentExpense, priorExpense))
         ) + categoryComparisons
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val monthlyFinanceReview: StateFlow<MonthlyFinanceReview> = combine(
+        monthlyAnalyticsInputs, selectedCurrency, conversionRates
+    ) { inputs, displayCurrency, rates ->
+        MonthlyFinanceReviewCalculator.calculate(
+            inputs.transactions, inputs.accounts, inputs.categories, inputs.month, displayCurrency, rates
+        )
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        MonthlyFinanceReviewCalculator.calculate(emptyList(), emptyList(), emptyList(), YearMonth.now(), "KES", emptyList())
+    )
 
     val budgetForecasts: StateFlow<List<BudgetForecast>> = combine(
         budgets, selectedMonth.asStateFlow()
@@ -281,16 +347,21 @@ class InsightsViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val savingsSuggestion: StateFlow<SavingsCapacitySuggestion?> = combine(
-        accountFilteredTransactions, userPreferencesDataStore.dismissedSuggestions
-    ) { txs, dismissed ->
+        accountFilteredTransactions, accounts, selectedCurrency, conversionRates, userPreferencesDataStore.dismissedSuggestions
+    ) { txs, accountList, displayCurrency, rates, dismissed ->
         if ("savings_capacity" in dismissed) null
         else {
+            val accountCurrencies = accountList.associate { it.id to (it.currencyCode ?: displayCurrency) }
             val now = YearMonth.now()
             val surpluses = (0L until 6L).mapNotNull { offset ->
                 val m = now.minusMonths(offset)
                 val (start, end) = getMonthRangeMillis(m)
-                val income = txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { it.amount }
-                val expense = txs.filter { it.type == "EXPENSE" && it.timestamp in start..end }.sumOf { it.amount }
+                val income = txs.filter { it.type == "INCOME" && it.timestamp in start..end }.sumOf { tx ->
+                    CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+                }
+                val expense = txs.filter { it.type == "EXPENSE" && it.timestamp in start..end }.sumOf { tx ->
+                    CurrencyConverter.convert(tx.amount, accountCurrencies[tx.accountId] ?: displayCurrency, displayCurrency, rates) ?: 0.0
+                }
                 if (income == 0.0 && expense == 0.0) null else MonthlySurplus(income, expense)
             }
             SavingsCapacityDetector.compute(surpluses)
@@ -385,11 +456,12 @@ class InsightsViewModel(
 
 class InsightsViewModelFactory(
     private val financeRepository: FinanceRepository,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return InsightsViewModel(financeRepository, userPreferencesDataStore) as T
+        return InsightsViewModel(financeRepository, userPreferencesDataStore, exchangeRateRepository) as T
     }
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -44,6 +45,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.format.CurrencyCatalog
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
@@ -58,9 +61,9 @@ private val accountColors = listOf(
 @Composable
 fun AddEditAccountBottomSheet(
     onDismiss: () -> Unit,
-    onSave: suspend (name: String, balance: Double, colorHex: String) -> Unit,
+    onSave: suspend (name: String, balance: Double, colorHex: String, currencyCode: String) -> Unit,
     account: AccountEntity? = null,
-    currencySymbol: String
+    defaultCurrencyCode: String
 ) {
     val dimens = LocalAppDimens.current
     val isEdit = account != null
@@ -69,9 +72,11 @@ fun AddEditAccountBottomSheet(
     var name by remember { mutableStateOf(account?.name ?: "") }
     var balanceInput by remember { mutableStateOf(account?.balance?.let { String.format("%.2f", it) } ?: "") }
     var selectedColorHex by remember { mutableStateOf(account?.colorHex ?: accountColors.first()) }
+    var selectedCurrencyCode by remember { mutableStateOf(account?.currencyCode ?: defaultCurrencyCode) }
+    var showCurrencyPicker by remember { mutableStateOf(false) }
 
     val parsedBalance = balanceInput.toDoubleOrNull()
-    val isSaveEnabled = name.isNotBlank()
+    val isSaveEnabled = name.isNotBlank() && (balanceInput.isBlank() || parsedBalance != null)
 
     AdaptiveSheetDialog(
         onDismiss = onDismiss
@@ -95,7 +100,7 @@ fun AddEditAccountBottomSheet(
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 BasicTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -124,6 +129,47 @@ fun AddEditAccountBottomSheet(
 
             Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
+                    text = "Account currency",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(dimens.shapeCornerSmall))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .clickable { showCurrencyPicker = true }
+                        .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text(
+                            text = "$selectedCurrencyCode · ${CurrencyCatalog.currencies.firstOrNull { it.code == selectedCurrencyCode }?.name.orEmpty()}",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Balances and transactions for this account use this currency",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = CurrencyFormatter.symbolFor(selectedCurrencyCode),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Icon(
+                        imageVector = Icons.Rounded.ExpandMore,
+                        contentDescription = "Choose account currency",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                Text(
                     text = "Current balance",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
@@ -135,7 +181,7 @@ fun AddEditAccountBottomSheet(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = currencySymbol,
+                        text = CurrencyFormatter.symbolFor(selectedCurrencyCode),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
@@ -144,7 +190,7 @@ fun AddEditAccountBottomSheet(
                     BasicTextField(
                         value = balanceInput,
                         onValueChange = { newValue ->
-                            if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+                            if (newValue.isEmpty() || newValue.matches(Regex("^-?\\d*\\.?\\d{0,2}$"))) {
                                 balanceInput = newValue
                             }
                         },
@@ -216,7 +262,7 @@ fun AddEditAccountBottomSheet(
                 onClick = {
                     val balance = parsedBalance ?: 0.0
                     scope.launch {
-                        onSave(name.trim(), balance, selectedColorHex)
+                        onSave(name.trim(), balance, selectedColorHex, selectedCurrencyCode)
                         onDismiss()
                     }
                 },
@@ -238,5 +284,17 @@ fun AddEditAccountBottomSheet(
                     fontWeight = FontWeight.Bold
                 )
             }
+    }
+
+    if (showCurrencyPicker) {
+        CurrencyPickerBottomSheet(
+            selectedCurrency = selectedCurrencyCode,
+            onDismiss = { showCurrencyPicker = false },
+            onSelect = { code ->
+                selectedCurrencyCode = code
+                showCurrencyPicker = false
+            },
+            title = "Choose account currency"
+        )
     }
 }

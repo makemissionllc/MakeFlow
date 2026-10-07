@@ -3,6 +3,8 @@ package com.makemission.makeflow.ui.viewmodel
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.domain.CurrencyConverter
+import com.makemission.makeflow.domain.CurrencyRate
 
 data class PdfRow(
     val date: String,
@@ -36,6 +38,11 @@ object PdfExportDataBuilder {
     ): PdfExportData {
         var totalIncome = 0.0
         var totalExpense = 0.0
+        val conversionRates = exchangeRates.values.mapNotNull { rate ->
+            rate.baseCurrencyCode?.let { base ->
+                CurrencyRate(rate.currencyCode, base, rate.rateToDisplayCurrency, rate.rateDate)
+            }
+        }
 
         val rows = transactions.map { tx ->
             val accountName = accountMap[tx.accountId]?.name ?: tx.accountId
@@ -45,7 +52,15 @@ object PdfExportDataBuilder {
             if (tx.type == "TRANSFER") {
                 val fromName = tx.fromAccountId?.let { accountMap[it]?.name } ?: tx.fromAccountId ?: ""
                 val toName = tx.toAccountId?.let { accountMap[it]?.name } ?: tx.toAccountId ?: ""
-                val converted = convertAmount(tx.amount, tx.accountId, accountMap, exchangeRates, displayCurrency)
+                val fromAccountId = tx.fromAccountId ?: tx.accountId
+                val fromCurrency = accountMap[fromAccountId]?.currencyCode ?: displayCurrency
+                val toCurrency = tx.toAccountId?.let { accountMap[it]?.currencyCode } ?: displayCurrency
+                val converted = if (tx.destinationAmount != null) {
+                    "${amountLabel(tx.amount, fromCurrency, displayCurrency, conversionRates)} → " +
+                        "${amountLabel(tx.destinationAmount, toCurrency, displayCurrency, conversionRates)}"
+                } else {
+                    amountLabel(tx.amount, fromCurrency, displayCurrency, conversionRates)
+                }
                 PdfRow(
                     date = date,
                     description = note,
@@ -56,11 +71,13 @@ object PdfExportDataBuilder {
                     transferDetail = "$fromName \u2192 $toName"
                 )
             } else {
-                val converted = convertAmount(tx.amount, tx.accountId, accountMap, exchangeRates, displayCurrency)
+                val accountCurrency = accountMap[tx.accountId]?.currencyCode ?: displayCurrency
+                val converted = amountLabel(tx.amount, accountCurrency, displayCurrency, conversionRates)
                 val categoryName = tx.categoryId ?: ""
 
-                if (tx.type == "INCOME") totalIncome += parseConvertedAmount(tx.amount, tx.accountId, accountMap, exchangeRates, displayCurrency)
-                else totalExpense += parseConvertedAmount(tx.amount, tx.accountId, accountMap, exchangeRates, displayCurrency)
+                val summaryAmount = CurrencyConverter.convert(tx.amount, accountCurrency, displayCurrency, conversionRates)
+                if (tx.type == "INCOME" && summaryAmount != null) totalIncome += summaryAmount
+                else if (tx.type == "EXPENSE" && summaryAmount != null) totalExpense += summaryAmount
 
                 PdfRow(
                     date = date,
@@ -84,33 +101,13 @@ object PdfExportDataBuilder {
         )
     }
 
-    private fun convertAmount(
+    private fun amountLabel(
         amount: Double,
-        accountId: String,
-        accountMap: Map<String, AccountEntity>,
-        exchangeRates: Map<String, ExchangeRateEntity>,
-        displayCurrency: String
+        accountCurrency: String,
+        displayCurrency: String,
+        rates: List<CurrencyRate>
     ): String {
-        val accountCurrency = accountMap[accountId]?.currencyCode ?: displayCurrency
-        val converted = if (accountCurrency != displayCurrency) {
-            val rate = exchangeRates[accountCurrency]?.rateToDisplayCurrency
-            if (rate != null && rate > 0) amount * rate else amount
-        } else {
-            amount
-        }
-        return "${converted}"
-    }
-
-    private fun parseConvertedAmount(
-        amount: Double,
-        accountId: String,
-        accountMap: Map<String, AccountEntity>,
-        exchangeRates: Map<String, ExchangeRateEntity>,
-        displayCurrency: String
-    ): Double {
-        val accountCurrency = accountMap[accountId]?.currencyCode ?: displayCurrency
-        if (accountCurrency == displayCurrency) return amount
-        val rate = exchangeRates[accountCurrency]?.rateToDisplayCurrency
-        return if (rate != null && rate > 0) amount * rate else amount
+        val converted = CurrencyConverter.convert(amount, accountCurrency, displayCurrency, rates)
+        return converted?.toString() ?: "$amount $accountCurrency (unconverted)"
     }
 }

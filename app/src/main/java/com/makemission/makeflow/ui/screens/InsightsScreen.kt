@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -38,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,9 +105,11 @@ fun InsightsScreen(
     val savingsSuggestion by viewModel.savingsSuggestion.collectAsState()
     val frugalStreaks by viewModel.frugalStreaks.collectAsState()
     val upcomingSeasonalExpenses by viewModel.upcomingSeasonalExpenses.collectAsState()
+    val monthlyFinanceReview by viewModel.monthlyFinanceReview.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val insightsFocusedState by viewModel.focusedAccountState.collectAsState()
     val insightsFocusedReady by viewModel.focusedAccountReady.collectAsState()
+    var showMonthlyReview by remember { mutableStateOf(false) }
 
     val previousBudgetZones = remember { mutableMapOf<String, String>() }
     LaunchedEffect(budgets) {
@@ -255,33 +260,45 @@ fun InsightsScreen(
         }
         item {
             StaggeredItem(index = 1) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { viewModel.previousMonth() }) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronLeft,
-                        contentDescription = "Previous month",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                Text(
-                    text = selectedMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + selectedMonth.year,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                IconButton(
-                    onClick = { viewModel.nextMonth() },
-                    enabled = selectedMonth.isBefore(java.time.YearMonth.now())
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Next month",
-                        tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    IconButton(onClick = { viewModel.previousMonth() }) {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronLeft,
+                            contentDescription = "Previous month",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = selectedMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.getDefault()) + " " + selectedMonth.year,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(horizontal = dimens.paddingMedium)
                     )
+                    IconButton(
+                        onClick = { viewModel.nextMonth() },
+                        enabled = selectedMonth.isBefore(java.time.YearMonth.now())
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = "Next month",
+                            tint = if (selectedMonth.isBefore(java.time.YearMonth.now())) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = {
+                        hapticManager?.fire(HapticEvent.NAV_SELECT)
+                        showMonthlyReview = true
+                    }
+                ) {
+                    Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
+                    Spacer(Modifier.width(dimens.spacingSmall))
+                    Text("Open monthly review")
                 }
             }
             }
@@ -885,6 +902,14 @@ fun InsightsScreen(
             scrollState = listState,
             modifier = Modifier.align(Alignment.TopStart)
         )
+        if (showMonthlyReview) {
+            MonthlyFinanceReviewSheet(
+                review = monthlyFinanceReview,
+                currencyCode = selectedCurrency,
+                onDismiss = { showMonthlyReview = false },
+                hapticManager = hapticManager
+            )
+        }
     }
 }
 

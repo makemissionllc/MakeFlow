@@ -89,7 +89,7 @@ fun AccountsScreen(
     val dimens = LocalAppDimens.current
     val accounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
-    val currencySymbol by viewModel.currencySymbol.collectAsState()
+    val unconvertedAccountCount by viewModel.unconvertedAccountCount.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val exchangeRates by viewModel.exchangeRates.collectAsState()
     val context = LocalContext.current
@@ -113,6 +113,8 @@ fun AccountsScreen(
             accounts = accounts,
             selectedCurrency = selectedCurrency,
             exchangeRates = exchangeRates,
+            totalBalance = totalBalance,
+            unconvertedAccountCount = unconvertedAccountCount,
             onBack = onBack,
             onAddAccount = { showAddAccount = true },
             onEditAccount = { showEditAccount = it },
@@ -150,7 +152,7 @@ fun AccountsScreen(
                         CardContainer {
                             Column {
                                 Text(
-                                    text = "Total balance",
+                                    text = "Net worth in $selectedCurrency",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
@@ -161,6 +163,13 @@ fun AccountsScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                if (unconvertedAccountCount > 0) {
+                                    Text(
+                                        text = "$unconvertedAccountCount account${if (unconvertedAccountCount == 1) "" else "s"} excluded until rates are available",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                         }
@@ -185,9 +194,9 @@ fun AccountsScreen(
                                                 Spacer(Modifier.width(14.dp))
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                 }
-                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                                                Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                             }
                                         }
                                     }
@@ -209,9 +218,9 @@ fun AccountsScreen(
                                     Spacer(Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                     }
-                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                                    Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                 }
                             }
                             }
@@ -280,13 +289,13 @@ fun AccountsScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = CurrencyFormatter.format(acct.balance, selectedCurrency),
+                                text = CurrencyFormatter.format(acct.balance, acct.currencyCode ?: selectedCurrency),
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "Initial balance: ${CurrencyFormatter.format(acct.initialBalance, selectedCurrency)}",
+                                text = "Initial balance: ${CurrencyFormatter.format(acct.initialBalance, acct.currencyCode ?: selectedCurrency)}",
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.bodyLarge
                             )
@@ -366,7 +375,7 @@ fun AccountsScreen(
                         CardContainer {
                             Column {
                                 Text(
-                                    text = "Total balance",
+                                    text = "Net worth in $selectedCurrency",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
@@ -377,6 +386,13 @@ fun AccountsScreen(
                                     style = MaterialTheme.typography.titleLarge,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
+                                if (unconvertedAccountCount > 0) {
+                                    Text(
+                                        text = "$unconvertedAccountCount account${if (unconvertedAccountCount == 1) "" else "s"} excluded until rates are available",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                         }
@@ -402,9 +418,9 @@ fun AccountsScreen(
                                                 Spacer(Modifier.width(14.dp))
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                                 }
-                                                Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                                                Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                             }
                                         }
                                     }
@@ -427,9 +443,9 @@ fun AccountsScreen(
                                     Spacer(Modifier.width(14.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
                                     }
-                                    Text(CurrencyFormatter.format(account.balance, selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
+                                    Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
                                 }
                             }
                             }
@@ -471,28 +487,28 @@ fun AccountsScreen(
     if (showAddAccount) {
         AddEditAccountBottomSheet(
             onDismiss = { showAddAccount = false },
-            onSave = { name, balance, colorHex ->
+            onSave = { name, balance, colorHex, currencyCode ->
                 scope.launch {
-                    viewModel.addAccount(name, balance, colorHex)
+                    viewModel.addAccount(name, balance, colorHex, currencyCode)
                     showAddAccount = false
                 }
             },
             account = null,
-            currencySymbol = currencySymbol
+            defaultCurrencyCode = selectedCurrency
         )
     }
 
     showEditAccount?.let { acct ->
         AddEditAccountBottomSheet(
             onDismiss = { showEditAccount = null },
-            onSave = { name, balance, colorHex ->
+            onSave = { name, balance, colorHex, currencyCode ->
                 scope.launch {
-                    viewModel.updateAccount(acct, name, balance, colorHex)
+                    viewModel.updateAccount(acct, name, balance, colorHex, currencyCode)
                     showEditAccount = null
                 }
             },
             account = acct,
-            currencySymbol = currencySymbol
+            defaultCurrencyCode = selectedCurrency
         )
     }
 
@@ -553,6 +569,8 @@ private fun AccountsCompactLayout(
     accounts: List<AccountEntity>,
     selectedCurrency: String,
     exchangeRates: List<ExchangeRateEntity>,
+    totalBalance: Double,
+    unconvertedAccountCount: Int,
     onBack: () -> Unit,
     onAddAccount: () -> Unit,
     onEditAccount: (AccountEntity) -> Unit,
@@ -563,8 +581,8 @@ private fun AccountsCompactLayout(
     val dimens = LocalAppDimens.current
     val config = LocalAdaptiveConfig.current
     val exchangeRate = exchangeRates.firstOrNull {
-        it.currencyCode == "USD" && it.currencyCode != selectedCurrency
-    } ?: exchangeRates.firstOrNull { it.currencyCode != selectedCurrency }
+        it.baseCurrencyCode == selectedCurrency && it.currencyCode == "USD" && it.currencyCode != selectedCurrency
+    } ?: exchangeRates.firstOrNull { it.baseCurrencyCode == selectedCurrency && it.currencyCode != selectedCurrency }
 
     Column(
         modifier = Modifier
@@ -607,6 +625,34 @@ private fun AccountsCompactLayout(
             ),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(dimens.paddingMedium),
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+                ) {
+                    Text(
+                        text = "Total net worth · $selectedCurrency",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    AnimatedCounter(
+                        targetValue = totalBalance,
+                        formatter = { CurrencyFormatter.format(it, selectedCurrency) },
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (unconvertedAccountCount == 0) "All account balances converted" else
+                            "$unconvertedAccountCount account${if (unconvertedAccountCount == 1) "" else "s"} excluded until rates are available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (unconvertedAccountCount == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             if (accounts.isEmpty()) {
                 item {
                     Column(
@@ -664,10 +710,8 @@ private fun AccountsCompactLayout(
                             )
                             Spacer(modifier = Modifier.width(dimens.spacingSmall))
                             val accountCurrency = account.currencyCode ?: selectedCurrency
-                            val decimalPlaces = if (account.balance % 1.0 == 0.0) 0 else 2
                             Text(
-                                text = "${CurrencyFormatter.symbolFor(accountCurrency)} " +
-                                    CurrencyFormatter.formatNumber(account.balance, decimalPlaces),
+                                text = CurrencyFormatter.format(account.balance, accountCurrency),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.End,
@@ -696,15 +740,13 @@ private fun AccountsCompactLayout(
                         verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
                     ) {
                         Text(
-                            text = "Exchange rate",
+                        text = "Daily reference rate",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         val rateText = exchangeRate?.let {
-                            val decimalPlaces = if (it.rateToDisplayCurrency % 1.0 == 0.0) 0 else 2
-                            "1 ${it.currencyCode} = ${CurrencyFormatter.symbolFor(selectedCurrency)} " +
-                                CurrencyFormatter.formatNumber(it.rateToDisplayCurrency, decimalPlaces)
-                        } ?: "No rates added"
+                            "1 ${it.currencyCode} = ${CurrencyFormatter.format(it.rateToDisplayCurrency, selectedCurrency)}"
+                        } ?: "Rates will appear after sync"
                         Text(
                             text = rateText,
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
@@ -713,7 +755,7 @@ private fun AccountsCompactLayout(
                         )
                     }
                     Text(
-                        text = "Edit",
+                        text = "View",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )

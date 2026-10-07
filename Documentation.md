@@ -8,6 +8,26 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Add automatic multi-currency accounts and monthly review
+
+- **Scope:** exchange-rate data, account/transaction currency entry, net worth and
+  dashboard totals, insights, transfer handling, widgets, PDF summaries, and Room schema.
+- **What:** added a searchable ISO currency picker and per-account currency display;
+  integrated daily reference-rate refresh from Frankfurter with cached rates and manual
+  refresh; convert account balances, dashboard totals, insights, widgets, and exports to
+  the selected default currency, excluding amounts without a valid rate. Transfers now
+  preserve their destination-currency amount. Added an animated four-part monthly finance
+  review and migration to Room v22.
+- **Fixes:** the first unit run found an incorrect transaction-count expectation in the
+  review fixture and an existing dashboard test that added USD/EUR raw balances without
+  rates. Corrected the fixture and aligned Home’s monthly/category totals and account
+  chips with the currency conversion rules.
+- **Verification:** `./gradlew test` passed (398 unit tests), including debug Kotlin
+  compilation; `git diff --check` passed. Instrumented migration tests were not run because
+  `adb` is not installed in this environment.
+
+---
+
 ## 2026-10-07 — Strengthen type hierarchy and unify motion
 
 - **Scope:** shared typography and motion tokens, navigation, dashboard, onboarding,

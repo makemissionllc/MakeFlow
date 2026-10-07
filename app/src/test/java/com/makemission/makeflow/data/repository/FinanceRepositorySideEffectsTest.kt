@@ -529,6 +529,40 @@ class FinanceRepositorySideEffectsTest {
     }
 
     @Test
+    fun crossCurrencyTransferUsesSavedDestinationAmountForBothApplyAndReverse() {
+        runBlocking {
+            val txDao = FakeTransactionDao()
+            val acctDao = FakeAccountDao()
+            acctDao.insertAccount(AccountEntity(id = "usd", name = "USD wallet", balance = 100.0, initialBalance = 100.0, currencyCode = "USD"))
+            acctDao.insertAccount(AccountEntity(id = "kes", name = "KES wallet", balance = 500.0, initialBalance = 500.0, currencyCode = "KES"))
+            val repo = FinanceRepositoryImpl(
+                categoryDao = FakeCategoryDao(),
+                transactionDao = txDao,
+                taskDao = FakeTaskDao(),
+                accountDao = acctDao,
+                budgetDao = FakeBudgetDao(),
+                recurringPatternDao = FakeRecurringPatternDao()
+            )
+            val transfer = TransactionEntity(
+                id = "fx-transfer",
+                amount = 10.0,
+                destinationAmount = 1300.0,
+                type = "TRANSFER",
+                fromAccountId = "usd",
+                toAccountId = "kes"
+            )
+
+            repo.insertTransaction(transfer)
+            assertEquals(90.0, acctDao.getAccountById("usd")!!.balance, 0.001)
+            assertEquals(1800.0, acctDao.getAccountById("kes")!!.balance, 0.001)
+
+            repo.deleteTransaction(transfer)
+            assertEquals(100.0, acctDao.getAccountById("usd")!!.balance, 0.001)
+            assertEquals(500.0, acctDao.getAccountById("kes")!!.balance, 0.001)
+        }
+    }
+
+    @Test
     fun transfer_delete_reverses_both_accounts() {
         runBlocking {
             val txDao = FakeTransactionDao()

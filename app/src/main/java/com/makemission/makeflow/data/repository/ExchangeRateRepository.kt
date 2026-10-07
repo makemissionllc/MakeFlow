@@ -9,6 +9,7 @@ interface ExchangeRateRepository {
     suspend fun getAllRatesOnce(): List<ExchangeRateEntity>
     suspend fun getRate(currencyCode: String): ExchangeRateEntity?
     suspend fun upsertRate(rate: ExchangeRateEntity)
+    suspend fun replaceRates(rates: List<ExchangeRateEntity>)
     suspend fun deleteRate(currencyCode: String)
     suspend fun clearAll()
 }
@@ -23,6 +24,8 @@ class ExchangeRateRepositoryImpl(
     override suspend fun getRate(currencyCode: String): ExchangeRateEntity? = dao.getRate(currencyCode)
 
     override suspend fun upsertRate(rate: ExchangeRateEntity) = dao.upsertRate(rate)
+
+    override suspend fun replaceRates(rates: List<ExchangeRateEntity>) = dao.replaceRates(rates)
 
     override suspend fun deleteRate(currencyCode: String) = dao.deleteRate(currencyCode)
 

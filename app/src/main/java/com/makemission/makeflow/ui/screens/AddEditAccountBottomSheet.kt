@@ -45,6 +45,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.core.format.CurrencyCatalog
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -81,24 +83,10 @@ fun AddEditAccountBottomSheet(
     AdaptiveSheetDialog(
         onDismiss = onDismiss
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (isEdit) "Edit Account" else "New Account",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
+        AdaptiveSheetHeader(
+            title = if (isEdit) "Edit Account" else "New Account",
+            onDismiss = onDismiss
+        )
 
             Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
                 BasicTextField(
@@ -258,7 +246,8 @@ fun AddEditAccountBottomSheet(
                 }
             }
 
-            androidx.compose.material3.Button(
+            AdaptiveSheetPrimaryButton(
+                label = if (isEdit) "Update Account" else "Save Account",
                 onClick = {
                     val balance = parsedBalance ?: 0.0
                     scope.launch {
@@ -266,24 +255,8 @@ fun AddEditAccountBottomSheet(
                         onDismiss()
                     }
                 },
-                enabled = isSaveEnabled,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onSurface,
-                    contentColor = MaterialTheme.colorScheme.background,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                ),
-                shape = RoundedCornerShape(dimens.shapeCornerMedium),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-            ) {
-                Text(
-                    text = if (isEdit) "Update Account" else "Save Account",
-                    fontSize = dimens.textL,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                enabled = isSaveEnabled
+            )
     }
 
     if (showCurrencyPicker) {

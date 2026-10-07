@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,27 +27,21 @@ fun AdaptiveDatePickerSheet(
 ) {
     val dimens = LocalAppDimens.current
     AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        AdaptiveSheetHeader(title = title, onDismiss = onDismiss)
         DatePicker(state = state)
         Row(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(dimens.spacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
                 Text("Cancel")
             }
-            Spacer(Modifier.weight(1f))
-            Button(
+            AdaptiveSheetPrimaryButton(
+                label = confirmLabel,
                 onClick = onConfirm,
-                modifier = Modifier.height(dimens.primaryButtonHeight),
-                shape = MaterialTheme.shapes.extraLarge
-            ) {
-                Text(confirmLabel)
-            }
+                modifier = Modifier.weight(1.4f)
+            )
         }
     }
 }

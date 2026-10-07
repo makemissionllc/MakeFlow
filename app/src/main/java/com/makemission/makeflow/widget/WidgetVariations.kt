@@ -15,9 +15,7 @@ import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -25,7 +23,6 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
-import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
@@ -72,7 +69,6 @@ class ExpenseEntryWidget : GlanceAppWidget() {
                 label = "Add expense",
                 symbol = "-",
                 action = actionRunCallback<ExpenseShortcutCallback>(),
-                color = ColorProvider(R.color.widget_warning),
                 size = LocalSize.current
             )
         }
@@ -90,7 +86,6 @@ class IncomeEntryWidget : GlanceAppWidget() {
                 label = "Add income",
                 symbol = "+",
                 action = actionRunCallback<IncomeShortcutCallback>(),
-                color = ColorProvider(R.color.widget_accent),
                 size = LocalSize.current
             )
         }
@@ -115,71 +110,94 @@ class IncomeEntryWidgetReceiver : GlanceAppWidgetReceiver() {
 
 @androidx.compose.runtime.Composable
 private fun BalanceWidgetContent(data: QuickActionData, size: DpSize) {
-    val small = size.width < 180.dp
+    val small = size.width < WidgetTokens.compactWidth || size.height < 90.dp
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(R.color.widget_bg))
-            .padding(if (small) 10.dp else 14.dp)
+            .widgetSurface()
+            .padding(widgetPadding(small))
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
-        Text(
-            text = "TOTAL BALANCE",
-            style = TextStyle(
-                color = ColorProvider(R.color.widget_muted),
-                fontSize = if (small) 9.sp else 11.sp,
-                fontWeight = FontWeight.Medium
-            ),
-            maxLines = 1
-        )
-        Text(
-            text = CurrencyFormatter.format(data.balance, data.currencyCode),
-            style = TextStyle(
-                color = ColorProvider(R.color.widget_text),
-                fontSize = if (small) 16.sp else 23.sp,
-                fontWeight = FontWeight.Bold
-            ),
-            maxLines = 1
-        )
-        if (!small) {
+        if (size.height < 90.dp) {
+            Column(verticalAlignment = Alignment.Vertical.CenterVertically) {
+                Text(
+                    text = "BALANCE",
+                    style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.smallLabelSize)
+                )
+                Text(
+                    text = CurrencyFormatter.format(data.balance, data.currencyCode),
+                    style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.compactAmountSize, fontWeight = androidx.glance.text.FontWeight.Bold),
+                    maxLines = 1
+                )
+            }
+        } else {
             Text(
-                text = if (data.hasAccounts) "Across your accounts" else "Add an account to begin",
-                style = TextStyle(color = ColorProvider(R.color.widget_muted), fontSize = 11.sp),
+                text = "Balance",
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize)
+            )
+            Text(
+                text = CurrencyFormatter.format(data.balance, data.currencyCode),
+                style = TextStyle(
+                    color = WidgetPalette.text,
+                    fontSize = if (small) WidgetTokens.compactAmountSize else WidgetTokens.amountSize,
+                    fontWeight = androidx.glance.text.FontWeight.Bold
+                ),
                 maxLines = 1
             )
+            if (!small) {
+                Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+                Text(
+                    text = if (data.hasAccounts) "Across your accounts" else "Add an account to begin",
+                    style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize),
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
 @androidx.compose.runtime.Composable
 private fun MonthlySummaryWidgetContent(data: WidgetData, size: DpSize) {
-    val small = size.width < 180.dp
-    val expanded = size.width >= 220.dp && size.height >= 180.dp
+    val small = size.width < WidgetTokens.compactWidth
+    val expanded = size.width >= WidgetTokens.expandedWidth && size.height >= WidgetTokens.expandedHeight
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(R.color.widget_bg))
-            .padding(if (small) 10.dp else 14.dp)
+            .widgetSurface()
+            .padding(widgetPadding(small))
             .clickable(actionStartActivity<MainActivity>()),
-        verticalAlignment = Alignment.Vertical.CenterVertically
+        verticalAlignment = Alignment.Vertical.Top
     ) {
-        if (expanded) {
+        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "THIS MONTH",
-                style = TextStyle(color = ColorProvider(R.color.widget_muted), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                text = "This month",
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.titleSize, fontWeight = androidx.glance.text.FontWeight.Bold)
             )
-            Spacer(GlanceModifier.height(8.dp))
+            Text(
+                text = data.currencyCode,
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize)
+            )
         }
+        Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
         if (small) {
-            MonthlyAmount("IN", data.monthIncome, data.currencyCode, R.color.widget_accent)
-            Spacer(GlanceModifier.height(8.dp))
-            MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, R.color.widget_warning)
+            MonthlyAmount("IN", data.monthIncome, data.currencyCode, WidgetPalette.accent)
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+            MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, WidgetPalette.expense)
         } else {
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                MonthlyAmount("IN", data.monthIncome, data.currencyCode, R.color.widget_accent, GlanceModifier.defaultWeight())
-                MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, R.color.widget_warning, GlanceModifier.defaultWeight())
+                MonthlyAmount("IN", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
+                MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
             }
+        }
+        if (expanded) {
+            Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
+            Text(
+                text = "Net · ${CurrencyFormatter.format(data.monthIncome - data.monthExpenses, data.currencyCode)}",
+                style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.bodySize, fontWeight = androidx.glance.text.FontWeight.Medium),
+                maxLines = 1
+            )
         }
     }
 }
@@ -189,49 +207,55 @@ private fun MonthlyAmount(
     label: String,
     amount: Double,
     currencyCode: String,
-    colorRes: Int,
+    color: ColorProvider,
     modifier: GlanceModifier = GlanceModifier
 ) {
     Column(modifier = modifier) {
         Text(
             text = label,
-            style = TextStyle(color = ColorProvider(R.color.widget_muted), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = androidx.glance.text.FontWeight.Medium)
         )
         Text(
             text = CurrencyFormatter.format(amount, currencyCode),
-            style = TextStyle(color = ColorProvider(colorRes), fontSize = 16.sp, fontWeight = FontWeight.Bold),
+            style = TextStyle(color = color, fontSize = WidgetTokens.titleSize, fontWeight = androidx.glance.text.FontWeight.Bold),
             maxLines = 1
         )
     }
 }
 
 @androidx.compose.runtime.Composable
-private fun QuickEntryWidgetContent(label: String, symbol: String, action: Action, color: ColorProvider, size: DpSize) {
-    val small = size.width < 180.dp
-    Box(
+private fun QuickEntryWidgetContent(label: String, symbol: String, action: Action, size: DpSize) {
+    val small = size.width < WidgetTokens.compactWidth
+    Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(ColorProvider(R.color.widget_bg))
-            .padding(if (small) 10.dp else 14.dp)
+            .widgetSurface()
+            .padding(widgetPadding(small))
             .clickable(action),
-        contentAlignment = Alignment.Center
+        verticalAlignment = Alignment.Vertical.CenterVertically,
+        horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.Horizontal.CenterHorizontally) {
+        if (!small) {
             Text(
-                text = symbol,
-                style = TextStyle(color = color, fontSize = if (small) 25.sp else 34.sp, fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = label,
-                style = TextStyle(color = ColorProvider(R.color.widget_text), fontSize = if (small) 12.sp else 15.sp, fontWeight = FontWeight.Bold),
+                text = if (symbol == "+") "INCOME" else "EXPENSE",
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = androidx.glance.text.FontWeight.Bold),
                 maxLines = 1
             )
-            if (!small) {
-                Text(
-                    text = "Tap to log",
-                    style = TextStyle(color = ColorProvider(R.color.widget_muted), fontSize = 11.sp)
-                )
-            }
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+        }
+        WidgetActionPill(
+            label = "$symbol $label",
+            action = action,
+            primary = symbol == "+",
+            modifier = GlanceModifier.fillMaxWidth(),
+            height = WidgetTokens.actionHeight
+        )
+        if (!small) {
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+            Text(
+                text = "Tap to log",
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize)
+            )
         }
     }
 }

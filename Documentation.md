@@ -8,6 +8,23 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Unify widgets and bottom-sheet interactions
+
+- **Scope:** Glance widget family, shared adaptive sheet layout, transaction/account/
+  budget/goal/category/currency/review sheets, onboarding account entry, and date picker.
+- **What:** redesigned balance, monthly summary, quick-add, expense, and income widgets
+  around the same rounded surface, typography, spacing, and chartreuse action hierarchy;
+  included richer monthly and projected-balance details at expanded sizes. Standardized
+  sheet insets, headers, close affordances, primary actions, and reduced-motion-aware
+  content-size transitions across the app's editing and selection sheets.
+- **Fixes:** corrected dark-mode widget action-label contrast so secondary actions remain
+  readable on dark widget surfaces.
+- **Verification:** `./gradlew test` passed, including debug Kotlin compilation;
+  `git diff --check` passed. Device screenshot verification was unavailable because
+  `adb` is not installed in this environment.
+
+---
+
 ## 2026-10-07 — Add automatic multi-currency accounts and monthly review
 
 - **Scope:** exchange-rate data, account/transaction currency entry, net worth and

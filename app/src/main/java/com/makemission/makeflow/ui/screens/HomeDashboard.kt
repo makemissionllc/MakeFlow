@@ -88,6 +88,7 @@ import com.makemission.makeflow.domain.VelocityAlert
 import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.components.FittedAmountText
 import com.makemission.makeflow.ui.components.CollapsingTopBar
@@ -1720,12 +1721,7 @@ fun AccountFocusSheet(
     val dimens = LocalAppDimens.current
     AdaptiveSheetDialog(onDismiss = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Focus Account",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            AdaptiveSheetHeader(title = "Focus Account", onDismiss = onDismiss)
 
             Spacer(Modifier.height(dimens.spacingXLarge))
 

@@ -57,6 +57,8 @@ import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.ml.CategoryPrediction
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
@@ -358,24 +360,10 @@ fun AddTransactionBottomSheet(
                     }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (isEditMode) "Edit Transaction" else "Add Transaction",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Rounded.Close,
-                        contentDescription = "Close",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
+            AdaptiveSheetHeader(
+                title = if (isEditMode) "Edit Transaction" else "Add Transaction",
+                onDismiss = onDismiss
+            )
 
             if (!isEditMode && templates.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
@@ -835,9 +823,10 @@ fun AddTransactionBottomSheet(
                 )
             }
 
-            androidx.compose.material3.Button(
+            AdaptiveSheetPrimaryButton(
+                label = if (isEditMode) "Update Transaction" else "Save Transaction",
                 onClick = {
-                    val amount = parsedAmount ?: return@Button
+                    val amount = parsedAmount ?: return@AdaptiveSheetPrimaryButton
                     scope.launch {
                         val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
                         val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
@@ -897,22 +886,7 @@ fun AddTransactionBottomSheet(
                     }
                 },
                 enabled = isSaveEnabled,
-                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onSurface,
-                    contentColor = MaterialTheme.colorScheme.background,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                ),
-                shape = RoundedCornerShape(dimens.shapeCornerMedium),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-            ) {
-                Text(
-                    text = if (isEditMode) "Update Transaction" else "Save Transaction",
-                    fontSize = dimens.textL,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+                hapticManager = hapticManager
+            )
     }
 }

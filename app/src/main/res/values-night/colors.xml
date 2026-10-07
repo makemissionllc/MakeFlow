@@ -2,6 +2,8 @@
 <resources>
     <color name="splash_background">#FF141810</color>
     <color name="widget_bg">#FF1D241A</color>
+    <color name="widget_surface">#FF000000</color>
+    <color name="widget_action_content">#FFEEF1E4</color>
     <color name="widget_text">#FFEEF1E4</color>
     <color name="widget_muted">#FFB5BDAE</color>
     <color name="widget_accent">#FFC4D42E</color>

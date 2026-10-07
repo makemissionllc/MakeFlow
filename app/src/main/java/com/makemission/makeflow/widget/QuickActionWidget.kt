@@ -3,7 +3,6 @@ package com.makemission.makeflow.widget
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -20,7 +19,6 @@ import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
@@ -32,7 +30,6 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import com.makemission.makeflow.QuickAddTransactionActivity
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.AppDatabase
@@ -125,75 +122,64 @@ class IncomeShortcutCallback : ActionCallback {
 
 @Composable
 private fun QuickActionContent(data: QuickActionData, size: DpSize) {
-    val bgColor = ColorProvider(com.makemission.makeflow.R.color.widget_bg)
-    val textColor = ColorProvider(com.makemission.makeflow.R.color.widget_text)
-    val mutedColor = ColorProvider(com.makemission.makeflow.R.color.widget_muted)
-    val accentColor = ColorProvider(com.makemission.makeflow.R.color.widget_accent)
-    val expenseColor = ColorProvider(com.makemission.makeflow.R.color.widget_warning)
-    val compact = size.width < 180.dp
+    val compact = size.width < WidgetTokens.compactWidth
+    val expanded = size.width >= WidgetTokens.expandedWidth && size.height >= WidgetTokens.expandedHeight
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(bgColor)
-            .padding(if (compact) 8.dp else 12.dp),
-        verticalAlignment = Alignment.Vertical.CenterVertically
+            .widgetSurface()
+            .padding(widgetPadding(compact)),
+        verticalAlignment = Alignment.Vertical.Top
     ) {
-        Row(
-            modifier = GlanceModifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        QuickActionHeader(data.currencyCode)
+
+        if (expanded && data.hasAccounts) {
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
             Text(
-                text = if (compact) "Quick add" else "Mindful Wallet",
-                style = TextStyle(color = mutedColor, fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                modifier = GlanceModifier.defaultWeight()
+                text = "Balance",
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Medium)
             )
-            if (!compact && data.hasAccounts) {
-                Text(
-                    text = CurrencyFormatter.format(data.balance, data.currencyCode),
-                    style = TextStyle(color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
-            }
+            Text(
+                text = CurrencyFormatter.format(data.balance, data.currencyCode),
+                style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.amountSize, fontWeight = FontWeight.Bold),
+                maxLines = 1
+            )
         }
 
+        Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
         if (compact) {
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            QuickActionButton(
-                label = "Expense",
-                buttonColor = expenseColor,
-                callback = actionRunCallback<ExpenseShortcutCallback>(),
-                height = 28.dp
+            WidgetActionPill(
+                label = "- Expense",
+                action = actionRunCallback<ExpenseShortcutCallback>(),
+                primary = false,
+                modifier = GlanceModifier.fillMaxWidth(),
+                height = WidgetTokens.compactActionHeight
             )
-            Spacer(modifier = GlanceModifier.height(4.dp))
-            QuickActionButton(
-                label = "Income",
-                buttonColor = accentColor,
-                callback = actionRunCallback<IncomeShortcutCallback>(),
-                height = 28.dp
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+            WidgetActionPill(
+                label = "+ Income",
+                action = actionRunCallback<IncomeShortcutCallback>(),
+                primary = true,
+                height = WidgetTokens.compactActionHeight
             )
         } else {
-            Spacer(modifier = GlanceModifier.height(8.dp))
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                QuickActionButton(
+                WidgetActionPill(
                     label = "- Expense",
-                    buttonColor = expenseColor,
-                    callback = actionRunCallback<ExpenseShortcutCallback>(),
-                    height = 40.dp,
-                    modifier = GlanceModifier.defaultWeight(),
-                    fillWidth = false
+                    action = actionRunCallback<ExpenseShortcutCallback>(),
+                    primary = false,
+                    modifier = GlanceModifier.defaultWeight()
                 )
-                Spacer(modifier = GlanceModifier.width(8.dp))
-                QuickActionButton(
+                Spacer(GlanceModifier.width(WidgetTokens.compactSpacing))
+                WidgetActionPill(
                     label = "+ Income",
-                    buttonColor = accentColor,
-                    callback = actionRunCallback<IncomeShortcutCallback>(),
-                    height = 40.dp,
-                    modifier = GlanceModifier.defaultWeight(),
-                    fillWidth = false
+                    action = actionRunCallback<IncomeShortcutCallback>(),
+                    primary = true,
+                    modifier = GlanceModifier.defaultWeight()
                 )
             }
         }
@@ -201,29 +187,25 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
 }
 
 @Composable
-private fun QuickActionButton(
-    label: String,
-    buttonColor: ColorProvider,
-    callback: Action,
-    height: Dp,
-    modifier: GlanceModifier = GlanceModifier,
-    fillWidth: Boolean = true
-) {
-    Box(
-        modifier = modifier
-            .then(if (fillWidth) GlanceModifier.fillMaxWidth() else GlanceModifier)
-            .height(height)
-            .background(buttonColor)
-            .clickable(callback),
-        contentAlignment = Alignment.Center
+private fun QuickActionHeader(currencyCode: String) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = label,
+            text = "Quick add",
+            modifier = GlanceModifier.defaultWeight(),
             style = TextStyle(
-                color = ColorProvider(com.makemission.makeflow.R.color.widget_bg),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+                color = WidgetPalette.muted,
+                fontSize = WidgetTokens.bodySize,
+                fontWeight = FontWeight.Medium
+            ),
+            maxLines = 1
+        )
+        Text(
+            text = currencyCode,
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = FontWeight.Medium),
+            maxLines = 1
         )
     }
 }

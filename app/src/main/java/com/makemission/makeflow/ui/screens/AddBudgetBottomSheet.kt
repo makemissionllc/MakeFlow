@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.data.local.entity.BudgetEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.data.local.entity.CategoryEntity
@@ -105,24 +107,10 @@ fun AddBudgetBottomSheet(
     AdaptiveSheetDialog(
         onDismiss = onDismiss
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (isEditing) "Edit Budget" else "New Budget",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
+        AdaptiveSheetHeader(
+            title = if (isEditing) "Edit Budget" else "New Budget",
+            onDismiss = onDismiss
+        )
 
         if (isEditing) {
             Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
@@ -314,32 +302,18 @@ fun AddBudgetBottomSheet(
 
         Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
-        androidx.compose.material3.Button(
+        AdaptiveSheetPrimaryButton(
+            label = if (isEditing) "Save Changes" else "Save Budget",
             onClick = {
-                val amount = parsedAmount ?: return@Button
-                scope.launch {
+                parsedAmount?.let { amount ->
+                    scope.launch {
                     val budgetName = nameInput.ifBlank { null }
                     onSave(editingBudget?.id, selectedCategoryId, selectedCategoryName, amount, selectedPeriod, budgetName)
                     onDismiss()
+                    }
                 }
             },
-            enabled = isSaveEnabled,
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.background,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            ),
-            shape = RoundedCornerShape(dimens.shapeCornerMedium),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp)
-        ) {
-            Text(
-                text = if (isEditing) "Save Changes" else "Save Budget",
-                fontSize = dimens.textL,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            enabled = isSaveEnabled
+        )
     }
 }

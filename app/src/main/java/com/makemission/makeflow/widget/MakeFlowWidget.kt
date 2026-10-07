@@ -139,143 +139,148 @@ private fun List<ExchangeRateEntity>.toCurrencyRates(): List<CurrencyRate> = map
 
 @androidx.compose.runtime.Composable
 private fun WidgetContent(data: WidgetData, size: DpSize) {
-    val bgColor = ColorProvider(R.color.widget_bg)
-    val textColor = ColorProvider(R.color.widget_text)
-    val mutedColor = ColorProvider(R.color.widget_muted)
-    val accentColor = ColorProvider(R.color.widget_accent)
-    val warningColor = ColorProvider(R.color.widget_warning)
-    val amberColor = ColorProvider(R.color.widget_amber)
-    val compact = size.width < 180.dp
-    val expanded = size.width >= 220.dp && size.height >= 180.dp
+    val compact = size.width < WidgetTokens.compactWidth
+    val expanded = size.width >= WidgetTokens.expandedWidth && size.height >= WidgetTokens.expandedHeight
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
-            .background(bgColor)
-            .padding(if (compact) 10.dp else 14.dp)
+            .widgetSurface()
+            .padding(widgetPadding(compact))
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Vertical.Top
     ) {
-        Row(
-            modifier = GlanceModifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (compact) "Mindful" else "Mindful Wallet",
-                style = TextStyle(
-                    color = mutedColor,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            )
-        }
+        WidgetHeader("MINDFUL", trailing = data.currencyCode)
+        Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+        Text(
+            text = "Balance",
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Medium)
+        )
+        Text(
+            text = CurrencyFormatter.format(data.currentBalance, data.currencyCode),
+            style = TextStyle(
+                color = WidgetPalette.text,
+                fontSize = if (compact) WidgetTokens.compactAmountSize else WidgetTokens.amountSize,
+                fontWeight = FontWeight.Bold
+            ),
+            maxLines = 1
+        )
 
         if (expanded) {
-            Spacer(modifier = GlanceModifier.height(10.dp))
-            Text(
-                text = "TOTAL BALANCE",
-                style = TextStyle(color = mutedColor, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-            )
-            Text(
-                text = CurrencyFormatter.format(data.currentBalance, data.currencyCode),
-                style = TextStyle(color = textColor, fontSize = 22.sp, fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-            Spacer(modifier = GlanceModifier.height(8.dp))
+            Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                Column(modifier = GlanceModifier.defaultWeight()) {
-                    Text("IN THIS MONTH", style = TextStyle(color = mutedColor, fontSize = 9.sp))
-                    Text(
-                        "+${CurrencyFormatter.format(data.monthIncome, data.currencyCode)}",
-                        style = TextStyle(color = accentColor, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                        maxLines = 1
-                    )
-                }
-                Spacer(modifier = GlanceModifier.width(10.dp))
-                Column(modifier = GlanceModifier.defaultWeight()) {
-                    Text("OUT THIS MONTH", style = TextStyle(color = mutedColor, fontSize = 9.sp))
-                    Text(
-                        "-${CurrencyFormatter.format(data.monthExpenses, data.currencyCode)}",
-                        style = TextStyle(color = warningColor, fontSize = 13.sp, fontWeight = FontWeight.Bold),
-                        maxLines = 1
-                    )
-                }
+                WidgetMonthAmount("IN THIS MONTH", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
+                Spacer(GlanceModifier.width(WidgetTokens.sectionSpacing))
+                WidgetMonthAmount("OUT THIS MONTH", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
             }
-            Spacer(modifier = GlanceModifier.height(10.dp))
+            Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
         } else {
-            Spacer(modifier = GlanceModifier.height(if (compact) 4.dp else 8.dp))
+            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
         }
 
-        when (val c = data.content) {
+        when (val content = data.content) {
             is WidgetContent.UpcomingBill -> {
-                val dayLabel = when (c.daysUntilDue) {
+                val dueLabel = when (content.daysUntilDue) {
                     0 -> "Due today"
                     1 -> "Due tomorrow"
-                    else -> "Due in ${c.daysUntilDue} days"
+                    else -> "Due in ${content.daysUntilDue} days"
                 }
-                Text(
-                    text = dayLabel,
-                    style = TextStyle(color = warningColor, fontSize = if (compact) 12.sp else 13.sp, fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                Text(
-                    text = c.description,
-                    style = TextStyle(color = textColor, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
-                Text(
-                    text = CurrencyFormatter.format(c.amount, data.currencyCode),
-                    style = TextStyle(color = warningColor, fontSize = if (compact) 17.sp else 20.sp, fontWeight = FontWeight.Bold)
-                )
+                WidgetSpotlight(label = dueLabel, value = content.description, amount = content.amount, currencyCode = data.currencyCode, compact = compact)
             }
             is WidgetContent.BudgetWarning -> {
-                Text(
-                    text = "Budget Alert",
-                    style = TextStyle(color = amberColor, fontSize = if (compact) 12.sp else 13.sp, fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = GlanceModifier.height(4.dp))
-                Text(
-                    text = c.categoryName,
-                    style = TextStyle(color = textColor, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
-                )
-                Text(
-                    text = "${CurrencyFormatter.format(c.spentAmount, data.currencyCode)} / ${CurrencyFormatter.format(c.budgetAmount, data.currencyCode)}",
-                    style = TextStyle(color = if (c.isExceeded) warningColor else amberColor, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold)
+                WidgetSpotlight(
+                    label = if (content.isExceeded) "Budget passed" else "Budget alert",
+                    value = content.categoryName,
+                    amountLabel = "${CurrencyFormatter.format(content.spentAmount, data.currencyCode)} / ${CurrencyFormatter.format(content.budgetAmount, data.currencyCode)}",
+                    compact = compact
                 )
             }
-            is WidgetContent.BalanceSummary -> {
-                if (!expanded) {
-                    Text(
-                        text = "Balance",
-                        style = TextStyle(color = mutedColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    )
-                    Spacer(modifier = GlanceModifier.height(4.dp))
-                    Text(
-                        text = CurrencyFormatter.format(c.currentBalance, data.currencyCode),
-                        style = TextStyle(color = textColor, fontSize = if (compact) 18.sp else 22.sp, fontWeight = FontWeight.Bold),
-                        maxLines = 1
-                    )
-                }
-                c.projectedEndOfMonth?.let { projected ->
-                    Spacer(modifier = GlanceModifier.height(2.dp))
-                    Text(
-                        text = "Projected EOM: ${CurrencyFormatter.format(projected, data.currencyCode)}",
-                        style = TextStyle(color = accentColor, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                    )
-                }
+            is WidgetContent.BalanceSummary -> content.projectedEndOfMonth?.let { projected ->
+                Text(
+                    text = "Projected · ${CurrencyFormatter.format(projected, data.currencyCode)}",
+                    style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Medium),
+                    maxLines = 1
+                )
             }
             is WidgetContent.NoData -> {
                 Text(
-                    text = if (compact) "Welcome" else "Welcome to Mindful Wallet",
-                    style = TextStyle(color = textColor, fontSize = if (compact) 14.sp else 16.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 1
+                    text = "Start with an account or your first transaction",
+                    style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize),
+                    maxLines = if (compact) 2 else 1
                 )
-                Spacer(modifier = GlanceModifier.height(4.dp))
+            }
+        }
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun WidgetMonthAmount(label: String, amount: Double, currencyCode: String, color: ColorProvider, modifier: GlanceModifier) {
+    Column(modifier = modifier) {
+        Text(
+            text = label,
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.smallLabelSize, fontWeight = FontWeight.Medium),
+            maxLines = 1
+        )
+        Text(
+            text = CurrencyFormatter.format(amount, currencyCode),
+            style = TextStyle(color = color, fontSize = WidgetTokens.titleSize, fontWeight = FontWeight.Bold),
+            maxLines = 1
+        )
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun WidgetHeader(title: String, trailing: String) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = FontWeight.Bold),
+            maxLines = 1
+        )
+        Text(
+            text = trailing,
+            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = FontWeight.Medium),
+            maxLines = 1
+        )
+    }
+}
+
+@androidx.compose.runtime.Composable
+private fun WidgetSpotlight(
+    label: String,
+    value: String,
+    currencyCode: String? = null,
+    amount: Double? = null,
+    amountLabel: String? = null,
+    compact: Boolean
+) {
+    Column {
+        Text(
+            text = label.uppercase(),
+            style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.smallLabelSize, fontWeight = FontWeight.Bold),
+            maxLines = 1
+        )
+        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = value,
+                modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(color = WidgetPalette.text, fontSize = if (compact) WidgetTokens.bodySize else WidgetTokens.titleSize, fontWeight = FontWeight.Bold),
+                maxLines = 1
+            )
+            val formattedAmount = when {
+                amountLabel != null -> amountLabel
+                amount != null && currencyCode != null -> CurrencyFormatter.format(amount, currencyCode)
+                else -> null
+            }
+            formattedAmount?.let {
                 Text(
-                    text = if (compact) "Tap to get started" else "Open to add your first transaction",
-                    style = TextStyle(color = mutedColor, fontSize = if (compact) 11.sp else 13.sp),
-                    maxLines = 2
+                    text = it,
+                    style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Bold),
+                    maxLines = 1
                 )
             }
         }

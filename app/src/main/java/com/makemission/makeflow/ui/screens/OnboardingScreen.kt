@@ -58,6 +58,8 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.core.logging.AppLogger
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.AnimatedDoodle
@@ -621,15 +623,10 @@ private fun AddOnboardingAccountSheet(
     val isBalanceInvalid = balance == null
 
     AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Text(
-            text = "Add an account",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
-            text = "Give it a name and add today's balance if you know it.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        AdaptiveSheetHeader(
+            title = "Add an account",
+            subtitle = "Give it a name and add today's balance if you know it.",
+            onDismiss = onDismiss
         )
         OutlinedTextField(
             value = name,
@@ -660,7 +657,8 @@ private fun AddOnboardingAccountSheet(
                 color = MaterialTheme.colorScheme.error
             )
         }
-        Button(
+        AdaptiveSheetPrimaryButton(
+            label = "Add account",
             onClick = {
                 showValidation = true
                 if (!isNameInvalid && !isBalanceInvalid) {
@@ -676,14 +674,8 @@ private fun AddOnboardingAccountSheet(
                     )
                     onDismiss()
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(dimens.primaryButtonHeight),
-            shape = MaterialTheme.shapes.extraLarge
-        ) {
-            Text("Add account")
-        }
+            }
+        )
     }
 }
 

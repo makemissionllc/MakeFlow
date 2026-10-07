@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
 import com.makemission.makeflow.domain.DashboardCardType
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import kotlin.math.abs
@@ -61,12 +62,7 @@ fun ReorderCardsSheet(
 
     AdaptiveSheetDialog(onDismiss = onDismiss, scrollable = false) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "Edit Cards",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            AdaptiveSheetHeader(title = "Edit Cards", onDismiss = onDismiss)
 
             Spacer(Modifier.height(dimens.spacingXLarge))
 

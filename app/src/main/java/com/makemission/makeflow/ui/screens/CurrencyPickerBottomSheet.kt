@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.makemission.makeflow.core.format.CurrencyCatalog
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
@@ -45,10 +46,10 @@ fun CurrencyPickerBottomSheet(
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.78f),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
+            AdaptiveSheetHeader(
+                title = title,
+                subtitle = "Choose from supported ISO currencies",
+                onDismiss = onDismiss
             )
             OutlinedTextField(
                 value = query,

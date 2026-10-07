@@ -17,11 +17,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +36,7 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
 import com.makemission.makeflow.domain.MonthlyFinanceReview
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -65,30 +64,14 @@ fun MonthlyFinanceReviewSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.78f)
-                .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge),
+                .padding(vertical = dimens.spacingLarge),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
-                    Text(
-                        text = "MONTHLY REVIEW",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "$monthName ${review.month.year}",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close monthly review")
-                }
-            }
+            AdaptiveSheetHeader(
+                title = "$monthName ${review.month.year}",
+                eyebrow = "MONTHLY REVIEW",
+                onDismiss = onDismiss
+            )
 
             AnimatedProgressBar(
                 progress = (page + 1).toFloat() / REVIEW_PAGE_COUNT,

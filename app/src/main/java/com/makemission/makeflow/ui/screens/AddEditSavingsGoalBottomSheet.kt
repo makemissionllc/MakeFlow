@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveDatePickerSheet
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.SavingsGoalEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -103,13 +105,11 @@ fun AddEditSavingsGoalBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(vertical = dimens.spacingMedium)
         ) {
-            Text(
-                text = if (isEdit) "Edit Goal" else "New Goal",
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = dimens.textXxl,
-                fontWeight = FontWeight.Bold
+            AdaptiveSheetHeader(
+                title = if (isEdit) "Edit Goal" else "New Goal",
+                onDismiss = onDismiss
             )
 
             Spacer(Modifier.height(dimens.spacingXXLarge))
@@ -224,25 +224,15 @@ fun AddEditSavingsGoalBottomSheet(
 
             Spacer(Modifier.height(24.dp))
 
-            TextButton(
+            AdaptiveSheetPrimaryButton(
+                label = if (isEdit) "Save Changes" else "Create Goal",
                 onClick = {
-                    val amount = parsedAmount ?: return@TextButton
-                    onSave(name, amount, targetDate, selectedAccountId)
+                    parsedAmount?.let { amount ->
+                        onSave(name, amount, targetDate, selectedAccountId)
+                    }
                 },
-                enabled = isValid,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
-                    .background(if (isValid) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh),
-            ) {
-                Text(
-                    text = if (isEdit) "Save Changes" else "Create Goal",
-                    color = if (isValid) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = dimens.textL
-                )
-            }
+                enabled = isValid
+            )
 
             Spacer(Modifier.height(dimens.spacingMedium))
         }

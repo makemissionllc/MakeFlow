@@ -41,6 +41,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.RecurringTransactionEntity
@@ -108,24 +110,10 @@ fun AddEditRecurringTransactionBottomSheet(
     AdaptiveSheetDialog(
         onDismiss = onDismiss
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (isEditing) "Edit Recurring" else "New Recurring",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(
-                    imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
+        AdaptiveSheetHeader(
+            title = if (isEditing) "Edit Recurring" else "New Recurring",
+            onDismiss = onDismiss
+        )
 
         Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
             Text(
@@ -424,9 +412,10 @@ fun AddEditRecurringTransactionBottomSheet(
 
         Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
-        androidx.compose.material3.Button(
+        AdaptiveSheetPrimaryButton(
+            label = if (isEditing) "Update" else "Create",
             onClick = {
-                val amount = parsedAmount ?: return@Button
+                val amount = parsedAmount ?: return@AdaptiveSheetPrimaryButton
                 val now = System.currentTimeMillis()
                 val entity = RecurringTransactionEntity(
                     id = editEntity?.id ?: UUID.randomUUID().toString(),
@@ -448,23 +437,7 @@ fun AddEditRecurringTransactionBottomSheet(
                     onDismiss()
                 }
             },
-            enabled = isSaveEnabled,
-            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.onSurface,
-                contentColor = MaterialTheme.colorScheme.background,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            ),
-            shape = RoundedCornerShape(dimens.shapeCornerMedium),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp)
-        ) {
-            Text(
-                text = if (isEditing) "Update" else "Create",
-                fontSize = dimens.textL,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            enabled = isSaveEnabled
+        )
     }
 }

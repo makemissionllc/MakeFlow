@@ -41,6 +41,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
@@ -82,20 +84,7 @@ fun CreateCategoryBottomSheet(
     val isSaveEnabled = name.isNotBlank()
 
     AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "New Category",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            IconButton(onClick = onDismiss) {
-                Icon(imageVector = Icons.Rounded.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
-            }
-        }
+        AdaptiveSheetHeader(title = "New Category", onDismiss = onDismiss)
 
         Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
             BasicTextField(
@@ -225,10 +214,11 @@ fun CreateCategoryBottomSheet(
 
         Spacer(modifier = Modifier.height(dimens.spacingLarge))
 
-        TextButton(
+        AdaptiveSheetPrimaryButton(
+            label = "Create Category",
             onClick = {
                 val trimmedName = name.trim()
-                if (trimmedName.isBlank()) return@TextButton
+                if (trimmedName.isBlank()) return@AdaptiveSheetPrimaryButton
                 scope.launch {
                     val entity = CategoryEntity(
                         name = trimmedName,
@@ -241,25 +231,7 @@ fun CreateCategoryBottomSheet(
                     onDismiss()
                 }
             },
-            enabled = isSaveEnabled,
-            colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.onSurface,
-                disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    if (isSaveEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    RoundedCornerShape(dimens.shapeCornerMedium)
-                )
-                .height(54.dp)
-        ) {
-            Text(
-                text = "Create Category",
-                fontSize = dimens.textL,
-                fontWeight = FontWeight.Bold,
-                color = if (isSaveEnabled) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-            )
-        }
+            enabled = isSaveEnabled
+        )
     }
 }

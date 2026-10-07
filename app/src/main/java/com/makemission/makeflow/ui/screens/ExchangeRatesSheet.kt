@@ -9,15 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import com.makemission.makeflow.core.format.CurrencyCatalog
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 
@@ -52,26 +46,11 @@ fun ExchangeRatesSheet(
             modifier = Modifier.fillMaxWidth().fillMaxHeight(0.78f),
             verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Exchange rates",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Rounded.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
-                }
-            }
-
-            Text(
-                text = if (rateDate != null) "Daily reference rates · dated $rateDate · base $displayCurrency" else
+            AdaptiveSheetHeader(
+                title = "Exchange rates",
+                subtitle = if (rateDate != null) "Daily reference rates · dated $rateDate · base $displayCurrency" else
                     "No reference rates are cached for $displayCurrency yet.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                onDismiss = onDismiss
             )
             Text(
                 text = "Rates refresh automatically when you open the app. They are mid-market reference rates, not live trading prices.",
@@ -79,23 +58,11 @@ fun ExchangeRatesSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Button(
+            AdaptiveSheetPrimaryButton(
+                label = if (isRefreshing) "Refreshing rates" else "Refresh rates",
                 onClick = onRefresh,
-                enabled = !isRefreshing,
-                shape = RoundedCornerShape(dimens.shapeCornerMedium),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-            ) {
-                if (isRefreshing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.padding(end = dimens.spacingMedium),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = dimens.spacingXSmall
-                    )
-                } else {
-                    Icon(Icons.Rounded.Refresh, contentDescription = null)
-                }
-                Text(if (isRefreshing) "Refreshing" else "Refresh rates")
-            }
+                enabled = !isRefreshing
+            )
 
             if (refreshError != null) {
                 Text(

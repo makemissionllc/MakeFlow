@@ -8,6 +8,28 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Add opt-in M-PESA SMS detection with review-before-save
+
+- **Scope:** SMS permission handling, M-PESA sender validation, review notifications,
+  Settings consent, and transaction-editor handoff.
+- **What:** added an off-by-default `RECEIVE_SMS` flow for new broadcasts only. It accepts
+  the exact M-PESA sender ID, parses matching confirmation messages locally, suppresses
+  references already recorded, then opens the existing transaction review/save flow from
+  a private notification. No inbox-history permission or automatic transaction write is
+  used. Added a prominent pre-permission disclosure, notification channel, opt-in setting,
+  and sender-filter tests. Share/paste import remains available.
+- **Privacy and release gate:** raw SMS text is not logged, persisted, or sent off-device;
+  only parsed fields are temporarily carried by the app's notification action for review.
+  Google Play Console declaration and permission approval are publisher-side steps and
+  have not been performed. Eligibility is uncertain because manual/share import remains an
+  alternative; see `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` and do not release with this
+  permission until eligibility is confirmed and Play approves the declaration.
+- **Verification:** `./gradlew test` passed, including debug Kotlin compilation;
+  `git diff --check` passed. Play Console declaration and device SMS-flow testing remain
+  publisher/device-side checks.
+
+---
+
 ## 2026-10-07 — Unify widgets and bottom-sheet interactions
 
 - **Scope:** Glance widget family, shared adaptive sheet layout, transaction/account/

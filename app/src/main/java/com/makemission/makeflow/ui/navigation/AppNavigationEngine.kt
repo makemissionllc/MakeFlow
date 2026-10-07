@@ -39,7 +39,12 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> Unit = {}) {
+fun AppNavigationEngine(
+    sharedText: String? = null,
+    onSharedTextConsumed: () -> Unit = {},
+    importedMpesaMessage: MpesaMessageParser.MpesaParsedMessage? = null,
+    onImportedMpesaMessageConsumed: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -145,13 +150,21 @@ fun AppNavigationEngine(sharedText: String? = null, onSharedTextConsumed: () -> 
             if (result != null) {
                 parsedMpesa = result
                 shareParseError = null
-                AppLogger.info("AppNav", "M-PESA message parsed: ${result.type} Ksh${result.amount}")
+                AppLogger.info("AppNav", "Shared M-PESA message parsed")
             } else {
                 parsedMpesa = null
                 shareParseError = "Message not recognized as M-PESA. You can enter it manually."
-                AppLogger.warn("AppNav", "M-PESA share text not recognized: ${sharedText?.take(100)}")
+                AppLogger.warn("AppNav", "Shared text was not recognized as M-PESA")
             }
             onSharedTextConsumed()
+        }
+    }
+
+    LaunchedEffect(importedMpesaMessage) {
+        importedMpesaMessage?.let { message ->
+            parsedMpesa = message
+            shareParseError = null
+            onImportedMpesaMessageConsumed()
         }
     }
 

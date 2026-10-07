@@ -8,6 +8,7 @@ import android.os.Build
 object NotificationChannels {
     const val CHANNEL_BUDGET_ALERTS = "budget_alerts"
     const val CHANNEL_BILL_REMINDERS = "bill_reminders"
+    const val CHANNEL_MPESA_IMPORTS = "mpesa_imports"
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -29,6 +30,14 @@ object NotificationChannels {
             description = "Reminders for upcoming recurring bills"
         }
 
-        nm.createNotificationChannels(listOf(budgetChannel, billChannel))
+        val mpesaChannel = NotificationChannel(
+            CHANNEL_MPESA_IMPORTS,
+            "M-PESA Import Reviews",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Review new M-PESA transaction detections before saving"
+        }
+
+        nm.createNotificationChannels(listOf(budgetChannel, billChannel, mpesaChannel))
     }
 }

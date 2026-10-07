@@ -2,6 +2,14 @@ package com.makemission.makeflow.domain
 
 object MpesaMessageParser {
 
+    fun isMpesaSender(sender: String?): Boolean {
+        val normalized = sender
+            ?.trim()
+            ?.replace(Regex("[\\s\\p{Pd}]"), "")
+            ?.uppercase(java.util.Locale.ROOT)
+        return normalized == "MPESA"
+    }
+
     enum class TransactionType {
         RECEIVED,
         SENT,

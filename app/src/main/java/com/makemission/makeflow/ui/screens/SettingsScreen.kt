@@ -1,6 +1,11 @@
 package com.makemission.makeflow.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +44,9 @@ import androidx.compose.material.icons.outlined.SwapHoriz
 import androidx.compose.material.icons.outlined.TipsAndUpdates
 import androidx.compose.material3.MaterialTheme
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
+import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
+import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,10 +69,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.notifications.NotificationGate
+import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
 import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -117,6 +127,7 @@ fun SettingsScreen(
     val smartCategorizationEnabled by viewModel.smartCategorizationEnabled.collectAsState()
     val appLockEnabled by viewModel.appLockEnabled.collectAsState()
     val logMpesaCosts by viewModel.logMpesaCosts.collectAsState()
+    val mpesaAutoImportEnabled by viewModel.mpesaAutoImportEnabled.collectAsState()
     val hasPromptedNotif by viewModel.hasPromptedNotificationPermission.collectAsState()
     val listState = rememberLazyListState()
     var showCurrencyPicker by remember { mutableStateOf(false) }
@@ -130,8 +141,45 @@ fun SettingsScreen(
     var showResetPersonalizationConfirm by remember { mutableStateOf(false) }
     var showPdfExportDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var showMpesaImportDisclosure by remember { mutableStateOf(false) }
     val config = LocalAdaptiveConfig.current
     val reducedMotion = LocalReducedMotion.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && MpesaAutoImportNotification.hasNotificationAccess(context)) {
+            viewModel.saveMpesaAutoImportEnabled(true)
+        } else {
+            Toast.makeText(context, "Notification access is needed for M-PESA review alerts.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val requestNotificationAccess = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else if (MpesaAutoImportNotification.hasNotificationAccess(context)) {
+            viewModel.saveMpesaAutoImportEnabled(true)
+        } else {
+            Toast.makeText(context, "Enable MakeFlow notifications to review detected transactions.", Toast.LENGTH_LONG).show()
+            openAppNotificationSettings(context)
+        }
+    }
+    val receiveSmsPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            requestNotificationAccess()
+        } else {
+            Toast.makeText(context, "M-PESA auto-import remains off without SMS access.", Toast.LENGTH_LONG).show()
+        }
+    }
+    val smsPermissionGranted = ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.RECEIVE_SMS
+    ) == PackageManager.PERMISSION_GRANTED
+    val notificationsEnabled = MpesaAutoImportNotification.hasNotificationAccess(context)
+    val mpesaAutoImportActive = mpesaAutoImportEnabled && smsPermissionGranted && notificationsEnabled
 
     Box(
         modifier = Modifier
@@ -238,6 +286,19 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 10) {
+                    MpesaAutoImportToggleRow(
+                        enabled = mpesaAutoImportActive,
+                        subtitle = if (mpesaAutoImportActive) "New M-PESA messages only · review before saving" else "Optional · detects new M-PESA messages for review",
+                        onToggle = { enable ->
+                            if (enable) showMpesaImportDisclosure = true
+                            else viewModel.saveMpesaAutoImportEnabled(false)
+                        }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 11) {
                     MpesaCostsToggleRow(
                         enabled = logMpesaCosts,
                         onToggle = { viewModel.saveLogMpesaCosts(it) }
@@ -411,6 +472,19 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 11) {
+                    MpesaAutoImportToggleRow(
+                        enabled = mpesaAutoImportActive,
+                        subtitle = if (mpesaAutoImportActive) "New M-PESA messages only · review before saving" else "Optional · detects new M-PESA messages for review",
+                        onToggle = { enable ->
+                            if (enable) showMpesaImportDisclosure = true
+                            else viewModel.saveMpesaAutoImportEnabled(false)
+                        }
+                    )
+                    }
+                }
+
+                item {
+                    StaggeredItem(index = 12) {
                     MpesaCostsToggleRow(
                         enabled = logMpesaCosts,
                         onToggle = { viewModel.saveLogMpesaCosts(it) }
@@ -507,6 +581,50 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+
+    if (showMpesaImportDisclosure) {
+        AdaptiveSheetDialog(onDismiss = { showMpesaImportDisclosure = false }) {
+            AdaptiveSheetHeader(
+                title = "M-PESA auto-import",
+                subtitle = "Review each transaction before saving",
+                onDismiss = { showMpesaImportDisclosure = false }
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                Text(
+                    text = "When enabled, MakeFlow receives new SMS events, checks the sender ID first, and reads the message only when it exactly matches MPESA and the confirmation format is valid. Other senders are ignored. Your SMS inbox history is not read.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "The original message is not saved or sent off this device. A matching transaction is passed to a private MakeFlow notification and opened in the existing transaction review screen. Nothing is added until you review and save it.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "Android will ask for SMS access and notification permission. You can turn detection off here at any time; the Android SMS permission can also be revoked in system settings. Manual entry and share import remain available.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                AdaptiveSheetPrimaryButton(
+                    label = "Continue",
+                    onClick = {
+                        showMpesaImportDisclosure = false
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED) {
+                            requestNotificationAccess()
+                        } else {
+                            receiveSmsPermissionLauncher.launch(Manifest.permission.RECEIVE_SMS)
+                        }
+                    }
+                )
+                TextButton(
+                    onClick = { showMpesaImportDisclosure = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Not now")
+                }
+            }
+        }
     }
 
     if (showCurrencyPicker) {
@@ -792,6 +910,41 @@ private fun SmartCategorizationToggleRow(
         SettingText(
             title = "Smart categorization",
             subtitle = "",
+            modifier = Modifier.weight(1f),
+            titleWeight = FontWeight.Bold
+        )
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                checkedTrackColor = LocalMakeFlowColors.current.colorSuccess,
+                uncheckedThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh
+            )
+        )
+    }
+}
+
+@Composable
+private fun MpesaAutoImportToggleRow(
+    enabled: Boolean,
+    subtitle: String,
+    onToggle: (Boolean) -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScale()
+            .clickable { onToggle(!enabled) }
+            .padding(vertical = dimens.spacingSmall),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        SettingText(
+            title = "M-PESA auto-import",
+            subtitle = subtitle,
             modifier = Modifier.weight(1f),
             titleWeight = FontWeight.Bold
         )

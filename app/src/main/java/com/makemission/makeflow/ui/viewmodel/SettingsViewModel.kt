@@ -53,6 +53,9 @@ class SettingsViewModel(
     val logMpesaCosts: StateFlow<Boolean> = userPreferencesDataStore.logMpesaCosts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val mpesaAutoImportEnabled: StateFlow<Boolean> = userPreferencesDataStore.mpesaAutoImportEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val themeMode: StateFlow<String> = userPreferencesDataStore.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "system")
 
@@ -93,6 +96,12 @@ class SettingsViewModel(
     fun saveLogMpesaCosts(enabled: Boolean) {
         viewModelScope.launch {
             userPreferencesDataStore.saveLogMpesaCosts(enabled)
+        }
+    }
+
+    fun saveMpesaAutoImportEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveMpesaAutoImportEnabled(enabled)
         }
     }
 

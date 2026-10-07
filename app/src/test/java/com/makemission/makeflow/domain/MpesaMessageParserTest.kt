@@ -1,6 +1,7 @@
 package com.makemission.makeflow.domain
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -9,6 +10,21 @@ import org.junit.Test
 class MpesaMessageParserTest {
 
     // ── 9 real M-PESA fixtures ──
+
+    @Test
+    fun mpesaSenderFilter_acceptsCanonicalFormsAndCase() {
+        assertTrue(MpesaMessageParser.isMpesaSender("MPESA"))
+        assertTrue(MpesaMessageParser.isMpesaSender("M-PESA"))
+        assertTrue(MpesaMessageParser.isMpesaSender("mpesa"))
+    }
+
+    @Test
+    fun mpesaSenderFilter_rejectsOtherOrLookalikeSenders() {
+        assertFalse(MpesaMessageParser.isMpesaSender("SAFARICOM"))
+        assertFalse(MpesaMessageParser.isMpesaSender("MPESA SUPPORT"))
+        assertFalse(MpesaMessageParser.isMpesaSender("M-PESA!"))
+        assertFalse(MpesaMessageParser.isMpesaSender(null))
+    }
 
     @Test
     fun `fixture 1 - sent to person, no phone`() {

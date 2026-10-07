@@ -152,6 +152,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val mpesaAutoImportEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[MPESA_AUTO_IMPORT_ENABLED_KEY] ?: false
+    }
+
+    suspend fun saveMpesaAutoImportEnabled(enabled: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[MPESA_AUTO_IMPORT_ENABLED_KEY] = enabled
+        }
+    }
+
     val themeMode: Flow<String> = dataStore.data.map { prefs ->
         prefs[THEME_MODE_KEY] ?: "system"
     }
@@ -185,6 +195,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
         private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
         private val LOG_MPESA_COSTS_KEY = booleanPreferencesKey("log_mpesa_costs")
+        private val MPESA_AUTO_IMPORT_ENABLED_KEY = booleanPreferencesKey("mpesa_auto_import_enabled")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val AMOLED_MODE_KEY = booleanPreferencesKey("amoled_mode")
     }

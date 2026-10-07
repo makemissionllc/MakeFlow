@@ -17,6 +17,8 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.userPrefDataStore
+import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
+import com.makemission.makeflow.domain.MpesaMessageParser
 import com.makemission.makeflow.ui.navigation.AppNavigationEngine
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import kotlinx.coroutines.flow.first
@@ -26,6 +28,8 @@ class MainActivity : FragmentActivity() {
 
     var sharedText by mutableStateOf<String?>(null)
         private set
+
+    private var pendingMpesaReview by mutableStateOf<MpesaMessageParser.MpesaParsedMessage?>(null)
 
     private var splashReady = false
 
@@ -51,7 +55,12 @@ class MainActivity : FragmentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigationEngine(sharedText = sharedText, onSharedTextConsumed = { sharedText = null })
+                    AppNavigationEngine(
+                        sharedText = sharedText,
+                        onSharedTextConsumed = { sharedText = null },
+                        importedMpesaMessage = pendingMpesaReview,
+                        onImportedMpesaMessageConsumed = { pendingMpesaReview = null }
+                    )
                 }
             }
         }
@@ -59,12 +68,18 @@ class MainActivity : FragmentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleShareIntent(intent)
     }
 
     private fun handleShareIntent(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
-            sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+        when {
+            intent?.action == MpesaAutoImportNotification.ACTION_REVIEW -> {
+                pendingMpesaReview = MpesaAutoImportNotification.readFromIntent(intent)
+            }
+            intent?.action == Intent.ACTION_SEND && intent.type == "text/plain" -> {
+                sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+            }
         }
     }
 }

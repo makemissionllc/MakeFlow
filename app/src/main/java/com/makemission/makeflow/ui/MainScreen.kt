@@ -288,7 +288,7 @@ fun MainScreen(
         }
     }
 
-    // M-PESA share intent handling
+    // M-PESA import review handling
     var mpesaInitialAmount by remember { mutableStateOf("") }
     var mpesaInitialType by remember { mutableStateOf<String?>(null) }
     var mpesaInitialNote by remember { mutableStateOf("") }

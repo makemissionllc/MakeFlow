@@ -31,8 +31,11 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Accounts** — multiple accounts with per-account currency, balances, guarded delete.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts.
-- **M-PESA import** — share/parse Safaricom SMS (`domain/MpesaMessageParser.kt`), fee
-  transactions, external-reference dedup.
+- **M-PESA import** — share/paste parsing plus optional, opt-in detection of new SMS from
+  the exact M-PESA sender ID. Detected transactions open a private review notification and
+  are saved only through the normal transaction flow; no SMS inbox history is read. See
+  `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` before any Play release because SMS permission
+  use requires a declaration and approval.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
 - **Budgets** — per-category budgets with suggestion engine, forecaster, spending velocity alerts.

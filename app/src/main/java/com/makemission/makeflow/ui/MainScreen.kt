@@ -301,6 +301,7 @@ fun MainScreen(
     var mpesaInitialTransferFromId by remember { mutableStateOf<String?>(null) }
     var mpesaInitialTransferToId by remember { mutableStateOf<String?>(null) }
     var mpesaTransactionCost by remember { mutableStateOf<Double?>(null) }
+    var mpesaAiAssisted by remember { mutableStateOf(false) }
     var pendingMpesaImport by remember { mutableStateOf<MpesaMessageParser.MpesaParsedMessage?>(null) }
     val mpesaImportRequestId = remember { mutableIntStateOf(0) }
 
@@ -314,6 +315,7 @@ fun MainScreen(
     LaunchedEffect(mpesaImportRequestId.intValue) {
         val data = pendingMpesaImport ?: return@LaunchedEffect
         pendingMpesaImport = null
+        mpesaAiAssisted = data.isAiAssisted
         if (data.code.isNotEmpty()) {
             val isDuplicate = repository.hasExternalReference(data.code)
             if (isDuplicate) {
@@ -984,6 +986,7 @@ fun MainScreen(
                 mpesaInitialTimestamp = null
                 mpesaExternalReference = null
                 mpesaTransactionCost = null
+                mpesaAiAssisted = false
                 mpesaInitialAccountId = null
                 mpesaInitialTransferFromId = null
                 mpesaInitialTransferToId = null
@@ -1035,6 +1038,7 @@ fun MainScreen(
                         WidgetUpdateHelper.updateWidgets(context)
                         mpesaExternalReference = null
                         mpesaTransactionCost = null
+                        mpesaAiAssisted = false
                         shortcutPendingType.value = null
                         showAddTransaction = false
                     }
@@ -1141,6 +1145,7 @@ fun MainScreen(
                     }
                 },
                 mpesaTransactionCost = mpesaTransactionCost,
+                mpesaAiAssisted = mpesaAiAssisted,
                 logMpesaCosts = logMpesaCosts
             )
         }

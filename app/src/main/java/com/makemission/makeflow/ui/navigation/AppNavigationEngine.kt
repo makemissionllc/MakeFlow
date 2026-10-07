@@ -16,6 +16,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.makemission.makeflow.core.device.InterruptionFilterProvider
 import com.makemission.makeflow.core.logging.AppLogger
+import com.makemission.makeflow.core.ml.MpesaGeminiNanoParser
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.device.rememberPowerState
 import com.makemission.makeflow.core.haptics.rememberHapticManager
@@ -146,14 +147,17 @@ fun AppNavigationEngine(
 
     LaunchedEffect(sharedText) {
         if (sharedText != null) {
-            val result = MpesaMessageParser.parse(sharedText)
+            val deterministic = MpesaMessageParser.parse(sharedText)
+            val result = deterministic
+                ?.takeIf { it.type != MpesaMessageParser.TransactionType.UNKNOWN }
+                ?: MpesaGeminiNanoParser.parseIfAvailable(sharedText)
             if (result != null) {
                 parsedMpesa = result
                 shareParseError = null
                 AppLogger.info("AppNav", "Shared M-PESA message parsed")
             } else {
                 parsedMpesa = null
-                shareParseError = "Message not recognized as M-PESA. You can enter it manually."
+                shareParseError = "MakeFlow couldn't verify this as a completed M-PESA transaction. You can enter it manually."
                 AppLogger.warn("AppNav", "Shared text was not recognized as M-PESA")
             }
             onSharedTextConsumed()

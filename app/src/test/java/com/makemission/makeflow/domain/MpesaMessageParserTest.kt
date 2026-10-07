@@ -147,6 +147,68 @@ class MpesaMessageParserTest {
         assertEquals(0.00, r.transactionCost!!, 0.001)
     }
 
+    @Test
+    fun receivedMessage_withoutAtAndUppercaseCurrencyIsParsed() {
+        val message = "QWE123456 Confirmed.You have received KSH 1,250.00 from ZIIDI on 7/10/26 9:33 AM. New M-PESA balance is KSH 5,000.00. Transaction cost, KSH 0.00."
+
+        val parsed = MpesaMessageParser.parse(message)
+
+        assertNotNull(parsed)
+        assertEquals(MpesaMessageParser.TransactionType.RECEIVED, parsed!!.type)
+        assertEquals(1250.0, parsed.amount, 0.001)
+        assertEquals("ZIIDI", parsed.counterpartyName)
+        assertEquals("9:33 AM", parsed.time)
+        assertEquals(5000.0, parsed.balance!!, 0.001)
+        assertEquals(0.0, parsed.transactionCost!!, 0.001)
+    }
+
+    @Test
+    fun agentCashWithdrawal_withTimestampBeforeVerbIsParsed() {
+        val message = "QWE123457 Confirmed.on 7/10/26 at 9:33 AMWithdraw Ksh500.00 from 123456 - Agent Shop New M-PESA balance is Ksh4,500.00 Transaction cost, Ksh0.00."
+
+        val parsed = MpesaMessageParser.parse(message)
+
+        assertNotNull(parsed)
+        assertEquals(MpesaMessageParser.TransactionType.WITHDRAW, parsed!!.type)
+        assertEquals(500.0, parsed.amount, 0.001)
+        assertEquals("123456 - Agent Shop", parsed.counterpartyName)
+        assertEquals(4500.0, parsed.balance!!, 0.001)
+    }
+
+    @Test
+    fun reversalNoticeIsNotClassifiedAsOrdinaryIncomeOrExpense() {
+        val message = "QWE123458 confirmed. Reversal of transaction ABC1234567 has been successfully reversed on 7/10/26 at 9:33 AM and Ksh500.00 is credited to your M-PESA account. New M-PESA account balance is Ksh5,000.00."
+
+        val parsed = MpesaMessageParser.parse(message)
+
+        assertNotNull(parsed)
+        assertEquals(MpesaMessageParser.TransactionType.UNKNOWN, parsed!!.type)
+    }
+
+    @Test
+    fun aiClassificationMustMatchSourceEvidenceAndMarksSuggestion() {
+        val source = "QWE123459 Confirmed. Ksh500.00 credited to your M-PESA account on 7/10/26 at 9:33 AM. New M-PESA balance is Ksh500.00."
+        val response = """{"status":"transaction","type":"RECEIVED","code":"QWE123459","counterparty":null}"""
+
+        val parsed = MpesaMessageParser.parseAiClassification(response, source)
+
+        assertNotNull(parsed)
+        assertEquals(MpesaMessageParser.TransactionType.RECEIVED, parsed!!.type)
+        assertEquals(500.0, parsed.amount, 0.001)
+        assertTrue(parsed.isAiAssisted)
+    }
+
+    @Test
+    fun aiClassificationRejectsReversalAndInventedReferences() {
+        val reversal = "QWE123460 confirmed. Reversal of transaction ABC1234567 has been reversed and Ksh500.00 is credited to your M-PESA account on 7/10/26 at 9:33 AM."
+        val validShape = """{"status":"transaction","type":"RECEIVED","code":"QWE123460","counterparty":null}"""
+        val ordinary = "QWE123461 Confirmed. Ksh500.00 credited to your M-PESA account on 7/10/26 at 9:33 AM."
+        val inventedCode = """{"status":"transaction","type":"RECEIVED","code":"NOTREAL1","counterparty":null}"""
+
+        assertNull(MpesaMessageParser.parseAiClassification(validShape, reversal))
+        assertNull(MpesaMessageParser.parseAiClassification(inventedCode, ordinary))
+    }
+
     // ── Transaction cost extraction variants ──
 
     @Test

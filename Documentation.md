@@ -8,6 +8,27 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Improve M-PESA parsing with optional on-device Nano assistance
+
+- **Scope:** M-PESA confirmation parsing, shared-message review, and unit coverage.
+- **What:** expanded local parsing for case-insensitive/spaced `Ksh` amounts, timestamp
+  variants without the word “at”, and agent cash withdrawals. Reversal and service/balance
+  notices stay out of transaction classification. Audited the user-provided local sample
+  export: all 5,025 confirmation messages now parse; 5,011 receive a known transaction type
+  and 14 remain conservatively unknown. The sample files and temporary audit harness are
+  not part of the app or commit.
+- **Nano assistance:** added the beta ML Kit Prompt API as a foreground-only fallback for
+  shared messages on supported devices where Gemini Nano is already available. No model
+  download is triggered; background SMS processing never invokes AI. Candidate type and
+  reference are validated against source text, numeric fields still come from local parsing,
+  and the review screen marks AI-assisted suggestions for user verification. This does not
+  train on or upload personal SMS.
+- **Verification:** focused parser tests, the local corpus audit, and `./gradlew test`
+  passed; `git diff --check` passed. Gemini Nano runtime behavior still requires a
+  compatible physical device and was not verified in this environment.
+
+---
+
 ## 2026-10-07 — Add opt-in M-PESA SMS detection with review-before-save
 
 - **Scope:** SMS permission handling, M-PESA sender validation, review notifications,

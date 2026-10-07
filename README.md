@@ -31,11 +31,13 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Accounts** — multiple accounts with per-account currency, balances, guarded delete.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts.
-- **M-PESA import** — share/paste parsing plus optional, opt-in detection of new SMS from
-  the exact M-PESA sender ID. Detected transactions open a private review notification and
-  are saved only through the normal transaction flow; no SMS inbox history is read. See
-  `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` before any Play release because SMS permission
-  use requires a declaration and approval.
+- **M-PESA import** — rule-based parsing for share/paste plus optional, opt-in detection of
+  new SMS from the exact M-PESA sender ID. Detected transactions open a private review
+  notification and are saved only through the normal transaction flow; no SMS inbox history
+  is read. For shared messages only, Gemini Nano may offer an on-device classification
+  fallback when already available on a supported device; it never downloads the model,
+  handles background SMS, or bypasses user review. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md`
+  before any Play release because SMS permission use requires a declaration and approval.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
 - **Budgets** — per-category budgets with suggestion engine, forecaster, spending velocity alerts.
@@ -106,7 +108,12 @@ Command line:
 
 ## ML model workflow
 
-The transaction classifier is trained **offline**, never on a phone from scratch:
+The transaction classifier is trained **offline**, never on a phone from scratch. M-PESA
+messages use deterministic local parsing first; the optional Gemini Nano fallback uses
+Google's beta ML Kit Prompt API only for foreground shared text when the model is already
+available. The SMS itself is not used to train a model, uploaded, or passed to that fallback
+from the background SMS receiver. Nano suggestions are checked against the original message
+and remain subject to the usual review-before-save flow.
 
 1. Expand the seed data in `train_category_classifier.py` (aim for hundreds of real
    Kenya-market descriptions).

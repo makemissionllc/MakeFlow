@@ -135,6 +135,7 @@ fun AddTransactionScreen(
     editTransaction: TransactionEntity? = null,
     onUpdate: (suspend (TransactionEntity) -> Unit)? = null,
     mpesaTransactionCost: Double? = null,
+    mpesaAiAssisted: Boolean = false,
     logMpesaCosts: Boolean = true
 ) {
     val dimens = LocalAppDimens.current
@@ -573,6 +574,22 @@ fun AddTransactionScreen(
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingMedium))
+
+            if (mpesaAiAssisted) {
+                Text(
+                    text = "On-device AI suggestion. Check the amount, date, and account before saving.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceContainerHigh,
+                            RoundedCornerShape(dimens.shapeCornerSmall)
+                        )
+                        .padding(dimens.spacingMedium)
+                )
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
+            }
 
             // === Templates (non-edit mode) ===
             if (!isEditMode && templates.isNotEmpty()) {

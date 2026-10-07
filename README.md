@@ -36,7 +36,9 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   notification and are saved only through the normal transaction flow; no SMS inbox history
   is read. For shared messages only, Gemini Nano may offer an on-device classification
   fallback when already available on a supported device; it never downloads the model,
-  handles background SMS, or bypasses user review. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md`
+  handles background SMS, or bypasses user review. The transaction form can also use Nano
+  to suggest a receipt total and merchant from a photo the user selects; the photo isn't
+  saved, and the suggestion must be reviewed. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md`
   before any Play release because SMS permission use requires a declaration and approval.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
@@ -49,9 +51,10 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   daily automatic reference rates from Frankfurter, and net worth converted to the
   selected default currency. Missing conversions are excluded rather than mixed as raw
   amounts.
-- **Monthly finance review** — an animated, shareable-feeling recap of income, spending,
-  top category, month-over-month change, and recorded activity, with conversion-date
-  disclosures.
+- **Monthly finance review** — an animated recap of income, spending, top category,
+  month-over-month change, and recorded activity, with conversion-date disclosures. An
+  optional fifth page can generate an on-device reflection from aggregate totals only, and
+  the recap can be shared through Android's system share sheet.
 - **Backup/restore** — versioned JSON export/import (`BackupManager`), atomic Room restore.
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.
@@ -113,7 +116,9 @@ messages use deterministic local parsing first; the optional Gemini Nano fallbac
 Google's beta ML Kit Prompt API only for foreground shared text when the model is already
 available. The SMS itself is not used to train a model, uploaded, or passed to that fallback
 from the background SMS receiver. Nano suggestions are checked against the original message
-and remain subject to the usual review-before-save flow.
+and remain subject to the usual review-before-save flow. Users can also request receipt
+amount/merchant suggestions from a selected image and monthly reflections from aggregate
+figures; neither feature stores the image or generated text, and both remain optional.
 
 1. Expand the seed data in `train_category_classifier.py` (aim for hundreds of real
    Kenya-market descriptions).

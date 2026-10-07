@@ -8,6 +8,28 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-07 — Add receipt scanning and monthly reflections with Gemini Nano
+
+- **Scope:** transaction entry, monthly finance review, on-device GenAI helpers, and unit
+  coverage.
+- **What:** added a photo-picker receipt flow that downsamples the selected image in memory
+  and asks Gemini Nano for the final total and merchant. A consistent bottom sheet previews
+  the suggestion; only after the user accepts are the amount and note placed in the regular
+  editable transaction form. No receipt image is persisted or uploaded. Added an optional
+  monthly-review page that generates a short reflection from aggregate numeric data
+  only, plus a system share action for the recap. Generated text is ephemeral and never
+  replaces the deterministic figures.
+- **Availability and privacy:** both experiences require an explicit user action, check
+  Prompt API feature status, and do not trigger model downloads. Unsupported or temporarily
+  unavailable devices retain the manual transaction and standard monthly review flows.
+- **Fixes:** the first integration compile caught a mismatched receipt-result mapper and a
+  missing shared-sheet import; both were corrected before verification.
+- **Verification:** `./gradlew test` passed, including debug Kotlin compilation and the new
+  receipt/reflection unit tests; `git diff --check` passed. Runtime inference and visual QA
+  still require a compatible Android device.
+
+---
+
 ## 2026-10-07 — Improve M-PESA parsing with optional on-device Nano assistance
 
 - **Scope:** M-PESA confirmation parsing, shared-message review, and unit coverage.

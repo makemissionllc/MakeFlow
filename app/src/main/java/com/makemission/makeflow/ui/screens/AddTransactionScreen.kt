@@ -1,6 +1,13 @@
 package com.makemission.makeflow.ui.screens
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
@@ -38,13 +45,18 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.rounded.Receipt
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
+import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +85,7 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.ml.CategoryClassifier
+import com.makemission.makeflow.core.ml.NanoReceiptScanner
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -101,6 +115,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.math.BigDecimal
 import com.makemission.makeflow.R
 
 private const val ML_CONFIDENCE_THRESHOLD = 0.6f
@@ -140,6 +155,7 @@ fun AddTransactionScreen(
 ) {
     val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val isEditMode = editTransaction != null
 
     // === Sub-screen visibility ===
@@ -164,9 +180,43 @@ fun AddTransactionScreen(
         TransactionCommitHandler(onCheckDuplicate, onAnomalyCheck, hapticManager)
     }
     var templateNameInput by remember { mutableStateOf("") }
+    var isScanningReceipt by remember { mutableStateOf(false) }
+    var receiptScanMessage by remember { mutableStateOf<String?>(null) }
+    var receiptSuggestion by remember { mutableStateOf<NanoReceiptScanner.ReceiptSuggestion?>(null) }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
     val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
     var usualAmounts by remember { mutableStateOf<List<Double>>(emptyList()) }
+
+    val receiptPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                isScanningReceipt = true
+                receiptScanMessage = null
+                receiptSuggestion = null
+                val bitmap = withContext(Dispatchers.IO) { decodeReceiptBitmap(context, uri) }
+                if (bitmap == null) {
+                    receiptScanMessage = "Couldn't open that photo. You can still enter the transaction manually."
+                } else {
+                    val result = try {
+                        NanoReceiptScanner.suggest(bitmap)
+                    } finally {
+                        bitmap.recycle()
+                    }
+                    when (result) {
+                        is NanoReceiptScanner.Result.Suggested -> receiptSuggestion =
+                            NanoReceiptScanner.ReceiptSuggestion(result.amount, result.merchant)
+                        NanoReceiptScanner.Result.Unavailable -> receiptScanMessage =
+                            "Gemini Nano isn't available on this device right now. You can still enter the transaction manually."
+                        NanoReceiptScanner.Result.Unreadable -> receiptScanMessage =
+                            "Couldn't read a clear total from that receipt. You can still enter it manually."
+                    }
+                }
+                isScanningReceipt = false
+            }
+        }
+    }
 
     // === Category state ===
     val parentCategories = remember(categories, selectedType) {
@@ -588,6 +638,41 @@ fun AddTransactionScreen(
                         )
                         .padding(dimens.spacingMedium)
                 )
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
+            }
+
+            if (!isEditMode) {
+                OutlinedButton(
+                    onClick = {
+                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                        receiptPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                    },
+                    enabled = !isScanningReceipt,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (isScanningReceipt) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(dimens.iconSizeSmall),
+                            strokeWidth = dimens.progressTrackHeight
+                        )
+                    } else {
+                        Icon(Icons.Rounded.Receipt, contentDescription = null)
+                    }
+                    Spacer(Modifier.width(dimens.spacingMedium))
+                    Text(if (isScanningReceipt) "Reading receipt" else "Scan receipt")
+                }
+                Text(
+                    text = "Choose a photo. It stays on this device and is not saved.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                receiptScanMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(modifier = Modifier.height(dimens.spacingMedium))
             }
 
@@ -1022,6 +1107,98 @@ fun AddTransactionScreen(
                 }
             }
         )
+    }
+
+    receiptSuggestion?.let { suggestion ->
+        AdaptiveAlertSheet(
+            onDismissRequest = { receiptSuggestion = null },
+            confirmButton = {
+                AdaptiveSheetPrimaryButton(
+                    label = "Use these details",
+                    onClick = {
+                        selectedType = "EXPENSE"
+                        engine.onClear()
+                        BigDecimal.valueOf(suggestion.amount)
+                            .stripTrailingZeros()
+                            .toPlainString()
+                            .forEach { char ->
+                                if (char == '.') engine.onDecimalPoint()
+                                else if (char.isDigit()) engine.onDigit(char.digitToInt())
+                            }
+                        calculatorDisplay = engine.displayValue
+                        confirmedAmount = null
+                        calculatorRevision++
+                        suggestion.merchant?.let { merchant ->
+                            note = merchant
+                            noteExpanded = true
+                        }
+                        receiptSuggestion = null
+                    },
+                    hapticManager = hapticManager
+                )
+            },
+            dismissButton = {
+                TextButton(onClick = { receiptSuggestion = null }) {
+                    Text("Not now")
+                }
+            },
+            icon = {
+                Icon(
+                    Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Text("Check the receipt details", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+                    Text(
+                        CurrencyFormatter.format(suggestion.amount, amountCurrencyCode),
+                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        suggestion.merchant ?: "Merchant not recognized",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "Verify the total and account currency before saving.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        )
+    }
+}
+
+private fun decodeReceiptBitmap(context: Context, uri: Uri): Bitmap? {
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    try {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, bounds)
+        } ?: return null
+    } catch (_: Exception) {
+        return null
+    }
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+
+    val longestEdge = maxOf(bounds.outWidth, bounds.outHeight)
+    var sampleSize = 1
+    while (longestEdge / sampleSize > 1600) sampleSize *= 2
+    val options = BitmapFactory.Options().apply {
+        inSampleSize = sampleSize
+        inPreferredConfig = Bitmap.Config.RGB_565
+    }
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            BitmapFactory.decodeStream(stream, null, options)
+        }
+    } catch (_: Exception) {
+        null
     }
 }
 

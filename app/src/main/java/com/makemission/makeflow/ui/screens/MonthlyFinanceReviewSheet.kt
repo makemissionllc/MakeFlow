@@ -1,5 +1,6 @@
 package com.makemission.makeflow.ui.screens
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -14,22 +15,33 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.format.CurrencyFormatter
@@ -37,6 +49,7 @@ import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.layout.AdaptiveSheetDialog
 import com.makemission.makeflow.core.layout.AdaptiveSheetHeader
+import com.makemission.makeflow.core.ml.NanoMonthlyReflection
 import com.makemission.makeflow.domain.MonthlyFinanceReview
 import com.makemission.makeflow.ui.components.AnimatedProgressBar
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -44,8 +57,9 @@ import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.OverlayTransition
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
-private const val REVIEW_PAGE_COUNT = 4
+private const val REVIEW_PAGE_COUNT = 5
 
 @Composable
 fun MonthlyFinanceReviewSheet(
@@ -56,7 +70,11 @@ fun MonthlyFinanceReviewSheet(
 ) {
     val dimens = LocalAppDimens.current
     val reducedMotion = LocalReducedMotion.current
+    val context = LocalContext.current
     var page by remember(review.month) { mutableIntStateOf(0) }
+    var reflectionResult by remember(review.month) { mutableStateOf<NanoMonthlyReflection.Result?>(null) }
+    var isGeneratingReflection by remember(review.month) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val monthName = review.month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
 
     AdaptiveSheetDialog(onDismiss = onDismiss, scrollable = false) {
@@ -101,7 +119,19 @@ fun MonthlyFinanceReviewSheet(
                     page = targetPage,
                     review = review,
                     monthName = monthName,
-                    currencyCode = currencyCode
+                    currencyCode = currencyCode,
+                    reflectionResult = reflectionResult,
+                    isGeneratingReflection = isGeneratingReflection,
+                    onGenerateReflection = {
+                        if (!isGeneratingReflection) {
+                            hapticManager?.fire(HapticEvent.NAV_SELECT)
+                            scope.launch {
+                                isGeneratingReflection = true
+                                reflectionResult = NanoMonthlyReflection.generate(review, currencyCode)
+                                isGeneratingReflection = false
+                            }
+                        }
+                    }
                 )
             }
 
@@ -123,16 +153,54 @@ fun MonthlyFinanceReviewSheet(
                 } else {
                     Text("${page + 1} of $REVIEW_PAGE_COUNT", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Button(
-                    onClick = {
-                        hapticManager?.fire(HapticEvent.NAV_SELECT)
-                        if (page == REVIEW_PAGE_COUNT - 1) onDismiss() else page++
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(if (page == REVIEW_PAGE_COUNT - 1) "Done" else "Next")
-                    if (page < REVIEW_PAGE_COUNT - 1) {
-                        Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (page == REVIEW_PAGE_COUNT - 1) {
+                        IconButton(
+                            onClick = {
+                                val reflection = (reflectionResult as? NanoMonthlyReflection.Result.Generated)?.text
+                                val shareText = buildString {
+                                    appendLine("$monthName ${review.month.year} · Monthly review")
+                                    appendLine("Income: ${CurrencyFormatter.format(review.income, currencyCode)}")
+                                    appendLine("Spent: ${CurrencyFormatter.format(review.expenses, currencyCode)}")
+                                    appendLine("Net: ${CurrencyFormatter.format(review.net, currencyCode)}")
+                                    review.topCategoryName?.let { name ->
+                                        appendLine("Top category: $name (${CurrencyFormatter.format(review.topCategoryAmount, currencyCode)})")
+                                    }
+                                    review.rateDate?.let { appendLine("Reference rates dated: $it") }
+                                    if (review.unconvertedTransactionCount > 0) {
+                                        appendLine("Excluded entries without conversion rates: ${review.unconvertedTransactionCount}")
+                                    }
+                                    reflection?.let {
+                                        appendLine()
+                                        appendLine("On-device reflection: $it")
+                                    }
+                                }
+                                hapticManager?.fire(HapticEvent.NAV_SELECT)
+                                context.startActivity(
+                                    Intent.createChooser(
+                                        Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_TEXT, shareText)
+                                        },
+                                        "Share monthly review"
+                                    )
+                                )
+                            }
+                        ) {
+                            Icon(Icons.Rounded.Share, contentDescription = "Share monthly review")
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            hapticManager?.fire(HapticEvent.NAV_SELECT)
+                            if (page == REVIEW_PAGE_COUNT - 1) onDismiss() else page++
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text(if (page == REVIEW_PAGE_COUNT - 1) "Done" else "Next")
+                        if (page < REVIEW_PAGE_COUNT - 1) {
+                            Icon(Icons.Rounded.ChevronRight, contentDescription = null)
+                        }
                     }
                 }
             }
@@ -145,7 +213,10 @@ private fun ReviewStoryPage(
     page: Int,
     review: MonthlyFinanceReview,
     monthName: String,
-    currencyCode: String
+    currencyCode: String,
+    reflectionResult: NanoMonthlyReflection.Result?,
+    isGeneratingReflection: Boolean,
+    onGenerateReflection: () -> Unit
 ) {
     val dimens = LocalAppDimens.current
     val colors = LocalMakeFlowColors.current
@@ -157,7 +228,7 @@ private fun ReviewStoryPage(
     }
 
     Column(
-        modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+        modifier = Modifier.fillMaxWidth().fillMaxHeight().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.Start
     ) {
@@ -234,7 +305,7 @@ private fun ReviewStoryPage(
                     Text("Savings rate · ${savings.toInt()}%", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold), color = colors.colorSuccess)
                 }
             }
-            else -> {
+            3 -> {
                 StoryEyebrow("YOUR MONEY HABITS")
                 Text("Every entry adds clarity", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.size(dimens.spacingXXLarge))
@@ -265,6 +336,71 @@ private fun ReviewStoryPage(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            else -> {
+                StoryEyebrow("A QUIET CHECK-IN")
+                Text(
+                    "A reflection from your month",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.size(dimens.spacingLarge))
+                Text(
+                    "Create a short, on-device reflection from this month's totals. Your transaction notes aren't included.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.size(dimens.spacingLarge))
+                when (val result = reflectionResult) {
+                    is NanoMonthlyReflection.Result.Generated -> {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = RoundedCornerShape(dimens.shapeCornerMedium)
+                        ) {
+                            Text(
+                                text = result.text,
+                                modifier = Modifier.padding(dimens.paddingMedium),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        Text(
+                            "AI-generated reflection; the figures above are the source of truth.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    NanoMonthlyReflection.Result.Unavailable -> Text(
+                        "Gemini Nano isn't available on this device right now. Your monthly review still works without it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    NanoMonthlyReflection.Result.CouldNotGenerate -> Text(
+                        "Couldn't create a reflection this time. Your monthly figures are still here.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    null -> Unit
+                }
+                Spacer(Modifier.size(dimens.spacingLarge))
+                Button(
+                    onClick = onGenerateReflection,
+                    enabled = !isGeneratingReflection,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (isGeneratingReflection) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(dimens.iconSizeSmall),
+                            strokeWidth = dimens.progressTrackHeight,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.size(dimens.spacingMedium))
+                    } else {
+                        Icon(Icons.Outlined.AutoAwesome, contentDescription = null)
+                        Spacer(Modifier.size(dimens.spacingMedium))
+                    }
+                    Text(if (isGeneratingReflection) "Writing" else "${if (reflectionResult is NanoMonthlyReflection.Result.Generated) "Refresh" else "Write"} reflection")
+                }
             }
         }
     }

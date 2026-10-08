@@ -46,6 +46,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.rounded.Receipt
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
@@ -66,6 +67,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
@@ -156,7 +158,8 @@ fun AddTransactionScreen(
     val dimens = LocalAppDimens.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val isEditMode = editTransaction != null
+    var isRepeatMode by rememberSaveable(editTransaction?.id) { mutableStateOf(false) }
+    val isEditMode = editTransaction != null && !isRepeatMode
 
     // === Sub-screen visibility ===
     var showAccountPicker by remember { mutableStateOf(false) }
@@ -171,7 +174,9 @@ fun AddTransactionScreen(
     var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: initialTransferFromId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
     var note by remember { mutableStateOf(editTransaction?.note ?: initialNote) }
-    var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis) }
+    var selectedDate by rememberSaveable(editTransaction?.id) {
+        mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis)
+    }
     var noteExpanded by remember { mutableStateOf(isEditMode || initialNote.isNotEmpty()) }
 
     // === Feature state ===
@@ -290,8 +295,8 @@ fun AddTransactionScreen(
         CurrencyConverter.convert(parsedAmount, amountCurrencyCode, destinationCurrencyCode, conversionRates)
     } else null
     val isSaveEnabled = (confirmedAmount != null || (!engine.hasUnconfirmedOperation && engine.displayValue.toDoubleOrNull()?.let { it > 0 } == true)) &&
-        (parsedAmount ?: 0.0) > 0 && selectedAccountId.isNotBlank() &&
-        (selectedType != "TRANSFER" || (selectedTransferFromId.isNotBlank() && selectedTransferToId.isNotBlank() && selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
+        (parsedAmount ?: 0.0) > 0 && fromAccountForAmount != null &&
+        (selectedType != "TRANSFER" || (toAccountForAmount != null && selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
 
     val amountForDisplay = if (isAmountConfirmed) {
         val a = confirmedAmount!!
@@ -435,12 +440,13 @@ fun AddTransactionScreen(
         scope.launch {
             val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
             val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
-            if (editTransaction != null && onUpdate != null) {
+            val accountId = fromId ?: selectedAccountId
+            if (isEditMode && onUpdate != null) {
                 val updatedEntity = editTransaction.copy(
                     amount = amount,
                     type = selectedType,
                     categoryId = resolvedCategoryId,
-                    accountId = selectedAccountId,
+                    accountId = accountId,
                     fromAccountId = fromId,
                     toAccountId = toId,
                     note = note,
@@ -455,7 +461,7 @@ fun AddTransactionScreen(
                     amount = amount,
                     type = selectedType,
                     categoryId = resolvedCategoryId,
-                    accountId = selectedAccountId,
+                    accountId = accountId,
                     fromAccountId = fromId,
                     toAccountId = toId,
                     note = note,
@@ -616,7 +622,11 @@ fun AddTransactionScreen(
                         )
                     }
                     Text(
-                        text = if (isEditMode) stringResource(R.string.add_edit_title) else stringResource(R.string.add_new_title),
+                        text = when {
+                            isRepeatMode -> stringResource(R.string.add_log_again)
+                            isEditMode -> stringResource(R.string.add_edit_title)
+                            else -> stringResource(R.string.add_new_title)
+                        },
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
@@ -624,6 +634,31 @@ fun AddTransactionScreen(
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingMedium))
+
+            if (isEditMode) {
+                OutlinedButton(
+                    onClick = {
+                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                        selectedDate = Calendar.getInstance().timeInMillis
+                        commitHandler.clearAlerts()
+                        isRepeatMode = true
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Repeat,
+                        contentDescription = null,
+                        modifier = Modifier.size(dimens.iconSizeSmall)
+                    )
+                    Spacer(Modifier.width(dimens.spacingMedium))
+                    Text(
+                        text = stringResource(R.string.add_log_again),
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
+            }
 
             if (mpesaAiAssisted) {
                 Text(
@@ -641,7 +676,7 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(dimens.spacingMedium))
             }
 
-            if (!isEditMode) {
+            if (!isEditMode && !isRepeatMode) {
                 OutlinedButton(
                     onClick = {
                         hapticManager.fire(HapticEvent.NAV_SELECT)

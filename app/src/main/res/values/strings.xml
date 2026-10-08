@@ -54,6 +54,7 @@
     <string name="home_uncategorized">Uncategorized</string>
     <string name="add_new_title">New</string>
     <string name="add_edit_title">Edit transaction</string>
+    <string name="add_log_again">Log again</string>
     <string name="add_expense">Expense</string>
     <string name="add_income">Income</string>
     <string name="add_transfer">Transfer</string>

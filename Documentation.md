@@ -6,6 +6,23 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-08 — Add Log again for existing transactions
+
+- **Scope:** repeat common purchases, payments, income, and transfers from the transaction editor.
+- **What:** added an icon-and-text "Log again" action that retains the current form details,
+  switches to new-entry mode, and sets today's date/time. Saving creates a new transaction through
+  `TransactionCommitHandler`, including duplicate checks and existing save feedback, without copying
+  the original identity or M-PESA reference. Transfer values use current conversion rates.
+- **Related fixes:** Save requires accounts that still exist, and transfer writes now use the
+  selected source account as `accountId`. Repeat mode and date survive saved-state restoration.
+- **Release:** Community `2.0.4-community` / code 7; updated the in-app changelog and README.
+- **Verification:** unit tests and all four `RepeatTransactionTest` regressions passed on the
+  connected Android 16 phone: fresh identity/date/reference, duplicate confirmation, transfer
+  conversion, and a missing account. The minified `:app:assembleRelease` build and
+  `git diff --check` also passed.
+
+---
+
 ## 2026-10-08 — Improve History lookup and PDF statements
 
 - **Scope:** faster transaction lookup and legible, shareable PDF statements.

@@ -13,28 +13,14 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.makemission.makeflow"
+        applicationId = "com.makemission.makeflow.community"
         minSdk = 28
         targetSdk = 36
         versionCode = 3
-        versionName = "2.0.0"
-        buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
+        versionName = "2.0.0-community"
+        buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
-        }
-        create("community") {
-            dimension = "distribution"
-            applicationIdSuffix = ".community"
-            versionNameSuffix = "-community"
-            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
-        }
     }
 
     buildTypes {

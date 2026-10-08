@@ -8,6 +8,24 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-08 — Separate Play and Community release branches
+
+- **Scope:** distribution-specific feature availability after the release branches were
+  created from the same 2.0.0 commit.
+- **What:** make `community` a full-feature build by default, with its own app ID and version,
+  the explicit M-PESA permission/receiver, and the opt-in setting enabled. This branch no
+  longer needs a flavor selector. `play` will build as its own restricted single-variant
+  branch, without SMS access. Updated release instructions to build the correct artifact on
+  each branch.
+- **Verification:** unit tests passed; Android test sources compiled; `:app:assembleRelease`
+  completed and produced an unsigned GitHub APK. Its merged manifest reports version
+  `2.0.0-community` and includes `RECEIVE_SMS` plus `MpesaSmsReceiver`. An initial offline
+  release-lint attempt could not resolve uncached Compose desktop metadata; rerunning with
+  dependency access resolved the artifacts and release lint/build passed. Play branch
+  verification is still pending.
+
+---
+
 ## 2026-10-07 — Prepare the 2.0.0 release and complete first-run follow-up
 
 - **Scope:** Play release metadata, Settings scrolling, onboarding, widget discovery,

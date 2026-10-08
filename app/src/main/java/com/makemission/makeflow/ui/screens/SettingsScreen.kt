@@ -58,7 +58,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -219,20 +218,17 @@ fun SettingsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        CompositionLocalProvider(
-            LocalReducedMotion provides (reducedMotion || listState.isScrollInProgress)
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = config.horizontalPadding),
+            contentPadding = PaddingValues(
+                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                bottom = 32.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = config.horizontalPadding),
-                contentPadding = PaddingValues(
-                    top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
-                    bottom = 32.dp
-                ),
-                verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
-            ) {
             item {
                 LargeTitleItem(title = "Settings", scrollState = listState)
             }
@@ -630,7 +626,6 @@ fun SettingsScreen(
                         }
                     }
                 }
-            }
             }
         }
 

@@ -3,7 +3,10 @@ package com.makemission.makeflow.ui.screens
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import com.makemission.makeflow.data.local.AppDatabase
@@ -56,6 +59,10 @@ class SettingsScreenScrollTest {
 
     @Test
     fun scrollsThroughSettingsToPrivacySection() {
+        repeat(4) {
+            composeTestRule.onRoot().performTouchInput { swipeUp() }
+            composeTestRule.waitForIdle()
+        }
         composeTestRule.onNodeWithText("Privacy & data").performScrollTo().assertIsDisplayed()
     }
 }

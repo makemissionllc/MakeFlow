@@ -8,6 +8,21 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-08 — Stabilize Settings scrolling and replace the profile glyph
+
+- **Scope:** compact home header settings entry and Settings list scrolling on `community`.
+- **What:** replaced the tappable profile initial with the settings gear. Removed the scroll-
+  state-driven `LocalReducedMotion` override, which restarted staggered row animations when
+  scrolling began or ended; Settings now respects the user's reduced-motion preference
+  without changing animation mode during a gesture. Updated the scroll regression test to
+  perform repeated upward swipes before checking the last settings row.
+- **Verification:** `gradle test --offline` passed and `:app:compileDebugAndroidTestKotlin`
+  passed with the repeated-swipe regression. `git diff --check` passed. `adb` is unavailable
+  in this environment, so the instrumented test could not run on a device and the user's
+  original crash was not reproduced against a live build.
+
+---
+
 ## 2026-10-08 — Separate Play and Community release branches
 
 - **Scope:** distribution-specific feature availability after the release branches were

@@ -582,19 +582,12 @@ private fun HomeWelcomeHeader(
                 },
             contentAlignment = Alignment.Center
         ) {
-            if (username.isBlank()) {
-                Text(
-                    text = "M",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Text(
-                    text = username.trim().firstOrNull()?.uppercaseChar()?.toString().orEmpty(),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            Icon(
+                imageVector = Icons.Rounded.Settings,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.size(dimens.iconSizeMedium)
+            )
         }
         Column(
             modifier = Modifier.weight(1f),

@@ -8,6 +8,23 @@ Conventions: `path:line` for code refs, commit hashes where available.
 
 ---
 
+## 2026-10-08 — Keep Play distribution on the restricted branch
+
+- **Scope:** give `play` a single Play-safe build rather than keeping the Community artifact
+  as a selectable flavor.
+- **What:** retain the official package ID and version, keep SMS auto-detection disabled,
+  and remove Community-only manifest/resources and flavor configuration. The full-feature
+  listener remains on the separate `community` branch.
+- **Verification:** Play unit tests, Android test-source compilation, release lint, and
+  `:app:bundleRelease` passed. Its merged manifest is package `com.makemission.makeflow`,
+  version `2.0.0`, with no `RECEIVE_SMS` or `MpesaSmsReceiver`; generated Play `BuildConfig`
+  keeps the listener flag false. Community was separately verified at `cc35c8c` with its
+  listener enabled and permission/receiver present. The first offline lint attempt lacked
+  cached Compose desktop artifacts; rerunning with dependency access passed. Instrumented
+  device tests and production signing remain unverified.
+
+---
+
 ## 2026-10-07 — Prepare the 2.0.0 release and complete first-run follow-up
 
 - **Scope:** Play release metadata, Settings scrolling, onboarding, widget discovery,

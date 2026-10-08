@@ -23,20 +23,6 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    flavorDimensions += "distribution"
-    productFlavors {
-        create("play") {
-            dimension = "distribution"
-            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "false")
-        }
-        create("community") {
-            dimension = "distribution"
-            applicationIdSuffix = ".community"
-            versionNameSuffix = "-community"
-            buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true

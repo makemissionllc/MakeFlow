@@ -8,8 +8,7 @@ workspace and must be completed by the publisher.
 
 - [x] Targets Android API 36.
 - [x] Uses version name 2.0.0 and version code 3.
-- [x] `playRelease` omits `RECEIVE_SMS` and the M-PESA SMS receiver; share and paste import
-  remains available.
+- [x] The `play` branch omits `RECEIVE_SMS` and the M-PESA SMS receiver; share and paste import remain available.
 - [x] Disables automatic Android backup for locally stored finance records.
 - [x] Includes an in-app privacy policy and a public policy document.
 - [x] Links the in-app policy to `https://makemission.gt.tc/privacy`.
@@ -34,10 +33,10 @@ workspace and must be completed by the publisher.
 - [ ] Test the signed release on representative phones and tablets: onboarding, local data,
   backup/restore, exchange-rate failure/offline behavior, haptic levels, weekly reminders,
   widget pinning, settings scrolling, M-PESA share import, and app-lock recovery.
-- [ ] Build and inspect both artifacts independently: `bundlePlayRelease` for Play and
-  `assembleCommunityRelease` for GitHub. Verify the Play merged manifest has no SMS
-  permission/receiver and Community has the disclosed opt-in listener. Do not upload the
-  Community package to Play.
+- [ ] Build and inspect each branch independently: `:app:bundleRelease` on `play` for the
+  Play AAB and `:app:assembleRelease` on `community` for the GitHub APK. Verify the Play
+  manifest has no SMS permission/receiver and Community has the disclosed opt-in listener.
+  Do not upload the Community package to Play.
 - [ ] If this is a new personal developer account created after 13 November 2023, run a
   closed test with at least 12 testers continuously opted in for 14 days, then apply for
   production access.

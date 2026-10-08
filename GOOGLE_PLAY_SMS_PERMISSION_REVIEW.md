@@ -1,11 +1,11 @@
 # Google Play SMS Permission Release Decision
 
-This document records the separate Play and GitHub Community build behavior. The share and
-paste import paths remain available in both variants.
+This document records the separate Play and GitHub Community branch behavior. The share and
+paste import paths remain available in both branches.
 
 ## Current behavior
 
-- Detection is available only in the Community flavor (debug or release) and requires an explicit
+- Detection is enabled only on the Community branch and requires an explicit
   in-app opt-in. Community has a distinct `.community` application ID and is not the Play
   artifact.
 - Before Android's permission prompt, the app explains what is read, the purpose, what is
@@ -18,8 +18,8 @@ paste import paths remain available in both variants.
   transaction fields are held in a private notification action to open the existing
   transaction editor. The user reviews and saves through the regular duplicate-check and
   transaction-commit flow; the receiver never writes a transaction.
-- `playRelease` declares neither the `RECEIVE_SMS` permission nor receiver in its merged
-  manifest and hides the auto-detection setting. The GitHub Community release retains the
+- The `play` branch declares neither the `RECEIVE_SMS` permission nor receiver and hides
+  the auto-detection setting. The GitHub Community branch retains the
   disclosed opt-in listener. Manual entry and share/paste import work in both variants.
 
 ## Before considering a future approval request
@@ -35,7 +35,8 @@ changing the release manifest.
 Do not switch to notification-listener, accessibility, or another API to derive SMS
 content as a workaround; Play policy explicitly prohibits alternate methods to obtain
 data attributed to SMS permissions. The Community build is only for direct distribution
-from GitHub, not a Play track.
+from GitHub, not a Play track. Build the release APK from `community` with
+`:app:assembleRelease`; use `play` for the Play AAB.
 
 ## SMS Retriever APIs
 

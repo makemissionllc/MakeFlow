@@ -12,6 +12,14 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 
 val changelogEntries = listOf(
     ChangelogEntry(
+        version = BuildConfig.VERSION_NAME,
+        date = "2026-10-08",
+        changes = listOf(
+            "A clear Community permission setup for M-PESA review and notifications",
+            "More reliable Settings scrolling and haptic choices"
+        )
+    ),
+    ChangelogEntry(
         version = "2.0.0",
         date = "2026-10-07",
         changes = listOf(

@@ -59,6 +59,10 @@ class SettingsScreenScrollTest {
 
     @Test
     fun scrollsThroughSettingsToPrivacySection() {
+        composeTestRule.onNodeWithText("Touch feedback")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("Standard").assertIsDisplayed()
         repeat(4) {
             composeTestRule.onRoot().performTouchInput { swipeUp() }
             composeTestRule.waitForIdle()

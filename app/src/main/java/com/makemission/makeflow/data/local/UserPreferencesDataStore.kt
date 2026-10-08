@@ -55,6 +55,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val communityPermissionSetupCompleted: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[COMMUNITY_PERMISSION_SETUP_COMPLETED_KEY] ?: false
+    }
+
+    suspend fun setCommunityPermissionSetupCompleted(completed: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[COMMUNITY_PERMISSION_SETUP_COMPLETED_KEY] = completed
+        }
+    }
+
     val financeReviewRemindersEnabled: Flow<Boolean> = dataStore.data.map { prefs ->
         prefs[FINANCE_REVIEW_REMINDERS_ENABLED_KEY] ?: false
     }
@@ -223,6 +233,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val PREF_USER_NAME = stringPreferencesKey("user_name")
         private val PREF_IS_PROFILED = booleanPreferencesKey("is_profiled")
         private val OFFER_HOME_WIDGET_KEY = booleanPreferencesKey("offer_home_widget")
+        private val COMMUNITY_PERMISSION_SETUP_COMPLETED_KEY = booleanPreferencesKey("community_permission_setup_completed")
         private val FINANCE_REVIEW_REMINDERS_ENABLED_KEY = booleanPreferencesKey("finance_review_reminders_enabled")
         private val HAPTICS_ENABLED_KEY = booleanPreferencesKey("haptics_enabled")
         private val HAPTIC_LEVEL_KEY = stringPreferencesKey("haptic_level")

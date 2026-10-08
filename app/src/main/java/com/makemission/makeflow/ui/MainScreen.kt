@@ -97,6 +97,7 @@ import com.makemission.makeflow.domain.CorrectionRoute
 import com.makemission.makeflow.domain.CorrectionRouter
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.core.notifications.NotificationGate
+import com.makemission.makeflow.BuildConfig
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
@@ -127,6 +128,7 @@ import com.makemission.makeflow.ui.screens.ManageTemplatesSheet
 import com.makemission.makeflow.ui.screens.RecurringTransactionsScreen
 import com.makemission.makeflow.ui.screens.SavingsGoalsScreen
 import com.makemission.makeflow.ui.screens.ChangelogScreen
+import com.makemission.makeflow.ui.screens.CommunityPermissionSetupSheet
 import com.makemission.makeflow.ui.screens.PrivacyPolicyScreen
 import com.makemission.makeflow.ui.screens.SettingsScreen
 import com.makemission.makeflow.data.changelog.CURRENT_CHANGELOG_VERSION
@@ -153,6 +155,7 @@ import com.makemission.makeflow.ui.viewmodel.SettingsViewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -214,6 +217,9 @@ fun MainScreen(
     val correctionRepository = remember { CorrectionRepositoryImpl(db.correctionDao(), db.correctionMemoryDao()) as CorrectionRepository }
     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
     val shouldOfferHomeWidget by userPrefDataStore.shouldOfferHomeWidget.collectAsState(initial = false)
+    val communityPermissionSetupCompleted by userPrefDataStore.communityPermissionSetupCompleted
+        .map { it as Boolean? }
+        .collectAsState(initial = null)
     val homeViewModel: HomeDashboardViewModel = viewModel(
         factory = HomeDashboardViewModelFactory(repository, userPrefDataStore, db.cardInteractionDao(), exchangeRateRepository)
     )
@@ -469,6 +475,7 @@ fun MainScreen(
     var showChangelogScreen by remember { mutableStateOf(false) }
     var showPrivacyPolicyScreen by remember { mutableStateOf(false) }
     var showHomeWidgetOffer by remember { mutableStateOf(false) }
+    var showCommunityPermissionSetup by remember { mutableStateOf(false) }
     val exchangeRates by exchangeRateRepository.getAllRates().collectAsState(initial = emptyList())
     val exchangeRateSyncer = remember(exchangeRateRepository) { ExchangeRateSyncer(exchangeRateRepository) }
     var exchangeRatesRefreshing by remember { mutableStateOf(false) }
@@ -488,11 +495,25 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(shouldOfferHomeWidget, showChangelogScreen, showPrivacyPolicyScreen) {
-        showHomeWidgetOffer = shouldOfferHomeWidget && !showChangelogScreen && !showPrivacyPolicyScreen
+    LaunchedEffect(shouldOfferHomeWidget, communityPermissionSetupCompleted, showChangelogScreen, showPrivacyPolicyScreen) {
+        showHomeWidgetOffer = shouldOfferHomeWidget &&
+            (!BuildConfig.MPESA_SMS_AUTO_IMPORT_ENABLED || communityPermissionSetupCompleted == true) &&
+            !showChangelogScreen && !showPrivacyPolicyScreen
+    }
+
+    LaunchedEffect(communityPermissionSetupCompleted, showChangelogScreen, showPrivacyPolicyScreen) {
+        showCommunityPermissionSetup = BuildConfig.MPESA_SMS_AUTO_IMPORT_ENABLED &&
+            communityPermissionSetupCompleted == false &&
+            !showChangelogScreen &&
+            !showPrivacyPolicyScreen
     }
 
     val scope = rememberCoroutineScope()
+
+    fun completeCommunityPermissionSetup() {
+        showCommunityPermissionSetup = false
+        scope.launch { userPrefDataStore.setCommunityPermissionSetupCompleted(true) }
+    }
 
     fun refreshExchangeRates(force: Boolean) {
         if (exchangeRatesRefreshing) return
@@ -714,6 +735,7 @@ fun MainScreen(
                         onRestore = { pickRestoreFile() },
                         onOpenChangelog = { showChangelogScreen = true },
                         onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
+                        onOpenPermissionSetup = { showCommunityPermissionSetup = true },
                         onDeleteAccount = { account ->
                             savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                                 .let { count ->
@@ -833,6 +855,7 @@ fun MainScreen(
                     onRestore = { pickRestoreFile() },
                     onOpenChangelog = { showChangelogScreen = true },
                     onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
+                    onOpenPermissionSetup = { showCommunityPermissionSetup = true },
                     onDeleteAccount = { account ->
                         savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                             .let { count ->
@@ -990,6 +1013,15 @@ fun MainScreen(
             BackHandler { showPrivacyPolicyScreen = false }
             PrivacyPolicyScreen(onBack = { showPrivacyPolicyScreen = false })
         }
+    }
+
+    if (showCommunityPermissionSetup) {
+        CommunityPermissionSetupSheet(
+            onComplete = ::completeCommunityPermissionSetup,
+            onEnableMpesaAutoImport = {
+                settingsViewModel.saveMpesaAutoImportEnabled(true)
+            }
+        )
     }
 
     if (showHomeWidgetOffer) {
@@ -1475,6 +1507,7 @@ private fun OverlayPanels(
     onRestore: () -> Unit = {},
     onOpenChangelog: () -> Unit = {},
     onOpenPrivacyPolicy: () -> Unit = {},
+    onOpenPermissionSetup: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     val dimens = LocalAppDimens.current
@@ -1550,7 +1583,8 @@ private fun OverlayPanels(
                 onBackup = onBackup,
                 onRestore = onRestore,
                 onOpenChangelog = onOpenChangelog,
-                onOpenPrivacyPolicy = onOpenPrivacyPolicy
+                onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                onOpenPermissionSetup = onOpenPermissionSetup
             )
         }
     }

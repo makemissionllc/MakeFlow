@@ -8,9 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.FlowRow
 import java.util.Calendar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -124,7 +122,8 @@ fun SettingsScreen(
     onBackup: () -> Unit = {},
     onRestore: () -> Unit = {},
     onOpenChangelog: () -> Unit = {},
-    onOpenPrivacyPolicy: () -> Unit = {}
+    onOpenPrivacyPolicy: () -> Unit = {},
+    onOpenPermissionSetup: () -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
@@ -425,12 +424,17 @@ fun SettingsScreen(
                 }
                 item {
                     StaggeredItem(index = 108) {
+                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    }
+                }
+                item {
+                    StaggeredItem(index = 109) {
                         SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 109) {
+                        StaggeredItem(index = 110) {
                         ReducedMotionRow()
                         }
                     }
@@ -616,12 +620,17 @@ fun SettingsScreen(
                 }
                 item {
                     StaggeredItem(index = 24) {
+                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    }
+                }
+                item {
+                    StaggeredItem(index = 25) {
                         SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 25) {
+                        StaggeredItem(index = 26) {
                         ReducedMotionRow()
                         }
                     }
@@ -887,7 +896,6 @@ private fun SettingText(
 }
 
 @Composable
-@OptIn(ExperimentalLayoutApi::class)
 private fun HapticLevelRow(
     selected: HapticStrength,
     hapticManager: HapticManager?,
@@ -906,30 +914,30 @@ private fun HapticLevelRow(
             modifier = Modifier.fillMaxWidth(),
             titleWeight = FontWeight.Bold
         )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
-            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
-        ) {
-            HapticStrength.entries.forEach { level ->
-                FilterChip(
-                    selected = selected == level,
-                    onClick = {
-                        onSelect(level)
-                        hapticManager?.strength = level
-                        if (level != HapticStrength.OFF) hapticManager?.fire(HapticEvent.TOGGLE)
-                    },
-                    label = {
-                        Text(
-                            when (level) {
-                                HapticStrength.OFF -> "Off"
-                                HapticStrength.SOFT -> "Soft"
-                                HapticStrength.STANDARD -> "Standard"
-                                HapticStrength.STRONG -> "Strong"
+        Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
+            HapticStrength.entries.chunked(2).forEach { rowLevels ->
+                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+                    rowLevels.forEach { level ->
+                        FilterChip(
+                            selected = selected == level,
+                            onClick = {
+                                onSelect(level)
+                                hapticManager?.strength = level
+                                if (level != HapticStrength.OFF) hapticManager?.fire(HapticEvent.TOGGLE)
+                            },
+                            label = {
+                                Text(
+                                    when (level) {
+                                        HapticStrength.OFF -> "Off"
+                                        HapticStrength.SOFT -> "Soft"
+                                        HapticStrength.STANDARD -> "Standard"
+                                        HapticStrength.STRONG -> "Strong"
+                                    }
+                                )
                             }
                         )
                     }
-                )
+                }
             }
         }
     }

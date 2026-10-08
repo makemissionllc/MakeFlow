@@ -6,6 +6,27 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-08 — Fix Settings haptic crash and add Community permission setup
+
+- **Scope:** Community first-run access setup and the Settings scroll crash reported from
+  an Oppo device.
+- **Crash diagnosis:** the attached trace shows `NoSuchMethodError` for the Compose
+  Foundation `FlowRow` overload in `SettingsScreen.kt:909`, reached while composing the
+  haptic choices during LazyColumn prefetch. Replaced that call with stable two-row layout;
+  the failure was a runtime Compose ABI mismatch, not a Settings scroll-state exception.
+- **Permission setup:** added a one-time, optional access sheet for Community users, also
+  reachable from Settings. It clearly explains the separate SMS and notification prompts,
+  requests only `RECEIVE_SMS` and Android 13+ `POST_NOTIFICATIONS`, enables M-PESA review
+  only when both are allowed, and leaves weekly reminders opt-in. Other system-mediated
+  features are called out as not needing blanket permissions. Dismissal is remembered in
+  DataStore, and the existing widget offer waits until this sheet is completed or skipped.
+- **Release:** incremented the Community package to version `2.0.1-community` / code 4 so
+  existing 2.0.0 Community installs can accept the update. Added the changes to the in-app
+  changelog.
+- **Verification:** `:app:test`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleRelease` passed; `git diff --check` passed. Android tests were compiled but
+  not executed on a device in this environment.
+
 ---
 
 ## 2026-10-08 — Stabilize Settings scrolling and replace the profile glyph

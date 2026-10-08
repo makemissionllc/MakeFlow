@@ -59,7 +59,7 @@ private val privacyPolicySections = listOf(
     ),
     PrivacyPolicySection(
         "Backups and deleting data",
-        "Android cloud backup and device-to-device transfer are disabled for app data. JSON backups are saved to a location you select; CSV and PDF statements are saved to Downloads. A file provider or cloud-synced Downloads location may have its own privacy practices. Use Settings > Clear All Data to remove app records, or clear the app's storage or uninstall it. Any exported files must be deleted separately."
+        "Android cloud backup and device-to-device transfer are disabled for app data. JSON backups are saved to a location you select; CSV files and PDF statements are saved on this device. PDF statements are saved in Downloads/MakeFlow on Android 10 and newer, and in app Documents storage on older Android versions. You can share a statement with an app you choose. A file provider or cloud-synced Downloads location may have its own privacy practices. Use Settings > Clear All Data to remove app records, or clear the app's storage or uninstall it. Any exported files must be deleted separately."
     ),
     PrivacyPolicySection(
         "Contact and updates",

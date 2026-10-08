@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -17,16 +18,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import com.makemission.makeflow.data.backup.BackupManager
 import com.makemission.makeflow.data.repository.ExchangeRateRepository
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import com.makemission.makeflow.core.logging.AppLogger
+import java.io.File
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -178,157 +179,99 @@ class SettingsViewModel(
         }
     }
 
-    fun exportPdf(context: Context, startMillis: Long, endMillis: Long, onComplete: (String) -> Unit = {}) {
+    fun exportPdf(
+        context: Context,
+        startMillis: Long,
+        endMillis: Long,
+        onError: () -> Unit = {},
+        onComplete: (Uri, String) -> Unit = { _, _ -> }
+    ) {
         viewModelScope.launch {
-            val transactions = financeRepository.getTransactionsInRange(startMillis, endMillis).first()
-            val accounts = financeRepository.getAllAccounts().first()
-            val exchangeRatesList = exchangeRateRepository?.getAllRatesOnce() ?: emptyList()
-            val exchangeRates = exchangeRatesList.associateBy { it.currencyCode }
-            val accountMap = accounts.associateBy { it.id }
-            val displayCurrency = selectedCurrency.value
-
-            val dateFmt = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-            val headerDateFmt = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-
-            val dateRangeLabel = "${headerDateFmt.format(Date(startMillis))} - ${headerDateFmt.format(Date(endMillis))}"
-
-            val exportData = PdfExportDataBuilder.build(
-                transactions = transactions,
-                accountMap = accountMap,
-                exchangeRates = exchangeRates,
-                displayCurrency = displayCurrency
-            ) { ts -> dateFmt.format(Date(ts)) }
-
-            val rows = exportData.rows
-            val summary = exportData.summary
-
-            val document = PdfDocument()
-            val pageWidth = 612
-            val pageHeight = 792
-            var pageNumber = 1
-
-            val titlePaint = Paint().apply {
-                color = Color.DKGRAY
-                textSize = 24f
-                typeface = Typeface.DEFAULT_BOLD
-            }
-            val headerPaint = Paint().apply {
-                color = Color.DKGRAY
-                textSize = 13f
-                typeface = Typeface.DEFAULT_BOLD
-            }
-            val rowPaint = Paint().apply {
-                color = Color.DKGRAY
-                textSize = 11f
-            }
-            val transferDetailPaint = Paint().apply {
-                color = Color.GRAY
-                textSize = 9f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.ITALIC)
-            }
-            val linePaint = Paint().apply {
-                color = Color.LTGRAY
-                strokeWidth = 0.5f
-            }
-            val currencySymbol = CurrencyFormatter.symbolFor(displayCurrency)
-
-            val leftMargin = 40f
-            val rightMargin = 572f
-            val colWidths = floatArrayOf(90f, 140f, 100f, 100f, 102f)
-            val rowHeight = 16f
-            val transferRowHeight = 26f
-
-            fun drawHeader(c: Canvas, yStart: Float): Float {
-                var yy = yStart
-                val headers = listOf("Date", "Description", "Category", "Account", "Amount")
-                var x = leftMargin
-                headers.forEachIndexed { i, h ->
-                    c.drawText(h, x, yy, headerPaint)
-                    x += colWidths[i]
-                }
-                yy += 6f
-                c.drawLine(leftMargin, yy, rightMargin, yy, linePaint)
-                yy += 14f
-                return yy
-            }
-
-            var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-            var page = document.startPage(pageInfo)
-            var canvas: Canvas = page.canvas
-
-            var y = 40f
-            canvas.drawText("Mindful Wallet Statement", leftMargin, y, titlePaint)
-            y += 24f
-            canvas.drawText("Date Range: $dateRangeLabel", leftMargin, y, rowPaint)
-            y += 18f
-            canvas.drawText("Display Currency: $displayCurrency ($currencySymbol)", leftMargin, y, rowPaint)
-            y += 24f
-
-            y = drawHeader(canvas, y)
-
-            for (row in rows) {
-                val rh = if (row.isTransfer) transferRowHeight else rowHeight
-
-                if (y + rh > 750f) {
-                    document.finishPage(page)
-                    pageNumber++
-                    pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
-                    page = document.startPage(pageInfo)
-                    canvas = page.canvas
-                    y = 40f
-                    y = drawHeader(canvas, y)
-                }
-
-                val cols = listOf(row.date, row.description, row.category, row.account, row.amount)
-                var x = leftMargin
-                cols.forEachIndexed { i, text ->
-                    canvas.drawText(text, x, y, rowPaint)
-                    x += colWidths[i]
-                }
-
-                if (row.isTransfer && row.transferDetail.isNotEmpty()) {
-                    canvas.drawText(row.transferDetail, leftMargin, y + 12f, transferDetailPaint)
-                }
-
-                y += rh
-            }
-
-            y += 12f
-            canvas.drawLine(leftMargin, y, rightMargin, y, linePaint)
-            y += 20f
-
-            val summaryPaint = Paint().apply {
-                color = Color.DKGRAY
-                textSize = 12f
-                typeface = Typeface.DEFAULT_BOLD
-            }
-            canvas.drawText("Total Income: $currencySymbol${summary.totalIncome}", leftMargin, y, summaryPaint)
-            y += 16f
-            canvas.drawText("Total Expense: $currencySymbol${summary.totalExpense}", leftMargin, y, summaryPaint)
-            y += 16f
-            canvas.drawText("Net: $currencySymbol${summary.net}", leftMargin, y, summaryPaint)
-
-            document.finishPage(page)
-
-            val fileName = "Mindful_Statement_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.pdf"
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val contentValues = android.content.ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val resolver = context.contentResolver
-                val uri: Uri? = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                uri?.let {
-                    resolver.openOutputStream(it)?.use { output ->
-                        document.writeTo(output)
+            try {
+                val exported = withContext(Dispatchers.IO) {
+                    val transactions = financeRepository.getTransactionsInRange(startMillis, endMillis).first()
+                    val accounts = financeRepository.getAllAccounts().first()
+                    val categories = financeRepository.getAllCategories().first()
+                    val exchangeRates = exchangeRateRepository?.getAllRatesOnce()
+                        ?.associateBy { it.currencyCode }
+                        .orEmpty()
+                    val displayCurrency = userPreferencesDataStore.selectedCurrency.first()
+                    val isAllTime = startMillis <= 0L && endMillis == Long.MAX_VALUE
+                    val dateFormat = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                    val dateRangeLabel = if (isAllTime) {
+                        "All time through ${dateFormat.format(Date())}"
+                    } else {
+                        val inclusiveEnd = if (endMillis > startMillis) endMillis - 1 else endMillis
+                        "${dateFormat.format(Date(startMillis))} - ${dateFormat.format(Date(inclusiveEnd))}"
+                    }
+                    val transactionDateFormat = SimpleDateFormat("MMM d, yyyy, h:mm a", Locale.getDefault())
+                    val exportData = PdfExportDataBuilder.build(
+                        transactions = transactions,
+                        accountMap = accounts.associateBy { it.id },
+                        categoryMap = categories.associateBy { it.id },
+                        exchangeRates = exchangeRates,
+                        displayCurrency = displayCurrency
+                    ) { timestamp -> transactionDateFormat.format(Date(timestamp)) }
+                    val fileName = PdfStatementFileName.forRange(startMillis, endMillis)
+                    val document = PdfStatementRenderer.render(
+                        rows = exportData.rows,
+                        summary = exportData.summary,
+                        currencyCode = displayCurrency,
+                        dateRangeLabel = dateRangeLabel
+                    )
+                    try {
+                        savePdf(context, document, fileName) to fileName
+                    } finally {
+                        document.close()
                     }
                 }
+                onComplete(exported.first, exported.second)
+            } catch (error: Exception) {
+                AppLogger.error("PdfExport", "Could not create the statement PDF", error)
+                onError()
             }
-            document.close()
-            onComplete(fileName)
         }
+    }
+
+    private fun savePdf(context: Context, document: android.graphics.pdf.PdfDocument, fileName: String): Uri {
+        val resolver = context.contentResolver
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+                put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/MakeFlow")
+                put(MediaStore.Downloads.IS_PENDING, 1)
+            }
+            val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: throw IOException("Unable to create a PDF file")
+            try {
+                val output = resolver.openOutputStream(uri)
+                    ?: throw IOException("Unable to open the PDF file")
+                output.use(document::writeTo)
+                val publishedValues = ContentValues().apply {
+                    put(MediaStore.Downloads.IS_PENDING, 0)
+                }
+                resolver.update(uri, publishedValues, null, null)
+                return uri
+            } catch (error: Exception) {
+                resolver.delete(uri, null, null)
+                throw error
+            }
+        }
+
+        val documentsDirectory = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+            ?: File(context.filesDir, Environment.DIRECTORY_DOCUMENTS)
+        val outputDirectory = File(documentsDirectory, "MakeFlow")
+        if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+            throw IOException("Unable to create the statement folder")
+        }
+        val outputFile = File(outputDirectory, fileName)
+        outputFile.outputStream().use(document::writeTo)
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            outputFile
+        )
     }
 
     suspend fun exportBackup(): String? {

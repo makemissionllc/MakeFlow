@@ -1,10 +1,15 @@
 package com.makemission.makeflow.ui.viewmodel
 
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class PdfRow(
     val date: String,
@@ -32,6 +37,7 @@ object PdfExportDataBuilder {
     fun build(
         transactions: List<TransactionEntity>,
         accountMap: Map<String, AccountEntity>,
+        categoryMap: Map<String, CategoryEntity> = emptyMap(),
         exchangeRates: Map<String, ExchangeRateEntity>,
         displayCurrency: String,
         dateFmt: (Long) -> String
@@ -45,35 +51,35 @@ object PdfExportDataBuilder {
         }
 
         val rows = transactions.map { tx ->
-            val accountName = accountMap[tx.accountId]?.name ?: tx.accountId
+            val accountName = accountMap[tx.accountId]?.name ?: "Unlinked account"
             val date = dateFmt(tx.timestamp)
-            val note = tx.note ?: ""
+            val note = tx.note?.trim().orEmpty()
 
             if (tx.type == "TRANSFER") {
-                val fromName = tx.fromAccountId?.let { accountMap[it]?.name } ?: tx.fromAccountId ?: ""
-                val toName = tx.toAccountId?.let { accountMap[it]?.name } ?: tx.toAccountId ?: ""
+                val fromName = tx.fromAccountId?.let { accountMap[it]?.name } ?: "Unlinked account"
+                val toName = tx.toAccountId?.let { accountMap[it]?.name } ?: "Unlinked account"
                 val fromAccountId = tx.fromAccountId ?: tx.accountId
                 val fromCurrency = accountMap[fromAccountId]?.currencyCode ?: displayCurrency
                 val toCurrency = tx.toAccountId?.let { accountMap[it]?.currencyCode } ?: displayCurrency
                 val converted = if (tx.destinationAmount != null) {
-                    "${amountLabel(tx.amount, fromCurrency, displayCurrency, conversionRates)} → " +
+                    "${amountLabel(tx.amount, fromCurrency, displayCurrency, conversionRates)} to " +
                         "${amountLabel(tx.destinationAmount, toCurrency, displayCurrency, conversionRates)}"
                 } else {
                     amountLabel(tx.amount, fromCurrency, displayCurrency, conversionRates)
                 }
                 PdfRow(
                     date = date,
-                    description = note,
+                    description = note.ifBlank { "Account transfer" },
                     category = "Transfer",
                     account = accountName,
                     amount = converted,
                     isTransfer = true,
-                    transferDetail = "$fromName \u2192 $toName"
+                    transferDetail = "From $fromName to $toName"
                 )
             } else {
                 val accountCurrency = accountMap[tx.accountId]?.currencyCode ?: displayCurrency
                 val converted = amountLabel(tx.amount, accountCurrency, displayCurrency, conversionRates)
-                val categoryName = tx.categoryId ?: ""
+                val categoryName = tx.categoryId?.let { categoryMap[it]?.name } ?: "Uncategorized"
 
                 val summaryAmount = CurrencyConverter.convert(tx.amount, accountCurrency, displayCurrency, conversionRates)
                 if (tx.type == "INCOME" && summaryAmount != null) totalIncome += summaryAmount
@@ -81,7 +87,9 @@ object PdfExportDataBuilder {
 
                 PdfRow(
                     date = date,
-                    description = note,
+                    description = note.ifBlank {
+                        if (tx.type == "INCOME") "Income" else "Expense"
+                    },
                     category = categoryName,
                     account = accountName,
                     amount = converted,
@@ -108,6 +116,41 @@ object PdfExportDataBuilder {
         rates: List<CurrencyRate>
     ): String {
         val converted = CurrencyConverter.convert(amount, accountCurrency, displayCurrency, rates)
-        return converted?.toString() ?: "$amount $accountCurrency (unconverted)"
+        return if (converted != null) {
+            formatAmount(converted, displayCurrency)
+        } else {
+            "${formatAmount(amount, accountCurrency)} (unconverted)"
+        }
+    }
+
+    private fun formatAmount(amount: Double, currencyCode: String): String {
+        val digits = try {
+            java.util.Currency.getInstance(currencyCode).defaultFractionDigits.coerceAtLeast(0)
+        } catch (_: Exception) {
+            2
+        }
+        val number = NumberFormat.getNumberInstance(Locale.getDefault()).apply {
+            maximumFractionDigits = digits.coerceAtMost(2)
+            minimumFractionDigits = 0
+        }.format(amount)
+        return "$currencyCode $number"
+    }
+}
+
+object PdfStatementFileName {
+    fun forRange(
+        startMillis: Long,
+        endMillis: Long,
+        generatedAtMillis: Long = System.currentTimeMillis()
+    ): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT)
+        if (startMillis <= 0L && endMillis == Long.MAX_VALUE) {
+            val generatedDate = dateFormat.format(Date(generatedAtMillis))
+            return "MakeFlow_Statement_All_Time_$generatedDate.pdf"
+        }
+
+        val inclusiveEnd = if (endMillis > startMillis) endMillis - 1 else endMillis
+        return "MakeFlow_Statement_${dateFormat.format(Date(startMillis))}_to_" +
+            "${dateFormat.format(Date(inclusiveEnd))}.pdf"
     }
 }

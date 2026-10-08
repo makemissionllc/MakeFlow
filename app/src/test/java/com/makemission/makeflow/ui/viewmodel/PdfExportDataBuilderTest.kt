@@ -1,6 +1,7 @@
 package com.makemission.makeflow.ui.viewmodel
 
 import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import org.junit.Assert.assertEquals
@@ -49,6 +50,7 @@ class PdfExportDataBuilderTest {
         val result = PdfExportDataBuilder.build(
             transactions = listOf(tx),
             accountMap = accountMap,
+            categoryMap = mapOf("salary" to CategoryEntity(id = "salary", name = "Salary", type = "INCOME")),
             exchangeRates = exchangeRates,
             displayCurrency = "KES",
             dateFmt = ::dateFmt
@@ -56,9 +58,10 @@ class PdfExportDataBuilderTest {
 
         assertEquals(1, result.rows.size)
         val row = result.rows[0]
-        assertEquals("salary", row.category)
+        assertEquals("Salary", row.category)
         assertEquals("Main Checking", row.account)
-        assertEquals("500.0", row.amount)
+        assertTrue(row.amount.contains("KES"))
+        assertTrue(row.amount.filter(Char::isDigit).contains("500"))
         assertFalse(row.isTransfer)
         assertEquals(500.0, result.summary.totalIncome, 0.001)
         assertEquals(0.0, result.summary.totalExpense, 0.001)
@@ -107,7 +110,7 @@ class PdfExportDataBuilderTest {
         assertTrue(row.isTransfer)
         assertEquals("Transfer", row.category)
         assertEquals("Move to savings", row.description)
-        assertEquals("Main Checking \u2192 Savings USD", row.transferDetail)
+        assertEquals("From Main Checking to Savings USD", row.transferDetail)
         assertEquals(0.0, result.summary.totalIncome, 0.001)
         assertEquals(0.0, result.summary.totalExpense, 0.001)
     }
@@ -130,7 +133,7 @@ class PdfExportDataBuilderTest {
 
         val row = result.rows[0]
         // 100 USD * 150 = 15000 KES
-        assertEquals("15000.0", row.amount)
+        assertTrue(row.amount.filter(Char::isDigit).contains("15000"))
         assertEquals(15000.0, result.summary.totalIncome, 0.001)
     }
 
@@ -152,7 +155,7 @@ class PdfExportDataBuilderTest {
 
         val row = result.rows[0]
         // 50 EUR * 160 = 8000 KES
-        assertEquals("8000.0", row.amount)
+        assertTrue(row.amount.filter(Char::isDigit).contains("8000"))
         assertEquals(8000.0, result.summary.totalExpense, 0.001)
     }
 
@@ -173,7 +176,8 @@ class PdfExportDataBuilderTest {
             dateFmt = ::dateFmt
         )
 
-        assertEquals("200.0 GBP (unconverted)", result.rows[0].amount)
+        assertTrue(result.rows[0].amount.contains("GBP"))
+        assertTrue(result.rows[0].amount.contains("(unconverted)"))
         assertEquals(0.0, result.summary.totalIncome, 0.001)
     }
 
@@ -231,14 +235,14 @@ class PdfExportDataBuilderTest {
         val row = result.rows[0]
         assertTrue(row.isTransfer)
         // 100 USD * 150 = 15000 KES
-        assertEquals("15000.0", row.amount)
-        assertEquals("Savings USD \u2192 Main Checking", row.transferDetail)
+        assertTrue(row.amount.filter(Char::isDigit).contains("15000"))
+        assertEquals("From Savings USD to Main Checking", row.transferDetail)
         assertEquals(0.0, result.summary.totalIncome, 0.001)
         assertEquals(0.0, result.summary.totalExpense, 0.001)
     }
 
     @Test
-    fun `transaction with missing account uses raw accountId as fallback`() {
+    fun `transaction with missing account uses a readable fallback instead of an id`() {
         val tx = TransactionEntity(
             id = "txMissing", amount = 50.0, type = "EXPENSE",
             categoryId = "misc", accountId = "unknown_acc",
@@ -254,13 +258,15 @@ class PdfExportDataBuilderTest {
         )
 
         val row = result.rows[0]
-        assertEquals("unknown_acc", row.account)
+        assertEquals("Unlinked account", row.account)
+        assertEquals("Uncategorized", row.category)
         // Same display currency (default), so no conversion
-        assertEquals("50.0", row.amount)
+        assertTrue(row.amount.contains("KES"))
+        assertTrue(row.amount.filter(Char::isDigit).contains("50"))
     }
 
     @Test
-    fun `transfer with null from and to accounts shows arrow with empty strings`() {
+    fun `transfer with missing source and destination uses readable fallbacks`() {
         val tx = TransactionEntity(
             id = "txNull", amount = 100.0, type = "TRANSFER",
             accountId = "acc1", fromAccountId = null, toAccountId = null,
@@ -277,6 +283,6 @@ class PdfExportDataBuilderTest {
 
         val row = result.rows[0]
         assertTrue(row.isTransfer)
-        assertEquals(" \u2192 ", row.transferDetail)
+        assertEquals("From Unlinked account to Unlinked account", row.transferDetail)
     }
 }

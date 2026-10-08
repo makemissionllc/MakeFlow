@@ -78,6 +78,7 @@ import com.makemission.makeflow.core.haptics.HapticStrength
 import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
 import com.makemission.makeflow.core.notifications.FinanceReviewReminderScheduler
+import com.makemission.makeflow.ui.util.sharePdfStatement
 import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -798,14 +799,30 @@ fun SettingsScreen(
                         val start = cal.timeInMillis
                         cal.add(Calendar.MONTH, 1)
                         val end = cal.timeInMillis
-                        viewModel.exportPdf(context, start, end) { fileName ->
-                            Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+                        viewModel.exportPdf(
+                            context,
+                            start,
+                            end,
+                            onError = {
+                                Toast.makeText(context, "Could not create the PDF statement", Toast.LENGTH_LONG).show()
+                            }
+                        ) { uri, fileName ->
+                            Toast.makeText(context, "Statement ready to share", Toast.LENGTH_SHORT).show()
+                            sharePdfStatement(context, uri, fileName)
                         }
                     })
                     PdfRangeOption("All Time", onClick = {
                         showPdfExportDialog = false
-                        viewModel.exportPdf(context, 0L, Long.MAX_VALUE) { fileName ->
-                            Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+                        viewModel.exportPdf(
+                            context,
+                            0L,
+                            Long.MAX_VALUE,
+                            onError = {
+                                Toast.makeText(context, "Could not create the PDF statement", Toast.LENGTH_LONG).show()
+                            }
+                        ) { uri, fileName ->
+                            Toast.makeText(context, "Statement ready to share", Toast.LENGTH_SHORT).show()
+                            sharePdfStatement(context, uri, fileName)
                         }
                     })
                 }

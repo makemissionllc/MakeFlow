@@ -15,6 +15,16 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-08",
         changes = listOf(
+            "Find transactions quickly by searching notes, amounts, accounts, categories, or references",
+            "Clear an empty search and type filter in one tap",
+            "Export readable, paginated PDF statements with friendly account and category names",
+            "Save statements with a date-based filename and share them from the Android share menu"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.1-community",
+        date = "2026-10-08",
+        changes = listOf(
             "A clear Community permission setup for M-PESA review and notifications",
             "More reliable Settings scrolling and haptic choices"
         )

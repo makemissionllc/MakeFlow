@@ -9,6 +9,7 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,7 @@ class HistoryViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
     val selectedFilter = MutableStateFlow("ALL")
+    val searchQuery = MutableStateFlow("")
 
     val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -58,7 +60,7 @@ class HistoryViewModel(
         if (focusedId != null) accts.find { it.id == focusedId } else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val filteredTransactions: StateFlow<List<TransactionEntity>> = combine(
+    private val typeAndAccountFilteredTransactions = combine(
         _transactions, selectedFilter.asStateFlow(), focusedAccountId
     ) { allTxs, filter, focusedId ->
         val typeFiltered = when (filter) {
@@ -74,6 +76,34 @@ class HistoryViewModel(
             }
         } else {
             typeFiltered
+        }
+    }
+
+    val filteredTransactions: StateFlow<List<TransactionEntity>> = combine(
+        typeAndAccountFilteredTransactions,
+        searchQuery.asStateFlow(),
+        accounts,
+        categories
+    ) { filtered, query, accountList, categoryList ->
+        val normalizedQuery = query.normalizeTransactionSearchText()
+        if (normalizedQuery.isEmpty()) {
+            filtered
+        } else {
+            val accountNames = accountList.associate { it.id to it.name }
+            val categoryNames = categoryList.associate { it.id to it.name }
+            filtered.filter { transaction ->
+                listOf(
+                    transaction.note,
+                    transaction.type,
+                    transaction.amount.toString(),
+                    transaction.destinationAmount?.toString().orEmpty(),
+                    transaction.externalReference.orEmpty(),
+                    transaction.categoryId?.let(categoryNames::get).orEmpty(),
+                    accountNames[transaction.accountId].orEmpty(),
+                    transaction.fromAccountId?.let(accountNames::get).orEmpty(),
+                    transaction.toAccountId?.let(accountNames::get).orEmpty()
+                ).joinToString(" ").normalizeTransactionSearchText().contains(normalizedQuery)
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -108,6 +138,9 @@ class HistoryViewModel(
         }
     }
 }
+
+private fun String.normalizeTransactionSearchText(): String =
+    lowercase(Locale.ROOT).filter { it.isLetterOrDigit() }
 
 class HistoryViewModelFactory(
     private val financeRepository: FinanceRepository,

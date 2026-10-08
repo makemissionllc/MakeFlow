@@ -29,12 +29,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -43,6 +47,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -310,6 +315,8 @@ private fun HistoryListContent(
     onTransactionClick: ((TransactionEntity) -> Unit)?
 ) {
     val dimens = LocalAppDimens.current
+    val allTransactions by viewModel.transactions.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
@@ -334,6 +341,30 @@ private fun HistoryListContent(
         ) {
             item {
                 LargeTitleItem(title = "History", scrollState = listState)
+            }
+
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { viewModel.searchQuery.value = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Search transactions") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Outlined.Search, contentDescription = null)
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.searchQuery.value = "" }) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Close,
+                                    contentDescription = "Clear search"
+                                )
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = MaterialTheme.shapes.large
+                )
             }
 
             item {
@@ -426,15 +457,33 @@ private fun HistoryListContent(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                             )
                             Text(
-                                text = "No transactions yet",
+                                text = if (allTransactions.isEmpty()) "No transactions yet" else "No matching transactions",
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                             Text(
-                                text = "Tap + to log your first transaction",
+                                text = if (allTransactions.isEmpty()) {
+                                    "Tap + to log your first transaction"
+                                } else if (searchQuery.isBlank() && selectedFilter == "ALL") {
+                                    "There are no transactions in the selected account"
+                                } else {
+                                    "Try another search or adjust the type filter"
+                                },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             )
+                            if (allTransactions.isNotEmpty() &&
+                                (searchQuery.isNotBlank() || selectedFilter != "ALL")
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        viewModel.searchQuery.value = ""
+                                        viewModel.selectedFilter.value = "ALL"
+                                    }
+                                ) {
+                                    Text("Clear search and type filter")
+                                }
+                            }
                         }
                     }
                 }

@@ -4,6 +4,8 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.makemission.makeflow.data.local.UserPreferencesDataStore
+import com.makemission.makeflow.data.local.entity.AccountEntity
+import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import kotlinx.coroutines.Dispatchers
@@ -178,11 +180,56 @@ class HistoryViewModelTest {
         job2.cancel()
     }
 
+    @Test
+    fun searchMatchesNotesAmountsCategoriesAccountsAndReferences() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val matatu = createTransaction("matatu", amount = 75.0, note = "Matatu fare")
+            .copy(externalReference = "ABC123")
+        val lunch = createTransaction("lunch", amount = 450.0, note = "Lunch", categoryId = "cat2")
+            .copy(accountId = "acct2")
+        repo.addTransaction(matatu)
+        repo.addTransaction(lunch)
+        repo.addAccount(AccountEntity("acct1", "Daily wallet", 0.0, 0.0))
+        repo.addAccount(AccountEntity("acct2", "Bank account", 0.0, 0.0))
+        repo.addCategory(CategoryEntity("cat1", "Transport", "EXPENSE"))
+        repo.addCategory(CategoryEntity("cat2", "Food", "EXPENSE"))
+
+        val viewModel = HistoryViewModel(repo, createTestUserPrefs())
+        val results = mutableListOf<List<TransactionEntity>>()
+        val job = launch { viewModel.filteredTransactions.collect { results.add(it) } }
+        runCurrent()
+
+        fun assertSearch(query: String, expectedId: String) {
+            viewModel.searchQuery.value = query
+            runCurrent()
+            assertEquals(listOf(expectedId), results.last().map { it.id })
+        }
+
+        assertSearch("matatu", "matatu")
+        assertSearch("75", "matatu")
+        assertSearch("transport", "matatu")
+        assertSearch("daily wallet", "matatu")
+        assertSearch("abc-123", "matatu")
+        assertSearch("lunch", "lunch")
+
+        job.cancel()
+    }
+
     private class FakeFinanceRepository : FinanceRepository {
         private val transactions = MutableStateFlow<List<TransactionEntity>>(emptyList())
+        private val accounts = MutableStateFlow<List<AccountEntity>>(emptyList())
+        private val categories = MutableStateFlow<List<CategoryEntity>>(emptyList())
 
         fun addTransaction(tx: TransactionEntity) {
             transactions.value = transactions.value + tx
+        }
+
+        fun addAccount(account: AccountEntity) {
+            accounts.value = accounts.value + account
+        }
+
+        fun addCategory(category: CategoryEntity) {
+            categories.value = categories.value + category
         }
 
         override fun getAllTransactions(): Flow<List<TransactionEntity>> = transactions
@@ -195,11 +242,9 @@ class HistoryViewModelTest {
             transactions.value = transactions.value.filter { it.id != transaction.id }
         }
 
-        override fun getAllAccounts(): Flow<List<com.makemission.makeflow.data.local.entity.AccountEntity>> =
-            MutableStateFlow(emptyList())
+        override fun getAllAccounts(): Flow<List<AccountEntity>> = accounts
 
-        override fun getAllCategories(): Flow<List<com.makemission.makeflow.data.local.entity.CategoryEntity>> =
-            MutableStateFlow(emptyList())
+        override fun getAllCategories(): Flow<List<CategoryEntity>> = categories
 
         override fun getMonthlySpendingByCategory(
             monthStartMillis: Long, monthEndMillis: Long

@@ -6,6 +6,25 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-08 — Improve History lookup and PDF statements
+
+- **Scope:** faster transaction lookup and legible, shareable PDF statements.
+- **What:** History search matches notes, amounts, transaction type, category, account, and
+  external reference while respecting the existing type/account filters. Empty results distinguish
+  a search miss from a new account and offer a one-tap reset. PDF exports now resolve account and
+  category labels, wrap long text across rows/pages, align amounts, format totals, and show the
+  inclusive date range. Files use a date-based `MakeFlow_Statement` name, save to
+  `Downloads/MakeFlow` on Android 10+, and open the system share chooser; Android 9 uses app
+  Documents storage and a granted FileProvider URI. Added search, PDF builder, and filename tests.
+- **Issue reviewed:** `Images/Issues/Mindful_Statement_20261008_083358.pdf` showed transaction
+  columns colliding because IDs and descriptions were drawn as unbounded single-line text.
+- **Release:** advanced Community to `2.0.3-community` / code 6 and added both improvements to
+  the in-app changelog.
+- **Verification:** `:app:test`, `:app:compileDebugAndroidTestKotlin`, and
+  `:app:assembleRelease` passed. Instrumented tests compiled but were not run on a device.
+
+---
+
 ## 2026-10-08 — Fix Settings haptic crash and add Community permission setup
 
 - **Scope:** Community first-run access setup and the Settings scroll crash reported from

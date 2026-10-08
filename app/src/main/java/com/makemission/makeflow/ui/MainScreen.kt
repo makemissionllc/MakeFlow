@@ -89,6 +89,7 @@ import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.rememberHapticManager
 import com.makemission.makeflow.core.logging.AppLogger
+import com.makemission.makeflow.ui.util.sharePdfStatement
 import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.ml.RetrainableCategoryClassifier
 import com.makemission.makeflow.data.repository.CorrectionRepository
@@ -283,8 +284,16 @@ fun MainScreen(
             val zone = java.time.ZoneId.systemDefault()
             val start = month.atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
             val end = month.plusMonths(1).atDay(1).atStartOfDay(zone).toInstant().toEpochMilli()
-            settingsViewModel.exportPdf(context, start, end) { fileName ->
-                Toast.makeText(context, "PDF saved to Downloads/$fileName", Toast.LENGTH_SHORT).show()
+            settingsViewModel.exportPdf(
+                context,
+                start,
+                end,
+                onError = {
+                    Toast.makeText(context, "Could not create the PDF statement", Toast.LENGTH_LONG).show()
+                }
+            ) { uri, fileName ->
+                Toast.makeText(context, "Statement ready to share", Toast.LENGTH_SHORT).show()
+                sharePdfStatement(context, uri, fileName)
             }
         }
     }

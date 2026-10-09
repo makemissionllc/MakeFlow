@@ -367,6 +367,66 @@ class HistoryViewModelTest {
         job.cancel()
     }
 
+    @Test
+    fun selectingAccountPersistsFocusAndKeepsOtherFilters() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        repo.addAccount(AccountEntity("acct1", "Cash", 0.0, 0.0))
+        repo.addAccount(AccountEntity("acct2", "Bank", 0.0, 0.0))
+        val now = ZonedDateTime.parse("2026-10-09T12:00:00+03:00[Africa/Nairobi]")
+        repo.addTransaction(createTransaction("cash").copy(timestamp = now.toInstant().toEpochMilli()))
+        repo.addTransaction(createTransaction("bank").copy(accountId = "acct2", timestamp = now.toInstant().toEpochMilli()))
+        val prefs = createTestUserPrefs()
+        val viewModel = HistoryViewModel(repo, prefs) { now }
+        viewModel.searchQuery.value = "coffee"
+        viewModel.selectedFilter.value = "EXPENSE"
+        viewModel.selectedPeriod.value = HistoryPeriod.TODAY
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        runCurrent()
+
+        viewModel.selectAccount("acct2")
+        runCurrent()
+        assertEquals("acct2", prefs.focusedAccountId.first())
+        assertEquals(listOf("bank"), viewModel.filteredTransactions.value.map { it.id })
+        assertEquals("coffee", viewModel.searchQuery.value)
+        assertEquals("EXPENSE", viewModel.selectedFilter.value)
+        assertEquals(HistoryPeriod.TODAY, viewModel.selectedPeriod.value)
+
+        viewModel.selectAccount(null)
+        runCurrent()
+        assertEquals(null, prefs.focusedAccountId.first())
+        assertEquals(2, viewModel.filteredTransactions.value.size)
+        job.cancel()
+    }
+
+    @Test
+    fun missingAccountSelectionDoesNotOverwriteSavedFocus() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val prefs = createTestUserPrefs()
+        prefs.saveFocusedAccountId("cash")
+        val viewModel = HistoryViewModel(repo, prefs)
+        viewModel.selectAccount("deleted")
+        runCurrent()
+        assertEquals("cash", prefs.focusedAccountId.first())
+        viewModel.selectAccount(null)
+        runCurrent()
+        assertEquals(null, prefs.focusedAccountId.first())
+    }
+
+    @Test
+    fun accountSelectionIncludesTransferDestinations() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        repo.addAccount(AccountEntity("acct2", "Bank", 0.0, 0.0))
+        repo.addTransaction(createTransaction("transfer", type = "TRANSFER").copy(fromAccountId = "acct1", toAccountId = "acct2"))
+        repo.addTransaction(createTransaction("expense"))
+        val viewModel = HistoryViewModel(repo, createTestUserPrefs())
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        runCurrent()
+        viewModel.selectAccount("acct2")
+        runCurrent()
+        assertEquals(listOf("transfer"), viewModel.filteredTransactions.value.map { it.id })
+        job.cancel()
+    }
+
     private class FakeFinanceRepository : FinanceRepository {
         private val transactions = MutableStateFlow<List<TransactionEntity>>(emptyList())
         private val accounts = MutableStateFlow<List<AccountEntity>>(emptyList())

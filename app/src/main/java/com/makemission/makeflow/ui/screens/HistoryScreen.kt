@@ -26,8 +26,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
@@ -35,6 +35,7 @@ import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.BarChart
+import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
@@ -51,6 +52,7 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,12 +66,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.makemission.makeflow.R
@@ -87,7 +90,6 @@ import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.HistoryPeriod
-import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -106,7 +108,6 @@ fun HistoryScreen(
     hapticManager: HapticManager,
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
-    val dimens = LocalAppDimens.current
     val transactions by viewModel.filteredTransactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
@@ -119,7 +120,9 @@ fun HistoryScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshDateFilters() }
 
     val layoutMode = LocalDeviceLayoutMode.current
-    var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
+    var selectedTransactionId by rememberSaveable { mutableStateOf<String?>(null) }
+    val selectedTransaction = transactions.find { it.id == selectedTransactionId }
+    val selectedIndex = transactions.indexOfFirst { it.id == selectedTransactionId }
 
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -176,122 +179,32 @@ fun HistoryScreen(
                     snackbarHostState = snackbarHostState,
                     todayCal = todayCal,
                     yesterdayCal = yesterdayCal,
-                    onTransactionClick = { tx -> selectedTransaction = tx }
+                    onTransactionClick = { tx ->
+                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                        selectedTransactionId = tx.id
+                    }
                 )
             }
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            )
+            VerticalDivider(modifier = Modifier.fillMaxHeight())
             Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
-                if (selectedTransaction != null) {
-                    val tx = selectedTransaction!!
-                    val category = categories.find { it.id == tx.categoryId }
-                    val categoryName = category?.name ?: "Uncategorized"
-                    val categoryColor = try {
-                        Color(android.graphics.Color.parseColor(category?.colorHex ?: "#9E9E9E"))
-                    } catch (_: Exception) { MaterialTheme.colorScheme.outline }
-                    val account = accounts.find { it.id == tx.accountId }
-                    val accountName = account?.name ?: ""
-                    val prefix = if (tx.type == "INCOME") "+" else "-"
-                    val fromAccount = accounts.find { it.id == tx.fromAccountId }
-                    val toAccount = accounts.find { it.id == tx.toAccountId }
-                    val transactionCurrency = account?.currencyCode ?: selectedCurrency
-                    val amountColor = when (tx.type) {
-                        "INCOME" -> LocalMakeFlowColors.current.colorSuccess
-                        "TRANSFER" -> MaterialTheme.colorScheme.primary
-                        else -> MaterialTheme.colorScheme.error
-                    }
-                    val formattedAmount = if (tx.type == "TRANSFER") {
-                        "${CurrencyFormatter.formatCompact(tx.amount, fromAccount?.currencyCode ?: selectedCurrency)} → " +
-                            CurrencyFormatter.formatCompact(tx.destinationAmount ?: tx.amount, toAccount?.currencyCode ?: selectedCurrency)
-                    } else CurrencyFormatter.format(tx.amount, transactionCurrency)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(
-                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight + 8.dp,
-                                start = 24.dp, end = 24.dp
-                            )
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            Text(
-                                text = "Transaction Details",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(categoryColor, CircleShape)
-                            )
-                            Text(
-                                text = categoryName,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                            text = if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount",
-                                fontSize = 36.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = amountColor
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = tx.type,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                                Spacer(Modifier.width(16.dp))
-                                Text(
-                                    text = android.text.format.DateFormat.format("dd MMM yyyy", Date(tx.timestamp)).toString(),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                            }
-                            Text(
-                                text = accountName,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            if (tx.note.isNotBlank()) {
-                                Text(
-                                    text = tx.note,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            if (onEditTransaction != null) {
-                                androidx.compose.material3.Button(
-                                    onClick = { onEditTransaction(tx) },
-                                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onSurface
-                                    ),
-                                    shape = RoundedCornerShape(dimens.cornerRadiusMedium),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Edit", fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Select a transaction to see details",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
+                HistoryReviewPane(
+                    transaction = selectedTransaction,
+                    accounts = accounts,
+                    categories = categories,
+                    defaultCurrency = selectedCurrency,
+                    zone = calendarNow.zone,
+                    position = selectedIndex + 1,
+                    count = transactions.size,
+                    hasPrevious = selectedIndex > 0,
+                    hasNext = selectedIndex >= 0 && selectedIndex < transactions.lastIndex,
+                    topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                    onPrevious = { transactions.getOrNull(selectedIndex - 1)?.let { selectedTransactionId = it.id } },
+                    onNext = { transactions.getOrNull(selectedIndex + 1)?.let { selectedTransactionId = it.id } },
+                    onStartReview = { selectedTransactionId = transactions.firstOrNull()?.id },
+                    onClearSelection = { selectedTransactionId = null },
+                    onEdit = onEditTransaction,
+                    hapticManager = hapticManager
+                )
             }
         }
     } else {
@@ -341,10 +254,31 @@ private fun HistoryListContent(
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val calendarNow by viewModel.calendarNow.collectAsState()
     var showPeriodSheet by rememberSaveable { mutableStateOf(false) }
+    val focusedAccountId by viewModel.focusedAccountId.collectAsState()
+    val accountReady by viewModel.focusedAccountReady.collectAsState()
+    val accountLabel = if (focusedAccountId == null) {
+        stringResource(R.string.history_all_accounts)
+    } else {
+        accounts.find { it.id == focusedAccountId }?.name
+            ?: stringResource(R.string.history_account_unavailable)
+    }
+    val isReviewLayout = LocalDeviceLayoutMode.current == DeviceLayoutMode.EXPANDED
+    var showAccountSheet by rememberSaveable { mutableStateOf(false) }
+    if (showAccountSheet) {
+        AccountFocusSheet(
+            accounts = accounts,
+            focusedAccountId = focusedAccountId,
+            onSelectAccount = {
+                hapticManager.fire(HapticEvent.NAV_SELECT)
+                viewModel.selectAccount(it)
+                showAccountSheet = false
+            },
+            onDismiss = { showAccountSheet = false }
+        )
+    }
     val summary by viewModel.resultSummary.collectAsState()
     var showSummarySheet by rememberSaveable { mutableStateOf(false) }
     if (showSummarySheet) {
-        val focusedAccountId by viewModel.focusedAccountId.collectAsState()
         HistorySummarySheet(
             summary = summary,
             scopeLabel = listOf(
@@ -354,7 +288,7 @@ private fun HistoryListContent(
                     "EXPENSE" -> R.string.history_summary_spending
                     else -> R.string.history_all_types
                 }),
-                accounts.find { it.id == focusedAccountId }?.name ?: stringResource(R.string.history_all_accounts)
+                accountLabel
             ).joinToString(" / "),
             searchQuery = searchQuery,
             onDismiss = { showSummarySheet = false }
@@ -455,22 +389,18 @@ private fun HistoryListContent(
                 }
             }
             item {
-                val historyFocusedState by viewModel.focusedAccountState.collectAsState()
-                val historyFocusedReady by viewModel.focusedAccountReady.collectAsState()
-                if (historyFocusedReady) {
-                    Text(
-                        text = "Account: ${
-                            when (val state = historyFocusedState) {
-                                is FocusedAccountState.Loading -> ""
-                                is FocusedAccountState.ShowAll -> "All Accounts"
-                                is FocusedAccountState.Focused -> accounts.find { it.id == state.accountId }?.name ?: "All Accounts"
-                            }
-                        }",
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                        fontSize = dimens.textS,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
+                FilterChip(
+                    selected = focusedAccountId != null,
+                    enabled = accountReady,
+                    onClick = {
+                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                        showAccountSheet = true
+                    },
+                    label = { Text(accountLabel) },
+                    leadingIcon = {
+                        Icon(Icons.Rounded.AccountBalanceWallet, contentDescription = stringResource(R.string.history_choose_account))
+                    }
+                )
             }
 
             item(key = "result_summary") {
@@ -582,6 +512,13 @@ private fun HistoryListContent(
                             "${CurrencyFormatter.formatCompact(tx.amount, fromAccount?.currencyCode ?: selectedCurrency)} → " +
                                 CurrencyFormatter.formatCompact(tx.destinationAmount ?: tx.amount, toAccount?.currencyCode ?: selectedCurrency)
                         } else CurrencyFormatter.format(tx.amount, transactionCurrency)
+                        val rowBackground by animateColorAsState(
+                            targetValue = if (isReviewLayout && selectedTransaction?.id == tx.id) MaterialTheme.colorScheme.secondaryContainer
+                                else MaterialTheme.colorScheme.background,
+                            animationSpec = if (LocalReducedMotion.current) OverlayTransition.reducedColor
+                                else LocalExpressiveMotion.current.colorAnimationSpec,
+                            label = "historySelection"
+                        )
 
                         val dismissState = rememberSwipeToDismissBoxState(
                             confirmValueChange = { value ->
@@ -636,14 +573,19 @@ private fun HistoryListContent(
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background, MaterialTheme.shapes.medium)
+                                    .testTag("history_transaction_${tx.id}")
+                                    .background(rowBackground, MaterialTheme.shapes.medium)
                                     .then(
                                         if (onTransactionClick != null) {
-                                            Modifier.clickable { onTransactionClick(tx) }
+                                            if (isReviewLayout) Modifier.selectable(
+                                                selected = selectedTransaction?.id == tx.id,
+                                                role = Role.Button,
+                                                onClick = { onTransactionClick(tx) }
+                                            ) else Modifier.clickable { onTransactionClick(tx) }
                                         } else Modifier
                                     )
                             ) {
-                                if (config.isTablet && config.isLandscape) {
+                                if (config.isTablet && config.isLandscape && !isReviewLayout) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp, horizontal = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
@@ -731,7 +673,13 @@ private fun HistoryListContent(
                                                 }
                                             }
                                             if (subtitle.isNotEmpty()) {
-                                                Text(subtitle, style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
+                                                Text(
+                                                    subtitle,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                    maxLines = if (isReviewLayout) 2 else Int.MAX_VALUE,
+                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                )
                                             }
                                         }
                                         Text(if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))

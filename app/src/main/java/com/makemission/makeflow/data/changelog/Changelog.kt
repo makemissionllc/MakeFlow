@@ -15,6 +15,15 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-09",
         changes = listOf(
+            "Switch account focus directly in History without losing your search or date filters",
+            "Review transactions side by side on tablets with Previous/Next controls and keyboard navigation",
+            "Keep tablet details current after edits, with scrollable notes and selectable references"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.8-community",
+        date = "2026-10-09",
+        changes = listOf(
             "Open a summary of the transactions matching your History search and filters",
             "See income, spending, and net change separately for each currency",
             "Keep transfers out of income and spending totals, with incomplete records clearly marked"

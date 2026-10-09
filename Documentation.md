@@ -6,6 +6,43 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-09 — Add History account switching and tablet review controls
+
+- **Quality of life:** choose the shared account focus directly from History using the
+  existing Home account sheet. Search, date, and type filters remain intact; invalid/deleted
+  account choices are rejected and All accounts can clear an obsolete focus. The shared
+  picker now uses design tokens, wrapping labels, and accessible single-selection semantics.
+- **Tablet feature:** expanded windows gain Previous/Next review controls, position count,
+  Page Up/Page Down navigation while the details pane is focused, and selectable notes and
+  references. Details scroll independently; selection is saved by ID across restoration and
+  resizing, reads live records, and never displays records outside the current filtered list.
+  Selected rows are highlighted using the app's reduced-motion-aware color specs; the details
+  crossfade uses existing motion tokens. Compact and medium windows retain the single list.
+- **Related fixes:** replaced the fixed, non-scrollable tablet details block, which retained
+  a stale entity after updates/deletion and incorrectly reused a transfer's source amount when
+  its destination amount was missing. Missing transfer amounts/currencies are now disclosed.
+  The narrow list beside the review pane uses the stacked row layout rather than a squeezed
+  three-column layout intended for full-width tables, with long-note previews limited to two
+  lines. A deleted account focus is labelled unavailable rather than misleadingly All accounts.
+- **Release:** Community `2.0.9-community` / code 12; updated README and in-app changelog.
+  No schema, permission, dependency, or network changes.
+- **Verification:** Android test compilation initially required an explicit experimental-API
+  opt-in for keyboard-event injection; added it to the test class only. A combined verification
+  run stopped advancing; terminated only its isolated Gradle daemon and retried with two
+  workers and no persistent daemon. An Android-test startup attempt found missing generated
+  APK outputs; explicitly rebuilt them and retried successfully. Added a deleted-focus UI
+  regression after review. Screenshot inspection then found the review pane depended on
+  host surface/content colors, causing poor contrast when embedded without a surface;
+  gave it an explicit themed background and content color. Final verification passed:
+  all 471 unit tests, 12 Android interaction tests on the connected Android 16 device
+  with forced compact/medium/expanded layouts, and the minified `:app:assembleRelease`
+  build. Inspected tablet screenshots at normal and doubled font scale; keyboard navigation,
+  saved selection/resizing, live edits/deletes/filtering, missing transfer amounts, account
+  switching/recovery, sheet dismissal, and long notes/references are covered.
+  `git diff --check` passed. No physical haptic-strength assessment was performed.
+
+---
+
 ## 2026-10-09 — Add filtered History summaries
 
 - **Scope:** a Summary action alongside the visible History result count on phone and tablet.

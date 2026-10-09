@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,6 +51,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -1713,76 +1716,35 @@ fun AccountFocusSheet(
 ) {
     val dimens = LocalAppDimens.current
     AdaptiveSheetDialog(onDismiss = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            AdaptiveSheetHeader(title = "Focus Account", onDismiss = onDismiss)
-
-            Spacer(Modifier.height(dimens.spacingXLarge))
-
-            val allAccountsItem = @Composable {
-                val isSelected = focusedAccountId == null
+        AdaptiveSheetHeader(title = stringResource(R.string.history_choose_account), onDismiss = onDismiss)
+        Column(
+            modifier = Modifier.fillMaxWidth().selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+        ) {
+            val options = listOf(null to stringResource(R.string.history_all_accounts)) +
+                accounts.map { it.id to it.name }
+            options.forEach { (accountId, name) ->
+                val isSelected = focusedAccountId == accountId
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(dimens.shapeCornerSmall))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable { onSelectAccount(null) }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .selectable(selected = isSelected, role = Role.RadioButton, onClick = { onSelectAccount(accountId) })
+                        .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "All Accounts",
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        fontSize = 16.sp,
+                        text = name,
+                        modifier = Modifier.weight(1f),
+                        color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface,
+                        style = MaterialTheme.typography.bodyLarge,
                         fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                     )
+                    RadioButton(selected = isSelected, onClick = null)
                 }
             }
-
-            allAccountsItem()
-
-            Spacer(Modifier.height(dimens.spacingMedium))
-
-            accounts.forEach { account ->
-                val isSelected = focusedAccountId == account.id
-                val accountColor = try {
-                    Color(android.graphics.Color.parseColor(account.colorHex))
-                } catch (_: Exception) {
-                    MaterialTheme.colorScheme.primary
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(dimens.shapeCornerSmall))
-                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh)
-                        .clickable { onSelectAccount(account.id) }
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .background(accountColor, CircleShape)
-                        )
-                        Text(
-                            text = account.name,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                        )
-                    }
-                }
-                if (account != accounts.last()) {
-                    Spacer(Modifier.height(dimens.spacingXSmall))
-                }
-            }
-
-            Spacer(Modifier.height(dimens.spacingMedium))
         }
     }
 }

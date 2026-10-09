@@ -8,8 +8,16 @@ import android.net.Uri
 import android.widget.Toast
 
 fun sharePdfStatement(context: Context, uri: Uri, fileName: String) {
+    shareStatement(context, uri, fileName, "application/pdf")
+}
+
+fun shareCsvStatement(context: Context, uri: Uri, fileName: String) {
+    shareStatement(context, uri, fileName, "text/csv")
+}
+
+private fun shareStatement(context: Context, uri: Uri, fileName: String, mimeType: String) {
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
-        type = "application/pdf"
+        type = mimeType
         putExtra(Intent.EXTRA_STREAM, uri)
         clipData = ClipData.newUri(context.contentResolver, fileName, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

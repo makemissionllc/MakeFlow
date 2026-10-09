@@ -76,4 +76,8 @@
     <string name="history_period_dates">%1$s – %2$s</string>
     <string name="history_no_matches">No matches for the current filters</string>
     <string name="history_clear_filters">Clear filters</string>
+    <string name="export_csv_title">Export CSV</string>
+    <string name="export_csv_subtitle">Spreadsheet with date range</string>
+    <string name="export_csv_preparing">Preparing spreadsheet…</string>
+    <string name="export_csv_error">Could not create the CSV statement</string>
 </resources>

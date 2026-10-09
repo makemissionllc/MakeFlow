@@ -60,6 +60,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,6 +68,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -79,6 +81,7 @@ import com.makemission.makeflow.core.notifications.NotificationGate
 import com.makemission.makeflow.core.notifications.MpesaAutoImportNotification
 import com.makemission.makeflow.core.notifications.FinanceReviewReminderScheduler
 import com.makemission.makeflow.ui.util.sharePdfStatement
+import com.makemission.makeflow.ui.util.shareCsvStatement
 import com.makemission.makeflow.core.notifications.openAppNotificationSettings
 import com.makemission.makeflow.ui.components.CollapsingTopBar
 import com.makemission.makeflow.ui.components.LargeTitleItem
@@ -90,6 +93,9 @@ import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.viewmodel.SettingsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.BuildConfig
+import com.makemission.makeflow.R
+import com.makemission.makeflow.domain.HistoryPeriod
+import java.time.ZonedDateTime
 
 data class CurrencyOption(val code: String, val symbol: String)
 
@@ -148,7 +154,15 @@ fun SettingsScreen(
     var showClearConfirm by remember { mutableStateOf(false) }
     var showResetPersonalizationConfirm by remember { mutableStateOf(false) }
     var showPdfExportDialog by remember { mutableStateOf(false) }
+    var showCsvExportSheet by rememberSaveable { mutableStateOf(false) }
+    var csvCalendarNow by remember { mutableStateOf(ZonedDateTime.now()) }
+    val isExportingCsv by viewModel.isExportingCsv.collectAsState()
     val context = LocalContext.current
+    val openCsvExport = {
+        hapticManager?.fire(HapticEvent.NAV_SELECT)
+        csvCalendarNow = ZonedDateTime.now()
+        showCsvExportSheet = true
+    }
     var showMpesaImportDisclosure by remember { mutableStateOf(false) }
     val config = LocalAdaptiveConfig.current
     val reducedMotion = LocalReducedMotion.current
@@ -366,7 +380,13 @@ fun SettingsScreen(
                     StaggeredItem(index = 14) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(config.cardSpacing)) {
                         Box(Modifier.weight(1f)) {
-                        SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
+                        SettingsRow(
+                            icon = Icons.Outlined.FileDownload,
+                            title = stringResource(R.string.export_csv_title),
+                            subtitle = stringResource(if (isExportingCsv) R.string.export_csv_preparing else R.string.export_csv_subtitle),
+                            enabled = !isExportingCsv,
+                            onClick = openCsvExport
+                        )
                         }
                         Box(Modifier.weight(1f)) {
                         SettingsRow(icon=Icons.Outlined.FileDownload, title="Export PDF", subtitle="Statement with date range", onClick={ showPdfExportDialog = true })
@@ -567,7 +587,13 @@ fun SettingsScreen(
 
                 item {
                     StaggeredItem(index = 14) {
-                    SettingsRow(icon=Icons.Outlined.FileDownload, title="Export CSV", subtitle="Download all transactions", onClick={ viewModel.exportCsv(context); Toast.makeText(context, "CSV exported to Downloads", Toast.LENGTH_SHORT).show() })
+                    SettingsRow(
+                        icon = Icons.Outlined.FileDownload,
+                        title = stringResource(R.string.export_csv_title),
+                        subtitle = stringResource(if (isExportingCsv) R.string.export_csv_preparing else R.string.export_csv_subtitle),
+                        enabled = !isExportingCsv,
+                        onClick = openCsvExport
+                    )
                     }
                 }
 
@@ -778,6 +804,31 @@ fun SettingsScreen(
         )
     }
 
+    if (showCsvExportSheet) {
+        HistoryPeriodSheet(
+            selectedPeriod = HistoryPeriod.ALL_TIME,
+            calendarNow = csvCalendarNow,
+            title = stringResource(R.string.export_csv_title),
+            onDismiss = { showCsvExportSheet = false },
+            onSelect = { period ->
+                hapticManager?.fire(HapticEvent.NAV_SELECT)
+                showCsvExportSheet = false
+                val range = period.timestampRange(csvCalendarNow.toLocalDate(), csvCalendarNow.zone)
+                viewModel.exportCsv(
+                    context,
+                    startMillis = range?.first ?: 0L,
+                    endMillis = range?.last?.plus(1) ?: Long.MAX_VALUE,
+                    onError = {
+                        hapticManager?.fire(HapticEvent.VALIDATION_ERROR)
+                        Toast.makeText(context, R.string.export_csv_error, Toast.LENGTH_LONG).show()
+                    }
+                ) { uri, fileName ->
+                    shareCsvStatement(context, uri, fileName)
+                }
+            }
+        )
+    }
+
     if (showPdfExportDialog) {
         AdaptiveAlertSheet(
             onDismissRequest = { showPdfExportDialog = false },
@@ -852,6 +903,7 @@ private fun SettingsRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
+    enabled: Boolean = true,
     onClick: (() -> Unit)? = null
 ) {
     val dimens = LocalAppDimens.current
@@ -859,8 +911,8 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.pressScale() else Modifier)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null && enabled) Modifier.pressScale() else Modifier)
+            .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
             .padding(vertical = dimens.spacingLarge),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween

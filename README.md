@@ -55,6 +55,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   optional fifth page can generate an on-device reflection from aggregate totals only, and
   the recap can be shared through Android's system share sheet.
 - **Backup/restore** — versioned JSON export/import (`BackupManager`), atomic Room restore.
+- **Spreadsheet export** — date-range CSV statements with readable account/category names,
+  original currencies, transfer amounts, and references; saved locally and shared through Android.
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
   summary, quick expense/income) + launcher shortcuts + quick-add activity.
 - **Reminders** — optional weekly finance-review reminders, scheduled locally and disabled

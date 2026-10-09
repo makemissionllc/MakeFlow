@@ -6,6 +6,33 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-09 — Add shareable date-range spreadsheet statements
+
+- **Scope:** CSV export from Settings on phone and tablet.
+- **What:** added the shared calendar-range sheet and Android sharing after successful saving,
+  with an in-progress state that prevents overlapping CSV jobs. Exports include account/category
+  names, ISO dates with offsets, original currencies, transfer source/destination values, and
+  external references. Files use date-based names and UTF-8 with a spreadsheet-friendly BOM.
+- **Bugs fixed:** CSV previously read the immediate empty `stateIn` value, left commas/quotes/
+  newlines unescaped, displayed success before writing, and did nothing on Android 9. Both
+  CSV and PDF now reuse the existing pending-file storage path: Downloads/MakeFlow on Android
+  10+, app Documents/FileProvider on Android 9, with partial-file cleanup on write failure.
+- **Data safeguards:** shared CSV/PDF range queries exclude the next period's midnight
+  (PDF previously passed an exclusive end to an inclusive DAO query); transfer
+  amounts are not re-converted or counted as income. Unknown account currencies stay blank.
+  Formula-like text is quoted/escaped and tab-prefixed to reduce spreadsheet interpretation
+  risk, following [OWASP's CSV guidance](https://owasp.org/www-community/attacks/CSV_Injection).
+  This guard changes those text cells and is not a guarantee across every spreadsheet/importer.
+- **Release:** Community `2.0.6-community` / code 9; updated README, in-app changelog,
+  and the repository/in-app export privacy disclosures.
+- **Verification:** `:app:test` passed, including 16 new CSV builder regressions;
+  `:app:compileDebugAndroidTestKotlin`, the minified `:app:assembleRelease` build, and
+  `git diff --check` passed. Added three Android export tests (persisted rows/date boundary,
+  overlapping requests, invalid-range recovery) and a Settings sheet regression. Android
+  tests compiled but were not run because no device was connected.
+
+---
+
 ## 2026-10-09 — Add calendar-aware History filters
 
 - **Scope:** quicker transaction lookup without scrolling through all history.

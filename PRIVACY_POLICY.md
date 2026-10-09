@@ -1,8 +1,8 @@
 # Mindful Wallet Privacy Policy
 
-Last updated: 7 October 2026.
+Last updated: 9 October 2026.
 
-Applies to Play version 2.0.0 and Community version 2.0.0-community.
+Applies to Play version 2.0.0 and Community version 2.0.6-community.
 
 ## At a glance
 
@@ -45,8 +45,9 @@ build for review.
 ## Backups and deleting data
 
 Android cloud backup and device-to-device transfer are disabled for app data. JSON backups
-are saved to a location you select; CSV and PDF statements are saved to Downloads. A file
-provider or cloud-synced Downloads location may have its own privacy practices. Use
+are saved to a location you select. CSV and PDF statements are saved in Downloads/MakeFlow
+on Android 10 and newer, or in app Documents storage on Android 9, and can be shared with
+an app you choose. A file provider or cloud-synced Downloads location may have its own privacy practices. Use
 **Settings > Clear All Data** to remove app records, or clear the app's storage or uninstall
 it. Any exported files must be deleted separately.
 

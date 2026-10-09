@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -55,6 +56,13 @@ class SettingsScreenScrollTest {
     @After
     fun tearDown() {
         database.close()
+    }
+
+    @Test
+    fun csvExportOpensSharedDateRangeSheet() {
+        composeTestRule.onNodeWithText("Export CSV").performScrollTo().performClick()
+        composeTestRule.onNodeWithText("All time").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("Last month").performScrollTo().assertIsDisplayed()
     }
 
     @Test

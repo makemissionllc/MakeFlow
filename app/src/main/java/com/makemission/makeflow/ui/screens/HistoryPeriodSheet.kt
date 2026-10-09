@@ -44,7 +44,8 @@ internal fun HistoryPeriodSheet(
     selectedPeriod: HistoryPeriod,
     calendarNow: ZonedDateTime,
     onSelect: (HistoryPeriod) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    title: String = stringResource(R.string.history_date_range)
 ) {
     val dimens = LocalAppDimens.current
     val locale = Locale.getDefault()
@@ -52,7 +53,7 @@ internal fun HistoryPeriodSheet(
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale)
     }
     AdaptiveSheetDialog(onDismiss = onDismiss) {
-        AdaptiveSheetHeader(title = stringResource(R.string.history_date_range), onDismiss = onDismiss)
+        AdaptiveSheetHeader(title = title, onDismiss = onDismiss)
         Column(modifier = Modifier.fillMaxWidth().selectableGroup()) {
             HistoryPeriod.entries.forEach { period ->
                 val range = period.timestampRange(calendarNow.toLocalDate(), calendarNow.zone)

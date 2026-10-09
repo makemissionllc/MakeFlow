@@ -26,8 +26,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import com.makemission.makeflow.core.logging.AppLogger
+import com.makemission.makeflow.domain.CsvStatementBuilder
+import com.makemission.makeflow.data.local.entity.TransactionEntity
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
 import java.io.IOException
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -39,6 +45,9 @@ class SettingsViewModel(
     private val backupManager: BackupManager? = null,
     private val exchangeRateRepository: ExchangeRateRepository? = null
 ) : ViewModel() {
+
+    private val _isExportingCsv = MutableStateFlow(false)
+    val isExportingCsv = _isExportingCsv.asStateFlow()
 
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
@@ -139,42 +148,42 @@ class SettingsViewModel(
         }
     }
 
-    fun exportCsv(context: Context) {
+    fun exportCsv(
+        context: Context,
+        startMillis: Long = 0L,
+        endMillis: Long = Long.MAX_VALUE,
+        onError: () -> Unit = {},
+        onComplete: (Uri, String) -> Unit = { _, _ -> }
+    ) {
+        if (_isExportingCsv.value) return
+        _isExportingCsv.value = true
         viewModelScope.launch {
-            val transactions = financeRepository.getAllTransactions().stateIn(
-                viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
-            ).value
-            val accounts = financeRepository.getAllAccounts().stateIn(
-                viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList()
-            ).value
-            val accountMap = accounts.associateBy { it.id }
-
-            val csv = buildString {
-                appendLine("Date,Type,Amount,Account,Category,Note")
-                transactions.forEach { tx ->
-                    val date = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                        .format(Date(tx.timestamp))
-                    val accountName = accountMap[tx.accountId]?.name ?: tx.accountId
-                    val categoryName = tx.categoryId ?: ""
-                    appendLine("$date,${tx.type},${tx.amount},$accountName,$categoryName,${tx.note ?: ""}")
-                }
-            }
-
-            val fileName = "Mindful_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())}.csv"
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val contentValues = ContentValues().apply {
-                    put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                    put(MediaStore.Downloads.MIME_TYPE, "text/csv")
-                    put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val resolver = context.contentResolver
-                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
-                uri?.let {
-                    resolver.openOutputStream(it)?.use { output ->
-                        output.write(csv.toByteArray())
+            try {
+                val exported = withContext(Dispatchers.IO) {
+                    val fileName = CsvStatementBuilder.fileName(startMillis, endMillis)
+                    val transactions = statementTransactions(startMillis, endMillis)
+                    val csv = CsvStatementBuilder.build(
+                        transactions = transactions,
+                        accounts = financeRepository.getAllAccounts().first().associateBy { it.id },
+                        categories = financeRepository.getAllCategories().first().associateBy { it.id },
+                        defaultCurrency = userPreferencesDataStore.selectedCurrency.first()
+                    )
+                    val uri = saveStatement(context, fileName, "text/csv") { output ->
+                        output.writer(Charsets.UTF_8).use { writer ->
+                            writer.write("\uFEFF")
+                            writer.write(csv)
+                        }
                     }
+                    uri to fileName
                 }
+                onComplete(exported.first, exported.second)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                AppLogger.error("CsvExport", "Could not create the CSV statement", error)
+                onError()
+            } finally {
+                _isExportingCsv.value = false
             }
         }
     }
@@ -189,7 +198,7 @@ class SettingsViewModel(
         viewModelScope.launch {
             try {
                 val exported = withContext(Dispatchers.IO) {
-                    val transactions = financeRepository.getTransactionsInRange(startMillis, endMillis).first()
+                    val transactions = statementTransactions(startMillis, endMillis)
                     val accounts = financeRepository.getAllAccounts().first()
                     val categories = financeRepository.getAllCategories().first()
                     val exchangeRates = exchangeRateRepository?.getAllRatesOnce()
@@ -220,7 +229,7 @@ class SettingsViewModel(
                         dateRangeLabel = dateRangeLabel
                     )
                     try {
-                        savePdf(context, document, fileName) to fileName
+                        saveStatement(context, fileName, "application/pdf", document::writeTo) to fileName
                     } finally {
                         document.close()
                     }
@@ -233,21 +242,35 @@ class SettingsViewModel(
         }
     }
 
-    private fun savePdf(context: Context, document: android.graphics.pdf.PdfDocument, fileName: String): Uri {
+    private suspend fun statementTransactions(startMillis: Long, endExclusiveMillis: Long): List<TransactionEntity> {
+        require(endExclusiveMillis > startMillis) { "Invalid statement date range" }
+        return if (startMillis == 0L && endExclusiveMillis == Long.MAX_VALUE) {
+            financeRepository.getAllTransactions().first()
+        } else {
+            financeRepository.getTransactionsInRange(startMillis, endExclusiveMillis - 1).first()
+        }
+    }
+
+    private fun saveStatement(
+        context: Context,
+        fileName: String,
+        mimeType: String,
+        write: (OutputStream) -> Unit
+    ): Uri {
         val resolver = context.contentResolver
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+                put(MediaStore.Downloads.MIME_TYPE, mimeType)
                 put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/MakeFlow")
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-                ?: throw IOException("Unable to create a PDF file")
+                ?: throw IOException("Unable to create a statement file")
             try {
                 val output = resolver.openOutputStream(uri)
-                    ?: throw IOException("Unable to open the PDF file")
-                output.use(document::writeTo)
+                    ?: throw IOException("Unable to open the statement file")
+                output.use(write)
                 val publishedValues = ContentValues().apply {
                     put(MediaStore.Downloads.IS_PENDING, 0)
                 }
@@ -266,7 +289,12 @@ class SettingsViewModel(
             throw IOException("Unable to create the statement folder")
         }
         val outputFile = File(outputDirectory, fileName)
-        outputFile.outputStream().use(document::writeTo)
+        try {
+            outputFile.outputStream().use(write)
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw error
+        }
         return FileProvider.getUriForFile(
             context,
             "${context.packageName}.fileprovider",

@@ -15,6 +15,15 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-09",
         changes = listOf(
+            "Choose a date range for CSV exports and share the saved spreadsheet",
+            "Export account and category names, currencies, transfer details, and M-PESA references",
+            "More reliable CSV saving, with properly escaped notes and Android 9 support"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.5-community",
+        date = "2026-10-09",
+        changes = listOf(
             "Filter History by today, the last 7 days, this month, or last month",
             "Combine date ranges with search, transaction type, and the selected account",
             "Clear search and filters together without changing the selected account"

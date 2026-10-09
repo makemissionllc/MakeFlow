@@ -1,5 +1,6 @@
 package com.makemission.makeflow.core.format
 
+import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Currency
 import java.util.Locale
@@ -15,7 +16,11 @@ object CurrencyFormatter {
         "TZS" to Locale.forLanguageTag("en-TZ")
     )
 
-    fun format(amount: Double, currencyCode: String): String {
+    fun format(amount: Double, currencyCode: String): String = formatAmount(amount, currencyCode)
+
+    fun format(amount: BigDecimal, currencyCode: String): String = formatAmount(amount, currencyCode)
+
+    private fun formatAmount(amount: Number, currencyCode: String): String {
         val locale = currencyLocaleMap[currencyCode] ?: Locale.getDefault()
         return try {
             val format = NumberFormat.getCurrencyInstance(locale)
@@ -46,7 +51,7 @@ object CurrencyFormatter {
         }
     }
 
-    private fun fallbackFormat(amount: Double, currencyCode: String): String {
+    private fun fallbackFormat(amount: Number, currencyCode: String): String {
         val symbol = legacySymbolFor(currencyCode)
         val numberFormat = NumberFormat.getNumberInstance(Locale.getDefault()).apply {
             maximumFractionDigits = fractionDigitsFor(currencyCode)

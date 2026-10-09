@@ -15,6 +15,15 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-09",
         changes = listOf(
+            "Open a summary of the transactions matching your History search and filters",
+            "See income, spending, and net change separately for each currency",
+            "Keep transfers out of income and spending totals, with incomplete records clearly marked"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.7-community",
+        date = "2026-10-09",
+        changes = listOf(
             "Keep editing or discard when leaving an unfinished transaction",
             "Protect quick-add entries from accidental close, back, and swipe-dismiss actions",
             "Open existing transactions without automatically replacing their recorded category"

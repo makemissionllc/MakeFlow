@@ -35,6 +35,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
+  A live summary shows matching income, spending, and net change in separate account-currency
+  totals; transfers are counted separately and incomplete records are disclosed.
 - **M-PESA import** — rule-based parsing for share/paste. The optional new-message listener
   is enabled only on the `community` branch; the `play` branch does not request SMS permission.
   The listener is opt-in, sender-filtered, and review-before-save. On supported devices, Gemini Nano may

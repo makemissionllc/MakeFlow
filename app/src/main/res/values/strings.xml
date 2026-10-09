@@ -84,4 +84,22 @@
     <string name="transaction_discard_message">This transaction has unsaved changes.</string>
     <string name="transaction_keep_editing">Keep editing</string>
     <string name="transaction_discard">Discard</string>
+    <string name="history_summary">Summary</string>
+    <string name="history_all_accounts">All accounts</string>
+    <string name="history_summary_search">Search: %1$s</string>
+    <string name="history_summary_income">Income</string>
+    <string name="history_summary_spending">Spending</string>
+    <string name="history_summary_net">Net change</string>
+    <plurals name="history_result_count">
+        <item quantity="one">%d transaction</item>
+        <item quantity="other">%d transactions</item>
+    </plurals>
+    <plurals name="history_summary_transfers">
+        <item quantity="one">%d transfer excluded from income and spending.</item>
+        <item quantity="other">%d transfers excluded from income and spending.</item>
+    </plurals>
+    <plurals name="history_summary_excluded">
+        <item quantity="one">%d transaction omitted from totals: account, currency, type, or amount unavailable.</item>
+        <item quantity="other">%d transactions omitted from totals: account, currency, type, or amount unavailable.</item>
+    </plurals>
 </resources>

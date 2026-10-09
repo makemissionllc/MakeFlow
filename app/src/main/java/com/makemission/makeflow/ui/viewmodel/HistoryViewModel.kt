@@ -10,6 +10,7 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.domain.HistoryPeriod
+import com.makemission.makeflow.domain.HistorySummary
 import java.time.ZonedDateTime
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -122,6 +123,12 @@ class HistoryViewModel(
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val resultSummary: StateFlow<HistorySummary.Result> = combine(
+        filteredTransactions, accounts, selectedCurrency
+    ) { filtered, accountList, currency ->
+        HistorySummary.summarize(filtered, accountList, currency)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HistorySummary.Result())
 
     val recentlyDeleted = MutableStateFlow<TransactionEntity?>(null)
 

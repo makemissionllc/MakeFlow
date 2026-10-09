@@ -305,6 +305,68 @@ class HistoryViewModelTest {
         job.cancel()
     }
 
+    @Test
+    fun summaryFollowsCombinedFiltersAndLiveDeleteUndo() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val now = ZonedDateTime.parse("2026-10-09T12:00:00+03:00[Africa/Nairobi]")
+        val match = createTransaction("match", amount = 25.0).copy(timestamp = now.toInstant().toEpochMilli())
+        repo.addAccount(AccountEntity("acct1", "Cash", 0.0, 0.0, currencyCode = "KES"))
+        repo.addAccount(AccountEntity("acct2", "Bank", 0.0, 0.0, currencyCode = "USD"))
+        repo.addTransaction(match)
+        repo.addTransaction(match.copy(id = "yesterday", amount = 40.0, timestamp = now.minusDays(1).toInstant().toEpochMilli()))
+        repo.addTransaction(match.copy(id = "other-account", accountId = "acct2", amount = 7.0))
+        repo.addTransaction(match.copy(id = "income", type = "INCOME", amount = 100.0))
+        repo.addTransaction(match.copy(id = "tea", note = "tea", amount = 5.0))
+        val prefs = createTestUserPrefs()
+        prefs.saveFocusedAccountId("acct1")
+        val viewModel = HistoryViewModel(repo, prefs) { now }
+        viewModel.selectedPeriod.value = HistoryPeriod.TODAY
+        viewModel.selectedFilter.value = "EXPENSE"
+        viewModel.searchQuery.value = "coffee"
+        val job = launch { viewModel.resultSummary.collect {} }
+        runCurrent()
+
+        assertEquals(1, viewModel.resultSummary.value.transactionCount)
+        assertEquals(25.0, viewModel.resultSummary.value.currencies.single().spending.toDouble(), 0.0)
+        viewModel.deleteTransaction(match)
+        runCurrent()
+        assertEquals(0, viewModel.resultSummary.value.transactionCount)
+        viewModel.undoDelete()
+        runCurrent()
+        assertEquals(25.0, viewModel.resultSummary.value.currencies.single().spending.toDouble(), 0.0)
+
+        repo.updateTransaction(match.copy(amount = 30.0))
+        runCurrent()
+        assertEquals(30.0, viewModel.resultSummary.value.currencies.single().spending.toDouble(), 0.0)
+
+        viewModel.clearFilters()
+        runCurrent()
+        assertEquals(4, viewModel.resultSummary.value.transactionCount)
+        assertEquals(100.0, viewModel.resultSummary.value.currencies.single().income.toDouble(), 0.0)
+        assertEquals(75.0, viewModel.resultSummary.value.currencies.single().spending.toDouble(), 0.0)
+        assertEquals(25.0, viewModel.resultSummary.value.currencies.single().net.toDouble(), 0.0)
+        job.cancel()
+    }
+
+    @Test
+    fun summaryReactsToAccountCurrencyAndDefaultCurrencyChanges() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        repo.addAccount(AccountEntity("acct1", "Cash", 0.0, 0.0))
+        repo.addTransaction(createTransaction(amount = 10.0))
+        val prefs = createTestUserPrefs()
+        val viewModel = HistoryViewModel(repo, prefs)
+        val job = launch { viewModel.resultSummary.collect {} }
+        runCurrent()
+        assertEquals("KES", viewModel.resultSummary.value.currencies.single().currencyCode)
+        prefs.saveCurrency("USD")
+        runCurrent()
+        assertEquals("USD", viewModel.resultSummary.value.currencies.single().currencyCode)
+        repo.updateAccount(AccountEntity("acct1", "Cash", 0.0, 0.0, currencyCode = "EUR"))
+        runCurrent()
+        assertEquals("EUR", viewModel.resultSummary.value.currencies.single().currencyCode)
+        job.cancel()
+    }
+
     private class FakeFinanceRepository : FinanceRepository {
         private val transactions = MutableStateFlow<List<TransactionEntity>>(emptyList())
         private val accounts = MutableStateFlow<List<AccountEntity>>(emptyList())
@@ -363,9 +425,13 @@ class HistoryViewModelTest {
         override suspend fun updateCategory(category: com.makemission.makeflow.data.local.entity.CategoryEntity) {}
         override suspend fun deleteCategory(category: com.makemission.makeflow.data.local.entity.CategoryEntity) {}
         override suspend fun deleteCategoryById(id: String) {}
-        override suspend fun updateTransaction(transaction: TransactionEntity) {}
+        override suspend fun updateTransaction(transaction: TransactionEntity) {
+            transactions.value = transactions.value.map { if (it.id == transaction.id) transaction else it }
+        }
         override suspend fun insertAccount(account: com.makemission.makeflow.data.local.entity.AccountEntity) {}
-        override suspend fun updateAccount(account: com.makemission.makeflow.data.local.entity.AccountEntity) {}
+        override suspend fun updateAccount(account: com.makemission.makeflow.data.local.entity.AccountEntity) {
+            accounts.value = accounts.value.map { if (it.id == account.id) account else it }
+        }
         override suspend fun deleteAccount(account: com.makemission.makeflow.data.local.entity.AccountEntity) {}
 
         override fun getCategoryWithTasks(

@@ -6,6 +6,29 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-09 — Add filtered History summaries
+
+- **Scope:** a Summary action alongside the visible History result count on phone and tablet.
+- **What:** the shared bottom sheet shows income, spending, and net change for the current
+  date, type, account, and search filters, grouped by account currency. It updates from Room
+  flows after edits, deletes, and undo; empty result sets disable the entry action.
+- **Correctness:** transfers are counted separately, never as income/spending. Missing
+  accounts, unsupported types/currencies, and non-finite amounts are omitted with a warning.
+  Legacy accounts with no currency use the default; explicit currencies are not converted.
+  Decimal accumulation and a CurrencyFormatter decimal overload preserve precision without
+  converting totals through Double. No new storage, permissions, network calls, or dependencies.
+- **Design:** reused adaptive sheet/header, typography/spacing/color tokens, haptic entry
+  feedback, and existing reduced-motion behavior; long values and large text can wrap/scroll.
+- **Release:** Community `2.0.8-community` / code 11; updated README and in-app changelog.
+- **Verification:** the first unit run exposed a BigDecimal scale-sensitive test assertion
+  for extreme totals; changed it to compare numeric values. All 468 unit tests passed,
+  including eight new summary, two ViewModel, and two formatter regressions. Seven Android
+  tests passed on the connected Android 16 phone: History entry/search, empty state, summary
+  values, live updates, transfer disclosure, close, and large-text/reduced-motion access.
+  The minified `:app:assembleRelease` build and `git diff --check` passed.
+
+---
+
 ## 2026-10-09 — Protect unfinished transaction entries
 
 - **Scope:** the full transaction editor and widget/shortcut quick-add sheet.

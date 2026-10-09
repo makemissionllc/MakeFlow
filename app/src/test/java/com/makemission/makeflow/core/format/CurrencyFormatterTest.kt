@@ -1,5 +1,6 @@
 package com.makemission.makeflow.core.format
 
+import java.math.BigDecimal
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -65,5 +66,17 @@ class CurrencyFormatterTest {
     @Test
     fun compactFormat_keepsFractionalPrecisionAndLeadingSign() {
         assertEquals("-$500.25", CurrencyFormatter.formatCompact(-500.25, "USD"))
+    }
+
+    @Test
+    fun decimalTotalsRetainPrecisionWithoutConvertingToDouble() {
+        assertEquals("$9,007,199,254,740,993.01", CurrencyFormatter.format(BigDecimal("9007199254740993.01"), "USD"))
+        assertEquals("-$0.30", CurrencyFormatter.format(BigDecimal("-0.30"), "USD"))
+    }
+
+    @Test
+    fun decimalTotalsSupportZeroFractionAndUnknownCurrencies() {
+        assertEquals(CurrencyFormatter.format(15000.0, "UGX"), CurrencyFormatter.format(BigDecimal("15000"), "UGX"))
+        assertEquals(CurrencyFormatter.format(100.0, "XYZ"), CurrencyFormatter.format(BigDecimal("100"), "XYZ"))
     }
 }

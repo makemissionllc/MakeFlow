@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Receipt
+import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
@@ -64,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -339,6 +341,25 @@ private fun HistoryListContent(
     val selectedPeriod by viewModel.selectedPeriod.collectAsState()
     val calendarNow by viewModel.calendarNow.collectAsState()
     var showPeriodSheet by rememberSaveable { mutableStateOf(false) }
+    val summary by viewModel.resultSummary.collectAsState()
+    var showSummarySheet by rememberSaveable { mutableStateOf(false) }
+    if (showSummarySheet) {
+        val focusedAccountId by viewModel.focusedAccountId.collectAsState()
+        HistorySummarySheet(
+            summary = summary,
+            scopeLabel = listOf(
+                historyPeriodLabel(selectedPeriod),
+                stringResource(when (selectedFilter) {
+                    "INCOME" -> R.string.history_summary_income
+                    "EXPENSE" -> R.string.history_summary_spending
+                    else -> R.string.history_all_types
+                }),
+                accounts.find { it.id == focusedAccountId }?.name ?: stringResource(R.string.history_all_accounts)
+            ).joinToString(" / "),
+            searchQuery = searchQuery,
+            onDismiss = { showSummarySheet = false }
+        )
+    }
     if (showPeriodSheet) {
         HistoryPeriodSheet(
             selectedPeriod = selectedPeriod,
@@ -449,6 +470,32 @@ private fun HistoryListContent(
                         fontSize = dimens.textS,
                         modifier = Modifier.padding(start = 4.dp)
                     )
+                }
+            }
+
+            item(key = "result_summary") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+                ) {
+                    Text(
+                        pluralStringResource(R.plurals.history_result_count, transactions.size, transactions.size),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    TextButton(
+                        enabled = transactions.isNotEmpty(),
+                        onClick = {
+                            hapticManager.fire(HapticEvent.NAV_SELECT)
+                            showSummarySheet = true
+                        }
+                    ) {
+                        Icon(Icons.Rounded.BarChart, contentDescription = null, modifier = Modifier.size(dimens.iconSizeSmall))
+                        Spacer(Modifier.width(dimens.spacingSmall))
+                        Text(stringResource(R.string.history_summary))
+                    }
                 }
             }
 

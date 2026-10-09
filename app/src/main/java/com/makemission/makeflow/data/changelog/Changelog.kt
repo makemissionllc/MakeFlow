@@ -15,6 +15,15 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-09",
         changes = listOf(
+            "Keep editing or discard when leaving an unfinished transaction",
+            "Protect quick-add entries from accidental close, back, and swipe-dismiss actions",
+            "Open existing transactions without automatically replacing their recorded category"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.6-community",
+        date = "2026-10-09",
+        changes = listOf(
             "Choose a date range for CSV exports and share the saved spreadsheet",
             "Export account and category names, currencies, transfer details, and M-PESA references",
             "More reliable CSV saving, with properly escaped notes and Android 9 support"

@@ -6,6 +6,32 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-09 — Protect unfinished transaction entries
+
+- **Scope:** the full transaction editor and widget/shortcut quick-add sheet.
+- **What:** added a shared Keep editing / Discard sheet before abandoning an entered amount,
+  note, unfinished calculation, or changes to an existing transaction. Empty new forms and
+  unchanged edits close immediately; equivalent amount formatting does not count as a change.
+  Transfers compare their actual source/destination, ignoring irrelevant hidden form fields.
+  Successful saves still dismiss directly through the existing transaction commit workflow.
+- **Dismissal handling:** quick-add vetoes the sheet's Hidden transition before opening the
+  confirmation, preserving the visible form if the user keeps editing. The optional shared
+  sheet hook reads current callbacks and leaves other sheets' default dismissal unchanged.
+- **Related fix:** opening an existing transaction no longer auto-categorizes its unchanged
+  note. Quick-add suggestion effects also react to transaction type and loaded history.
+  Repeated Back presses during the editor's exit animation cannot reopen the discard prompt.
+- **Release:** Community `2.0.7-community` / code 10; updated README and in-app changelog.
+  This protects explicit exits during entry; it does not add persistent drafts or background saves.
+- **Verification:** the first Android test compile found an invalid `assertDoesNotExist`
+  extension import; removed it because this Compose version exposes a member method.
+  `:app:test` passed, including 11 new exit-guard unit regressions;
+  `:app:compileDebugAndroidTestKotlin`, the minified `:app:assembleRelease` build, and
+  `git diff --check` passed. Eight Android interaction tests cover blank/unchanged exits,
+  Back/Close/swipe cancellation, discard, and save/exit handling. They compiled but were
+  not run because no Android device was connected.
+
+---
+
 ## 2026-10-09 — Add shareable date-range spreadsheet statements
 
 - **Scope:** CSV export from Settings on phone and tablet.

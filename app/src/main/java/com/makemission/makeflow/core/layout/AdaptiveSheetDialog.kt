@@ -21,9 +21,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
@@ -41,10 +44,15 @@ fun AdaptiveSheetDialog(
     onDismiss: () -> Unit,
     scrollable: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    confirmDismiss: () -> Boolean = { true },
     content: @Composable () -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val currentConfirmDismiss by rememberUpdatedState(confirmDismiss)
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+        confirmValueChange = { it != SheetValue.Hidden || currentConfirmDismiss() }
+    )
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,

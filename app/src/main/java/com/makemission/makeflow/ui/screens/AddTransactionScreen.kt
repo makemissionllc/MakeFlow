@@ -105,6 +105,7 @@ import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.domain.TransactionExitGuard
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.domain.CategoryUsage
@@ -166,6 +167,8 @@ fun AddTransactionScreen(
     var showCategoryPicker by remember { mutableStateOf(false) }
     var showDateTimePicker by remember { mutableStateOf(false) }
     var showSaveTemplateDialog by remember { mutableStateOf(false) }
+    var showDiscardConfirmation by remember { mutableStateOf(false) }
+    var isExiting by remember { mutableStateOf(false) }
 
     // === Core state ===
     var selectedType by remember { mutableStateOf(editTransaction?.type ?: initialType) }
@@ -298,6 +301,35 @@ fun AddTransactionScreen(
         (parsedAmount ?: 0.0) > 0 && fromAccountForAmount != null &&
         (selectedType != "TRANSFER" || (toAccountForAmount != null && selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
 
+    val hasUnsavedChanges = TransactionExitGuard.hasUnsavedChanges(
+        current = TransactionExitGuard.FormState(
+            amountInput = confirmedAmount?.toString() ?: calculatorDisplay,
+            type = selectedType,
+            categoryId = resolvedCategoryId,
+            accountId = selectedAccountId,
+            note = note,
+            timestamp = selectedDate,
+            fromAccountId = selectedTransferFromId,
+            toAccountId = selectedTransferToId,
+            hasPendingCalculation = engine.hasUnconfirmedOperation
+        ),
+        original = if (isEditMode) editTransaction else null
+    )
+    fun dismissForm() {
+        if (isExiting) return
+        isExiting = true
+        onDismiss()
+    }
+    fun requestDismiss() {
+        if (isExiting) return
+        if (hasUnsavedChanges) {
+            hapticManager.fire(HapticEvent.NAV_SELECT)
+            showDiscardConfirmation = true
+        } else {
+            dismissForm()
+        }
+    }
+
     val amountForDisplay = if (isAmountConfirmed) {
         val a = confirmedAmount!!
         if (a == a.toLong().toDouble()) a.toLong().toString() else "%.2f".format(a)
@@ -332,6 +364,10 @@ fun AddTransactionScreen(
     }
 
     LaunchedEffect(note, selectedType, smartCategorizationEnabled, correctionMemory, categories, pastTransactions.value) {
+        if (editTransaction != null && note == editTransaction.note && selectedType == editTransaction.type) {
+            categorySuggestion = null
+            return@LaunchedEffect
+        }
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -455,7 +491,7 @@ fun AddTransactionScreen(
                 )
                 commitHandler.update(updatedEntity, editTransaction, onUpdate)
                 fireCorrection()
-                onDismiss()
+                dismissForm()
             } else {
                 val entity = TransactionEntity(
                     amount = amount,
@@ -474,7 +510,7 @@ fun AddTransactionScreen(
                         onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                         fireCorrection()
                     },
-                    onComplete = onDismiss
+                    onComplete = { dismissForm() }
                 )
             }
         }
@@ -486,7 +522,7 @@ fun AddTransactionScreen(
             showAccountPicker -> showAccountPicker = false
             showCategoryPicker -> showCategoryPicker = false
             showDateTimePicker -> showDateTimePicker = false
-            else -> onDismiss()
+            else -> requestDismiss()
         }
     }
 
@@ -614,7 +650,7 @@ fun AddTransactionScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onDismiss) {
+                    IconButton(onClick = { requestDismiss() }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
@@ -1034,6 +1070,17 @@ fun AddTransactionScreen(
 
     // === Dialogs ===
 
+    if (showDiscardConfirmation) {
+        UnsavedTransactionSheet(
+            hapticManager = hapticManager,
+            onKeepEditing = { showDiscardConfirmation = false },
+            onDiscard = {
+                showDiscardConfirmation = false
+                dismissForm()
+            }
+        )
+    }
+
     if (showSaveTemplateDialog) {
         AdaptiveAlertSheet(
             onDismissRequest = {
@@ -1127,7 +1174,7 @@ fun AddTransactionScreen(
                                 onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                                 fireCorrection()
                             },
-                            onComplete = onDismiss
+                            onComplete = { dismissForm() }
                         )
                     }
                 }) {

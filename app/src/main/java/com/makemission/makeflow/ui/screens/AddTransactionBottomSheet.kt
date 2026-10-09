@@ -71,6 +71,7 @@ import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.domain.TransactionExitGuard
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -135,6 +136,7 @@ fun AddTransactionBottomSheet(
     var showDatePicker by remember { mutableStateOf(false) }
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
     var showSaveTemplateDialog by remember { mutableStateOf(false) }
+    var showDiscardConfirmation by remember { mutableStateOf(false) }
     var templateNameInput by remember { mutableStateOf("") }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
 
@@ -168,7 +170,11 @@ fun AddTransactionBottomSheet(
         }
     }
 
-    LaunchedEffect(note, smartCategorizationEnabled, correctionMemory) {
+    LaunchedEffect(note, selectedType, smartCategorizationEnabled, correctionMemory, categories, pastTransactions.value) {
+        if (editTransaction != null && note == editTransaction.note && selectedType == editTransaction.type) {
+            categorySuggestion = null
+            return@LaunchedEffect
+        }
         if (selectedType == "TRANSFER" || note.length < 2) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -294,6 +300,29 @@ fun AddTransactionBottomSheet(
     val isSaveEnabled = parsedAmount != null && parsedAmount != 0.0 &&
         (selectedType != "TRANSFER" || (selectedTransferFromId != selectedTransferToId && transferDestinationAmount != null))
 
+    val hasUnsavedChanges = TransactionExitGuard.hasUnsavedChanges(
+        current = TransactionExitGuard.FormState(
+            amountInput = amountInput,
+            type = selectedType,
+            categoryId = resolvedCategoryId,
+            accountId = selectedAccountId,
+            note = note,
+            timestamp = selectedDate,
+            fromAccountId = selectedTransferFromId,
+            toAccountId = selectedTransferToId
+        ),
+        original = editTransaction
+    )
+    fun confirmDismiss(): Boolean {
+        if (!hasUnsavedChanges) return true
+        if (!showDiscardConfirmation) hapticManager.fire(HapticEvent.NAV_SELECT)
+        showDiscardConfirmation = true
+        return false
+    }
+    fun requestDismiss() {
+        if (confirmDismiss()) onDismiss()
+    }
+
     fun fireCorrection() {
         val suggestedId = categorySuggestion?.categoryId
         if (suggestedId != null && resolvedCategoryId != null && resolvedCategoryId != suggestedId) {
@@ -316,7 +345,8 @@ fun AddTransactionBottomSheet(
     }
 
     AdaptiveSheetDialog(
-        onDismiss = onDismiss
+        onDismiss = { requestDismiss() },
+        confirmDismiss = { confirmDismiss() }
     ) {
         val reducedMotion = LocalReducedMotion.current
         AnimatedVisibility(
@@ -362,7 +392,7 @@ fun AddTransactionBottomSheet(
             }
             AdaptiveSheetHeader(
                 title = if (isEditMode) "Edit Transaction" else "Add Transaction",
-                onDismiss = onDismiss
+                onDismiss = { requestDismiss() }
             )
 
             if (!isEditMode && templates.isNotEmpty()) {
@@ -888,5 +918,16 @@ fun AddTransactionBottomSheet(
                 enabled = isSaveEnabled,
                 hapticManager = hapticManager
             )
+    }
+
+    if (showDiscardConfirmation) {
+        UnsavedTransactionSheet(
+            hapticManager = hapticManager,
+            onKeepEditing = { showDiscardConfirmation = false },
+            onDiscard = {
+                showDiscardConfirmation = false
+                onDismiss()
+            }
+        )
     }
 }

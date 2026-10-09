@@ -80,4 +80,8 @@
     <string name="export_csv_subtitle">Spreadsheet with date range</string>
     <string name="export_csv_preparing">Preparing spreadsheet…</string>
     <string name="export_csv_error">Could not create the CSV statement</string>
+    <string name="transaction_discard_title">Discard changes?</string>
+    <string name="transaction_discard_message">This transaction has unsaved changes.</string>
+    <string name="transaction_keep_editing">Keep editing</string>
+    <string name="transaction_discard">Discard</string>
 </resources>

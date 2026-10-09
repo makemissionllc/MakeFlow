@@ -66,4 +66,14 @@
     <string name="add_to">To</string>
     <string name="add_save">Save</string>
     <string name="add_update">Update</string>
+    <string name="history_date_range">Date range</string>
+    <string name="history_all_time">All time</string>
+    <string name="history_today">Today</string>
+    <string name="history_last_seven_days">Last 7 days</string>
+    <string name="history_this_month">This month</string>
+    <string name="history_last_month">Last month</string>
+    <string name="history_all_types">All</string>
+    <string name="history_period_dates">%1$s – %2$s</string>
+    <string name="history_no_matches">No matches for the current filters</string>
+    <string name="history_clear_filters">Clear filters</string>
 </resources>

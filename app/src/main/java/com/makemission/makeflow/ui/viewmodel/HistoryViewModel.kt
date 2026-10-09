@@ -9,6 +9,8 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.domain.HistoryPeriod
+import java.time.ZonedDateTime
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 
 class HistoryViewModel(
     private val financeRepository: FinanceRepository,
-    private val userPreferencesDataStore: UserPreferencesDataStore
+    private val userPreferencesDataStore: UserPreferencesDataStore,
+    private val currentTime: () -> ZonedDateTime = { ZonedDateTime.now() }
 ) : ViewModel() {
 
     private val _transactions = financeRepository.getAllTransactions()
@@ -44,6 +47,13 @@ class HistoryViewModel(
 
     val selectedFilter = MutableStateFlow("ALL")
     val searchQuery = MutableStateFlow("")
+    val selectedPeriod = MutableStateFlow(HistoryPeriod.ALL_TIME)
+    private val _calendarNow = MutableStateFlow(currentTime())
+    val calendarNow = _calendarNow.asStateFlow()
+
+    private val dateWindow = combine(selectedPeriod, calendarNow) { period, now ->
+        period.timestampRange(now.toLocalDate(), now.zone)
+    }
 
     val focusedAccountId: StateFlow<String?> = userPreferencesDataStore.focusedAccountId
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -79,8 +89,14 @@ class HistoryViewModel(
         }
     }
 
+    private val dateFilteredTransactions = combine(
+        typeAndAccountFilteredTransactions, dateWindow
+    ) { filtered, range ->
+        if (range == null) filtered else filtered.filter { it.timestamp in range }
+    }
+
     val filteredTransactions: StateFlow<List<TransactionEntity>> = combine(
-        typeAndAccountFilteredTransactions,
+        dateFilteredTransactions,
         searchQuery.asStateFlow(),
         accounts,
         categories
@@ -120,6 +136,16 @@ class HistoryViewModel(
                 }
             }
         }
+    }
+
+    fun refreshDateFilters() {
+        _calendarNow.value = currentTime()
+    }
+
+    fun clearFilters() {
+        searchQuery.value = ""
+        selectedFilter.value = "ALL"
+        selectedPeriod.value = HistoryPeriod.ALL_TIME
     }
 
     fun deleteTransaction(transaction: TransactionEntity) {

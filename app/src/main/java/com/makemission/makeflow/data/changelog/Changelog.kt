@@ -13,6 +13,15 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 val changelogEntries = listOf(
     ChangelogEntry(
         version = BuildConfig.VERSION_NAME,
+        date = "2026-10-09",
+        changes = listOf(
+            "Filter History by today, the last 7 days, this month, or last month",
+            "Combine date ranges with search, transaction type, and the selected account",
+            "Clear search and filters together without changing the selected account"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.4-community",
         date = "2026-10-08",
         changes = listOf(
             "Log a transaction again with its details filled in and today's date",

@@ -6,6 +6,25 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-09 — Add calendar-aware History filters
+
+- **Scope:** quicker transaction lookup without scrolling through all history.
+- **What:** added an accessible date-range bottom sheet with All time, Today, Last 7 days,
+  This month, and Last month. Date filters compose with search, type, and the focused account,
+  including transfer destinations. The shared sheet and themed filter chips use existing design
+  tokens and haptic feedback. Empty results offer a reset that preserves the focused account.
+- **Calendar correctness:** ranges use local midnight boundaries and an exclusive end,
+  handling month/year changes, leap years, and daylight-saving transitions. Returning to
+  History or reopening the date sheet refreshes relative dates and day headers.
+- **Release:** Community `2.0.5-community` / code 8; updated the in-app changelog and README.
+- **Verification:** `:app:test`, `:app:compileDebugAndroidTestKotlin`, and the minified
+  `:app:assembleRelease` build passed, as did `git diff --check`. Added eight calendar
+  tests and four ViewModel regressions for combined filters, reset, day/time-zone refresh,
+  and transfer destinations. Four sheet interaction/accessibility tests compiled; they
+  were not run because no Android device was connected.
+
+---
+
 ## 2026-10-08 — Add Log again for existing transactions
 
 - **Scope:** repeat common purchases, payments, income, and transfers from the transaction editor.

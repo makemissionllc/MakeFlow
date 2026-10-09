@@ -31,10 +31,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,15 +57,20 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import com.makemission.makeflow.R
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.device.LocalReducedMotion
@@ -75,9 +82,9 @@ import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.components.AnimatedDoodle
-import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
+import com.makemission.makeflow.domain.HistoryPeriod
 import com.makemission.makeflow.ui.viewmodel.FocusedAccountState
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
@@ -89,6 +96,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun HistoryScreen(
@@ -104,17 +112,28 @@ fun HistoryScreen(
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val recentlyDeleted by viewModel.recentlyDeleted.collectAsState()
+    val calendarNow by viewModel.calendarNow.collectAsState()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.refreshDateFilters() }
 
     val layoutMode = LocalDeviceLayoutMode.current
     var selectedTransaction by remember { mutableStateOf<TransactionEntity?>(null) }
 
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val todayCal = remember { Calendar.getInstance() }
-    val yesterdayCal = remember { Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) } }
+    val todayCal = remember(calendarNow) {
+        Calendar.getInstance(TimeZone.getTimeZone(calendarNow.zone)).apply {
+            timeInMillis = calendarNow.toInstant().toEpochMilli()
+        }
+    }
+    val yesterdayCal = remember(todayCal) {
+        (todayCal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, -1) }
+    }
 
-    val groupedTransactions = remember(transactions) {
-        val keyFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+    val groupedTransactions = remember(transactions, calendarNow.zone) {
+        val keyFormat = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).apply {
+            timeZone = TimeZone.getTimeZone(calendarNow.zone)
+        }
         transactions.groupBy { tx ->
             keyFormat.format(Date(tx.timestamp))
         }.toSortedMap(reverseOrder())
@@ -317,6 +336,21 @@ private fun HistoryListContent(
     val dimens = LocalAppDimens.current
     val allTransactions by viewModel.transactions.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val selectedPeriod by viewModel.selectedPeriod.collectAsState()
+    val calendarNow by viewModel.calendarNow.collectAsState()
+    var showPeriodSheet by rememberSaveable { mutableStateOf(false) }
+    if (showPeriodSheet) {
+        HistoryPeriodSheet(
+            selectedPeriod = selectedPeriod,
+            calendarNow = calendarNow,
+            onSelect = {
+                hapticManager.fire(HapticEvent.TAB_SWITCH)
+                viewModel.selectedPeriod.value = it
+                showPeriodSheet = false
+            },
+            onDismiss = { showPeriodSheet = false }
+        )
+    }
     val dismissStates = remember { mutableMapOf<Long, androidx.compose.material3.SwipeToDismissBoxState>() }
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
@@ -372,53 +406,31 @@ private fun HistoryListContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(if (config.isTablet && config.isLandscape) 12.dp else 8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                 ) {
-                    val isSelectedAll = selectedFilter == "ALL"
-                    Text(
-                        text = "All",
-                        color = if (isSelectedAll) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                        modifier = Modifier
-                            .pressScale()
-                            .background(
-                                if (isSelectedAll) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
-                            )
-                            .clickable { viewModel.selectedFilter.value = "ALL" }
-                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
+                    FilterChip(
+                        selected = selectedPeriod != HistoryPeriod.ALL_TIME,
+                        onClick = {
+                            hapticManager.fire(HapticEvent.NAV_SELECT)
+                            viewModel.refreshDateFilters()
+                            showPeriodSheet = true
+                        },
+                        label = { Text(historyPeriodLabel(selectedPeriod)) },
+                        leadingIcon = {
+                            Icon(Icons.Outlined.DateRange, contentDescription = stringResource(R.string.history_date_range))
+                        }
                     )
-                    val isSelectedIncome = selectedFilter == "INCOME"
-                    Text(
-                        text = "Income",
-                        color = if (isSelectedIncome) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                        modifier = Modifier
-                            .pressScale()
-                            .background(
-                                if (isSelectedIncome) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
+                    listOf("ALL" to R.string.history_all_types, "INCOME" to R.string.add_income, "EXPENSE" to R.string.add_expense)
+                        .forEach { (filter, label) ->
+                            FilterChip(
+                                selected = selectedFilter == filter,
+                                onClick = {
+                                    hapticManager.fire(HapticEvent.TAB_SWITCH)
+                                    viewModel.selectedFilter.value = filter
+                                },
+                                label = { Text(stringResource(label)) }
                             )
-                            .clickable { viewModel.selectedFilter.value = "INCOME" }
-                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
-                    )
-                    val isSelectedExpense = selectedFilter == "EXPENSE"
-                    Text(
-                        text = "Expense",
-                        color = if (isSelectedExpense) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = if (config.isTablet && config.isLandscape) 14.sp else 13.sp,
-                        modifier = Modifier
-                            .pressScale()
-                            .background(
-                                if (isSelectedExpense) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(if (config.isTablet && config.isLandscape) 16.dp else 14.dp)
-                            )
-                            .clickable { viewModel.selectedFilter.value = "EXPENSE" }
-                            .padding(horizontal = if (config.isTablet && config.isLandscape) 18.dp else 14.dp, vertical = if (config.isTablet && config.isLandscape) 10.dp else 8.dp)
-                    )
+                        }
                 }
             }
             item {
@@ -464,24 +476,24 @@ private fun HistoryListContent(
                             Text(
                                 text = if (allTransactions.isEmpty()) {
                                     "Tap + to log your first transaction"
-                                } else if (searchQuery.isBlank() && selectedFilter == "ALL") {
+                                } else if (searchQuery.isBlank() && selectedFilter == "ALL" && selectedPeriod == HistoryPeriod.ALL_TIME) {
                                     "There are no transactions in the selected account"
                                 } else {
-                                    "Try another search or adjust the type filter"
+                                    stringResource(R.string.history_no_matches)
                                 },
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             )
                             if (allTransactions.isNotEmpty() &&
-                                (searchQuery.isNotBlank() || selectedFilter != "ALL")
+                                (searchQuery.isNotBlank() || selectedFilter != "ALL" || selectedPeriod != HistoryPeriod.ALL_TIME)
                             ) {
                                 TextButton(
                                     onClick = {
-                                        viewModel.searchQuery.value = ""
-                                        viewModel.selectedFilter.value = "ALL"
+                                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                                        viewModel.clearFilters()
                                     }
                                 ) {
-                                    Text("Clear search and type filter")
+                                    Text(stringResource(R.string.history_clear_filters))
                                 }
                             }
                         }

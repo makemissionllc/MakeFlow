@@ -32,6 +32,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts,
   and a "Log again" action that reuses transaction details with today's date.
+- **History** — search notes, amounts, accounts, categories, and references; combine
+  date presets (today, last 7 days, this month, last month) with type/account filters.
 - **M-PESA import** — rule-based parsing for share/paste. The optional new-message listener
   is enabled only on the `community` branch; the `play` branch does not request SMS permission.
   The listener is opt-in, sender-filtered, and review-before-save. On supported devices, Gemini Nano may

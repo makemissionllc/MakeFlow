@@ -8,6 +8,9 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
+import com.makemission.makeflow.domain.HistoryPeriod
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -212,6 +215,93 @@ class HistoryViewModelTest {
         assertSearch("abc-123", "matatu")
         assertSearch("lunch", "lunch")
 
+        job.cancel()
+    }
+
+    @Test
+    fun datePeriodCombinesWithSearchTypeAndFocusedAccount() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val now = ZonedDateTime.parse("2026-10-09T12:00:00+03:00[Africa/Nairobi]")
+        val match = createTransaction("match").copy(timestamp = now.toInstant().toEpochMilli())
+        repo.addTransaction(match)
+        repo.addTransaction(match.copy(id = "yesterday", timestamp = now.minusDays(1).toInstant().toEpochMilli()))
+        repo.addTransaction(match.copy(id = "other-account", accountId = "acct2"))
+        repo.addTransaction(match.copy(id = "income", type = "INCOME"))
+        repo.addTransaction(match.copy(id = "tea", note = "tea"))
+        val prefs = createTestUserPrefs()
+        prefs.saveFocusedAccountId("acct1")
+        val viewModel = HistoryViewModel(repo, prefs) { now }
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        viewModel.selectedPeriod.value = HistoryPeriod.TODAY
+        viewModel.selectedFilter.value = "EXPENSE"
+        viewModel.searchQuery.value = "coffee"
+        runCurrent()
+
+        assertEquals(listOf("match"), viewModel.filteredTransactions.value.map { it.id })
+
+        viewModel.clearFilters()
+        runCurrent()
+        assertEquals(HistoryPeriod.ALL_TIME, viewModel.selectedPeriod.value)
+        assertEquals("ALL", viewModel.selectedFilter.value)
+        assertEquals("", viewModel.searchQuery.value)
+        assertEquals("acct1", viewModel.focusedAccountId.value)
+        assertEquals(setOf("match", "yesterday", "income", "tea"), viewModel.filteredTransactions.value.map { it.id }.toSet())
+        job.cancel()
+    }
+
+    @Test
+    fun refreshDateFiltersRollsTodayForwardWithoutChangingSelection() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        var now = ZonedDateTime.parse("2026-10-09T23:59:00+03:00[Africa/Nairobi]")
+        repo.addTransaction(createTransaction("today").copy(timestamp = now.toInstant().toEpochMilli()))
+        repo.addTransaction(createTransaction("tomorrow").copy(timestamp = now.plusMinutes(2).toInstant().toEpochMilli()))
+        val viewModel = HistoryViewModel(repo, createTestUserPrefs()) { now }
+        viewModel.selectedPeriod.value = HistoryPeriod.TODAY
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        runCurrent()
+        assertEquals(listOf("today"), viewModel.filteredTransactions.value.map { it.id })
+
+        now = now.plusMinutes(2)
+        viewModel.refreshDateFilters()
+        runCurrent()
+        assertEquals(listOf("tomorrow"), viewModel.filteredTransactions.value.map { it.id })
+        assertEquals(HistoryPeriod.TODAY, viewModel.selectedPeriod.value)
+        job.cancel()
+    }
+
+    @Test
+    fun refreshDateFiltersUsesNewTimeZone() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        var now = ZonedDateTime.parse("2026-10-09T00:30:00+03:00[Africa/Nairobi]")
+        val previousEvening = now.minusHours(1).toInstant().toEpochMilli()
+        repo.addTransaction(createTransaction("previous-evening").copy(timestamp = previousEvening))
+        val viewModel = HistoryViewModel(repo, createTestUserPrefs()) { now }
+        viewModel.selectedPeriod.value = HistoryPeriod.TODAY
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        runCurrent()
+        assertEquals(emptyList<TransactionEntity>(), viewModel.filteredTransactions.value)
+
+        now = now.withZoneSameInstant(ZoneId.of("UTC"))
+        viewModel.refreshDateFilters()
+        runCurrent()
+        assertEquals(listOf("previous-evening"), viewModel.filteredTransactions.value.map { it.id })
+        job.cancel()
+    }
+
+    @Test
+    fun datePeriodRespectsTransferDestinationAccount() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val now = ZonedDateTime.parse("2026-10-09T12:00:00+03:00[Africa/Nairobi]")
+        repo.addTransaction(createTransaction("transfer", type = "TRANSFER").copy(
+            fromAccountId = "acct1", toAccountId = "acct2", timestamp = now.toInstant().toEpochMilli()
+        ))
+        val prefs = createTestUserPrefs()
+        prefs.saveFocusedAccountId("acct2")
+        val viewModel = HistoryViewModel(repo, prefs) { now }
+        viewModel.selectedPeriod.value = HistoryPeriod.THIS_MONTH
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        runCurrent()
+        assertEquals(listOf("transfer"), viewModel.filteredTransactions.value.map { it.id })
         job.cancel()
     }
 

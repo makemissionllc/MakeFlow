@@ -24,6 +24,7 @@ val featureGuideEntries = listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
         "In expanded Accounts, select an account for its live balance and latest 20 transactions. Transfer in and Transfer out use that account's own amount; unavailable amounts are labelled.",
         "Select accounts from a two-column grid on expanded tablets, with each account's currency and balance visible on its card.",
+        "The expanded Quick Action widget on tablets includes a Repeat last transaction action, with the recent amount and note shown before you open the prefilled form.",
         "Choose frequently used categories from the transaction form without opening the category picker on phones or tablets.",
         "Expanded transaction forms show saved templates in a two-column grid with their amount and account currency.",
         "Expanded transaction forms show the selected account's available balance, and both balances for transfers.",
@@ -52,7 +53,8 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("Widgets and quick access", listOf(
         "Add snapshot, quick-action, balance, monthly-summary, quick-expense, or quick-income widgets from your launcher's widget picker. Sizes depend on the widget and launcher.",
-        "Quick-add widgets and launcher shortcuts open entry directly. Setup offers a one-time widget-pin request on supported launchers."
+        "Quick-add widgets show the account that will be used and open entry with your last-used account selected. Setup offers a one-time widget-pin request on supported launchers.",
+        "The expanded Quick Action widget can repeat your most recent income or expense. It shows the recent note and amount, then opens a new entry with its account and category filled in and today's date; normal duplicate checks still apply."
     )),
     FeatureGuideEntry("Privacy, backup, and preferences", listOf(
         "Finance records are stored locally. JSON backup and restore are user initiated; keep backup and shared statement files private.",

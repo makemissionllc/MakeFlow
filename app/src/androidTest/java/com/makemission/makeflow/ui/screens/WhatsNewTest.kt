@@ -101,6 +101,8 @@ class WhatsNewTest {
         )
         rule.onNodeWithText("Expanded tablets show a feature list beside animated step details", substring = true)
             .assertIsDisplayed()
+        rule.onNodeWithText("Widgets and quick access").performClick()
+        rule.onNodeWithTag("tour_widget_repeat_preview").assertIsDisplayed()
     }
 
     private fun saveScreenshot(name: String) {

@@ -1,12 +1,15 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -226,6 +229,22 @@ private fun TourStepContent(
                         fontWeight = FontWeight.Bold
                     )
                 }
+                AnimatedVisibility(
+                    visible = entry.title == "Widgets and quick access",
+                    enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                    else fadeIn(OverlayTransition.enterSpring) + slideInVertically(
+                        animationSpec = OverlayTransition.enterSlide,
+                        initialOffsetY = { it / 6 }
+                    ),
+                    exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                    else fadeOut(OverlayTransition.exitSpring) + slideOutVertically(
+                        animationSpec = OverlayTransition.exitSlide,
+                        targetOffsetY = { it / 6 }
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    WidgetRepeatPreview()
+                }
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -257,6 +276,59 @@ private fun TourStepContent(
                 onTryTransactionEntry()
             }) {
                 Text(stringResource(R.string.tour_try_transaction))
+            }
+        }
+    }
+}
+
+@Composable
+private fun WidgetRepeatPreview() {
+    val dimens = LocalAppDimens.current
+    Surface(
+        modifier = Modifier.fillMaxWidth().testTag("tour_widget_repeat_preview"),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = RoundedCornerShape(dimens.cornerRadiusLarge)
+    ) {
+        Column(
+            modifier = Modifier.padding(dimens.paddingLarge),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Quick Action", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text("KES", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("Using Everyday wallet", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+                Text(
+                    "− Expense",
+                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(dimens.shapeCornerMedium))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingSmall),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    "+ Income",
+                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(dimens.shapeCornerMedium))
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingSmall),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(dimens.shapeCornerMedium))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(dimens.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+            ) {
+                Text("Recent · Lunch", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Everyday wallet · KES 450", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                Text("Repeat last transaction", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
             }
         }
     }

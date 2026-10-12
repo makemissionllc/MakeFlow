@@ -44,6 +44,9 @@ class QuickAddTransactionActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val initialType = intent.getStringExtra("shortcut_type") ?: "INCOME"
+        val initialAmount = intent.getStringExtra("initial_amount").orEmpty()
+        val initialNote = intent.getStringExtra("initial_note").orEmpty()
+        val requestedCategoryId = intent.getStringExtra("initial_category_id")
 
         enableEdgeToEdge()
 
@@ -74,12 +77,15 @@ class QuickAddTransactionActivity : ComponentActivity() {
                     val templates by templateRepository.getAllTemplates().collectAsState(initial = emptyList())
                     val userPrefDataStore = remember { UserPreferencesDataStore(context.userPrefDataStore) }
                     val accounts by repository.getAllAccounts().collectAsState(initial = emptyList())
+                    val lastTransactionAccountId by userPrefDataStore.lastTransactionAccountId.collectAsState(initial = null)
                     val categories by repository.getAllCategories().collectAsState(initial = emptyList())
                     val currencyCode by userPrefDataStore.selectedCurrency.collectAsState(initial = "KES")
                     val hapticLevel by userPrefDataStore.hapticLevel.collectAsState(initial = HapticStrength.STANDARD.storageValue)
                     val smartCategorizationEnabled by userPrefDataStore.smartCategorizationEnabled.collectAsState(initial = true)
 
                     val hapticManager = rememberHapticManager(HapticStrength.fromStorage(hapticLevel))
+                    val requestedAccountId = intent.getStringExtra("initial_account_id") ?: lastTransactionAccountId
+                    val initialAccountId = requestedAccountId?.takeIf { requestedId -> accounts.any { it.id == requestedId } }
 
                     var categoryClassifier by remember { mutableStateOf<CategoryClassifier?>(null) }
                     LaunchedEffect(Unit) {
@@ -102,6 +108,10 @@ class QuickAddTransactionActivity : ComponentActivity() {
 
                     AddTransactionBottomSheet(
                         initialType = initialType,
+                        initialAmount = initialAmount,
+                        initialNote = initialNote,
+                        initialAccountId = initialAccountId,
+                        initialCategoryId = requestedCategoryId,
                         accounts = accounts,
                         categories = categories,
                         currencyCode = currencyCode,
@@ -147,6 +157,7 @@ class QuickAddTransactionActivity : ComponentActivity() {
                             )
                             withContext(Dispatchers.IO) {
                                 repository.insertTransaction(entity)
+                                userPrefDataStore.saveLastTransactionAccountId(accountId)
                                 WidgetUpdateHelper.updateWidgets(context)
                             }
                         }

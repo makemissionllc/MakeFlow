@@ -20,6 +20,15 @@ class FeatureGuideTest {
             "Privacy, backup, and preferences"), featureGuideEntries.map { it.title }.toSet())
     }
 
+    @Test fun guideDescribesExpandedWidgetRepeatAndRememberedAccount() {
+        val widgetFeatures = featureGuideEntries.first { it.title == "Widgets and quick access" }.features
+        val tabletFeatures = featureGuideEntries.first { it.title == "Tablet workspaces" }.features
+
+        assertTrue(widgetFeatures.any { it.contains("last-used account") })
+        assertTrue(widgetFeatures.any { it.contains("repeat your most recent income or expense") })
+        assertTrue(tabletFeatures.any { it.contains("expanded Quick Action widget") })
+    }
+
     @Test fun releaseNotesRetainUniqueVersionsAndCurrentReleaseFirst() {
         assertEquals(BuildConfig.VERSION_NAME, changelogEntries.first().version)
         assertEquals(changelogEntries.size, changelogEntries.map { it.version }.distinct().size)

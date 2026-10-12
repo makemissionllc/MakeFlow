@@ -6,6 +6,24 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-13 — Speed up widget entry and repeat recent transactions
+
+- **Quality of life:** quick-add widgets now show the account that will be selected and
+  open with the remembered account. Saving from a widget updates the same account preference
+  used by in-app transaction entry.
+- **Tablet widget feature:** the expanded Quick Action widget previews the latest income or
+  expense and opens a fresh form with its amount, note, account, and category filled in. The
+  date is today and the normal duplicate and anomaly review remains active.
+- **Animated tutorial:** Settings > What's New now demonstrates the widget flow in an animated
+  preview. The section is part of the existing interactive tour and respects reduced-motion.
+- **Feature discovery:** added these changes to the feature guide, release notes, and README.
+  Community advanced to `2.0.18-community` / code 21.
+- **Verification:** `./gradlew test :app:compileDebugAndroidTestKotlin` passed. The complete
+  `connectedAndroidTest` suite passed all 100 tests on the physical OPPO CPH2745 (Android 16);
+  no emulator was started. An earlier run showed eight transient Compose startup failures in
+  account UI suites; the immediate full rerun passed, and the final run after the tutorial
+  change also passed all 100 tests.
+
 ## 2026-10-13 — Remember transaction accounts and streamline tablet selection
 
 - **Quality of life:** new transactions now default to the most recently used account. The

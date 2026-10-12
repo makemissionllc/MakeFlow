@@ -77,7 +77,9 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Spreadsheet export** — date-range CSV statements with readable account/category names,
   original currencies, transfer amounts, and references; saved locally and shared through Android.
 - **Widgets & shortcuts** — 6 Glance widgets (snapshot, quick actions, balance, monthly
-  summary, quick expense/income) + launcher shortcuts + quick-add activity.
+  summary, quick expense/income) + launcher shortcuts + quick-add activity. Quick-add
+  widgets use the last-selected account; the expanded Quick Action widget also previews
+  and repeats the latest income or expense with its details prefilled.
 - **Reminders** — optional weekly finance-review reminders, scheduled locally and disabled
   until the user opts in.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric

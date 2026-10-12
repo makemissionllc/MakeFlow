@@ -15,6 +15,9 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-13",
         changes = listOf(
+            "Quick-add widgets show and use the last account you selected",
+            "Repeat the most recent income or expense from the expanded Quick Action widget with its amount, note, category, and account filled in",
+            "Review a recent transaction before repeating it from the expanded widget on tablets",
             "Start each transaction with the account you used last time",
             "Choose accounts faster from a two-column picker on expanded tablets",
             "Choose frequent transaction categories directly on phones as well as tablets",

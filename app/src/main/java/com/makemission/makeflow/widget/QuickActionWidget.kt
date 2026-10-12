@@ -33,8 +33,10 @@ import androidx.glance.text.TextStyle
 import com.makemission.makeflow.QuickAddTransactionActivity
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.AppDatabase
+import com.makemission.makeflow.data.local.UserPreferencesDataStore
 import com.makemission.makeflow.data.local.userPrefDataStore
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
+import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import kotlinx.coroutines.Dispatchers
@@ -65,15 +67,30 @@ class QuickActionWidget : GlanceAppWidget() {
 data class QuickActionData(
     val balance: Double,
     val currencyCode: String,
-    val hasAccounts: Boolean
+    val hasAccounts: Boolean,
+    val quickAddAccountName: String? = null,
+    val latestRepeat: QuickRepeatTransaction? = null
+)
+
+data class QuickRepeatTransaction(
+    val type: String,
+    val amount: Double,
+    val note: String,
+    val categoryName: String?,
+    val accountName: String?,
+    val accountCurrencyCode: String
 )
 
 internal suspend fun loadQuickActionData(context: Context): QuickActionData {
     val db = AppDatabase.getDatabase(context)
     val accounts = db.accountDao().getAllAccounts().first()
-    val prefsDataStore = com.makemission.makeflow.data.local.UserPreferencesDataStore(
+    val transactions = db.transactionDao().getAllTransactionsOnce()
+    val categories = db.categoryDao().getAllCategoriesOnce()
+    val prefsDataStore = UserPreferencesDataStore(
         context.applicationContext.userPrefDataStore
     )
+    val preferredAccountId = prefsDataStore.lastTransactionAccountId.first()
+    val preferredAccount = accounts.firstOrNull { it.id == preferredAccountId }
     val currencyCode = prefsDataStore.selectedCurrency.first()
     val rates = db.exchangeRateDao().getAllRatesOnce().mapNotNull { rate ->
         rate.baseCurrencyCode?.let { base ->
@@ -88,9 +105,25 @@ internal suspend fun loadQuickActionData(context: Context): QuickActionData {
     return QuickActionData(
         balance = totalBalance,
         currencyCode = currencyCode,
-        hasAccounts = accounts.isNotEmpty()
+        hasAccounts = accounts.isNotEmpty(),
+        quickAddAccountName = (preferredAccount ?: accounts.firstOrNull())?.name,
+        latestRepeat = transactions.firstOrNull { it.type == "EXPENSE" || it.type == "INCOME" }
+            ?.toQuickRepeatTransaction(accounts, categories, currencyCode)
     )
 }
+
+private fun TransactionEntity.toQuickRepeatTransaction(
+    accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
+    categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
+    fallbackCurrencyCode: String
+) = QuickRepeatTransaction(
+    type = type,
+    amount = amount,
+    note = note,
+    categoryName = categories.firstOrNull { it.id == categoryId }?.name,
+    accountName = accounts.firstOrNull { it.id == accountId }?.name,
+    accountCurrencyCode = accounts.firstOrNull { it.id == accountId }?.currencyCode ?: fallbackCurrencyCode
+)
 
 class ExpenseShortcutCallback : ActionCallback {
     override suspend fun onAction(
@@ -120,6 +153,28 @@ class IncomeShortcutCallback : ActionCallback {
     }
 }
 
+class RepeatLastTransactionCallback : ActionCallback {
+    override suspend fun onAction(
+        context: Context,
+        glanceId: GlanceId,
+        parameters: ActionParameters
+    ) {
+        val transaction = AppDatabase.getDatabase(context).transactionDao()
+            .getAllTransactionsOnce()
+            .firstOrNull { it.type == "EXPENSE" || it.type == "INCOME" }
+            ?: return
+        val intent = Intent(context, QuickAddTransactionActivity::class.java).apply {
+            putExtra("shortcut_type", transaction.type)
+            putExtra("initial_amount", transaction.amount.toString())
+            putExtra("initial_note", transaction.note)
+            putExtra("initial_account_id", transaction.accountId)
+            putExtra("initial_category_id", transaction.categoryId)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+}
+
 @Composable
 private fun QuickActionContent(data: QuickActionData, size: DpSize) {
     val compact = size.width < WidgetTokens.compactWidth
@@ -133,6 +188,14 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
         verticalAlignment = Alignment.Vertical.Top
     ) {
         QuickActionHeader(data.currencyCode)
+
+        data.quickAddAccountName?.let { accountName ->
+            Text(
+                text = "Using $accountName",
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize),
+                maxLines = 1
+            )
+        }
 
         if (expanded && data.hasAccounts) {
             Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
@@ -180,6 +243,31 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
                     action = actionRunCallback<IncomeShortcutCallback>(),
                     primary = true,
                     modifier = GlanceModifier.defaultWeight()
+                )
+            }
+        }
+
+        if (expanded) {
+            data.latestRepeat?.let { transaction ->
+                Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
+                val summary = transaction.note.ifBlank { transaction.categoryName ?: "Last ${transaction.type.lowercase()}" }
+                Text(
+                    text = "Recent · $summary",
+                    style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize),
+                    maxLines = 1
+                )
+                Text(
+                    text = "${transaction.accountName ?: "Account"} · ${CurrencyFormatter.format(transaction.amount, transaction.accountCurrencyCode)}",
+                    style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize),
+                    maxLines = 1
+                )
+                Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
+                WidgetActionPill(
+                    label = "Repeat last transaction",
+                    action = actionRunCallback<RepeatLastTransactionCallback>(),
+                    primary = false,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    height = WidgetTokens.compactActionHeight
                 )
             }
         }

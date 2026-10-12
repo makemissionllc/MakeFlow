@@ -113,6 +113,7 @@ fun AddTransactionBottomSheet(
     initialNote: String = "",
     initialTimestamp: Long? = null,
     initialAccountId: String? = null,
+    initialCategoryId: String? = null,
     initialTransferFromId: String? = null,
     initialTransferToId: String? = null,
     editTransaction: TransactionEntity? = null,
@@ -132,6 +133,7 @@ fun AddTransactionBottomSheet(
     var selectedAccountId by remember { mutableStateOf(editTransaction?.accountId ?: initialAccountId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: initialTransferFromId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
+    var accountSelectionTouched by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf(editTransaction?.note ?: initialNote) }
     var selectedDate by remember { mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -164,6 +166,15 @@ fun AddTransactionBottomSheet(
     var selectedParentCategory by remember { mutableStateOf(initialParentCat) }
     var selectedChildCategory by remember { mutableStateOf(initialChildCat) }
     var categoryResetSkippedForEdit by remember { mutableStateOf(isEditMode) }
+    var initialCategoryApplied by remember { mutableStateOf(initialCategoryId == null || isEditMode) }
+
+    LaunchedEffect(accounts, initialAccountId, isEditMode) {
+        if (!isEditMode && !accountSelectionTouched && accounts.isNotEmpty()) {
+            selectedAccountId = initialAccountId?.takeIf { preferredId -> accounts.any { it.id == preferredId } }
+                ?: selectedAccountId.takeIf { currentId -> accounts.any { it.id == currentId } }
+                ?: accounts.first().id
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (onGetPastTransactions != null) {
@@ -266,15 +277,26 @@ fun AddTransactionBottomSheet(
     val resolvedCategoryId = if (selectedType == "TRANSFER") null
         else selectedChildCategory?.id ?: selectedParentCategory?.id
 
-    LaunchedEffect(selectedType, categories) {
+    LaunchedEffect(selectedType, categories, initialCategoryId) {
         if (categoryResetSkippedForEdit) {
             categoryResetSkippedForEdit = false
             return@LaunchedEffect
         }
         if (selectedType != "TRANSFER") {
+            if (!initialCategoryApplied && categories.isEmpty()) return@LaunchedEffect
+            val preferredCategory = if (!initialCategoryApplied) {
+                categories.firstOrNull { it.id == initialCategoryId && it.type == selectedType }
+            } else null
             val parents = categories.filter { it.type == selectedType && it.parentCategoryId == null }
-            selectedParentCategory = parents.firstOrNull()
-            selectedChildCategory = null
+            if (preferredCategory != null) {
+                selectedParentCategory = if (preferredCategory.parentCategoryId == null) preferredCategory
+                    else categories.firstOrNull { it.id == preferredCategory.parentCategoryId }
+                selectedChildCategory = preferredCategory.takeIf { it.parentCategoryId != null }
+            } else {
+                selectedParentCategory = parents.firstOrNull()
+                selectedChildCategory = null
+            }
+            initialCategoryApplied = true
         } else {
             selectedParentCategory = null
             selectedChildCategory = null
@@ -418,6 +440,7 @@ fun AddTransactionBottomSheet(
                                         selectedType = template.type
                                         selectedAccountId = if (accounts.any { it.id == template.accountId })
                                             template.accountId else selectedAccountId
+                                        accountSelectionTouched = true
                                         note = template.note
                                     }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
@@ -578,7 +601,10 @@ fun AddTransactionBottomSheet(
                                         if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
                                         RoundedCornerShape(dimens.cornerRadiusMedium)
                                     )
-                                    .clickable { selectedAccountId = account.id }
+                                    .clickable {
+                                        selectedAccountId = account.id
+                                        accountSelectionTouched = true
+                                    }
                                     .padding(horizontal = 14.dp, vertical = 8.dp)
                             )
                         }

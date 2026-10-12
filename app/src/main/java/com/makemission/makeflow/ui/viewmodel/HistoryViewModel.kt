@@ -11,6 +11,7 @@ import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.data.repository.FinanceRepository
 import com.makemission.makeflow.domain.HistoryPeriod
 import com.makemission.makeflow.domain.HistorySummary
+import com.makemission.makeflow.domain.MpesaFeeMatcher
 import java.time.ZonedDateTime
 import java.util.Locale
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,6 +79,7 @@ class HistoryViewModel(
         val typeFiltered = when (filter) {
             "INCOME" -> allTxs.filter { it.type == "INCOME" }
             "EXPENSE" -> allTxs.filter { it.type == "EXPENSE" }
+            "FEES" -> MpesaFeeMatcher.feeTransactions(allTxs)
             else -> allTxs
         }
         if (focusedId != null) {

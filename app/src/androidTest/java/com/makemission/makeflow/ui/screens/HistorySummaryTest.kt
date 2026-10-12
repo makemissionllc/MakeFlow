@@ -177,6 +177,39 @@ class HistorySummaryTest {
     }
 
     @Test
+    fun parserFeeAppearsWithItsHistoryEntryAndInFeesFilter() {
+        runBlocking {
+            repository.insertAccount(AccountEntity("cash", "M-PESA", 0.0, 0.0, currencyCode = "KES"))
+            repository.insertTransaction(TransactionEntity(
+                id = "mpesa-main", amount = 500.0, type = "EXPENSE", accountId = "cash",
+                note = "Groceries", timestamp = 1700000001000L, externalReference = "ABC123"
+            ))
+            repository.insertTransaction(TransactionEntity(
+                id = "mpesa-fee", amount = 22.0, type = "EXPENSE", accountId = "cash",
+                note = "M-PESA transaction cost for ABC123", timestamp = 1700000001000L,
+                externalReference = "ABC123-fee"
+            ))
+        }
+        showHistory(DeviceLayoutMode.EXPANDED)
+        composeTestRule.waitUntil(5000) { viewModel.filteredTransactions.value.size == 2 }
+
+        composeTestRule.runOnIdle { viewModel.searchQuery.value = "Groceries" }
+        composeTestRule.waitUntil(5000) { viewModel.filteredTransactions.value.singleOrNull()?.id == "mpesa-main" }
+        composeTestRule.onNodeWithText("Fee ·", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Start review").performClick()
+        composeTestRule.onNodeWithText("M-PESA fee").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.format(22.0, "KES")).performScrollTo().assertIsDisplayed()
+
+        composeTestRule.runOnIdle {
+            viewModel.searchQuery.value = ""
+            viewModel.selectedFilter.value = "FEES"
+        }
+        composeTestRule.waitUntil(5000) { viewModel.filteredTransactions.value.singleOrNull()?.id == "mpesa-fee" }
+        composeTestRule.onNodeWithText("Fees").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithText("M-PESA transaction cost for ABC123").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun tabletSelectionSurvivesSavedStateAndWindowSizeChanges() {
         seedReviewEntries()
         val restoration = StateRestorationTester(composeTestRule)

@@ -6,6 +6,24 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Link parsed M-PESA fees in History
+
+- **Quality of life:** History adds a Fees filter for parser-created M-PESA fee expenses. Linked
+  charges also appear in the source transaction row; the filter and link only show logged fees,
+  preserving the existing Log M-PESA fees preference.
+- **Tablet feature:** expanded History details show the source transaction's fee and currency,
+  even when search or the type filter omits the separate fee row. The charge is matched by the
+  parser import's `-fee` reference convention.
+- **Parser flow:** deterministic and AI-assisted parsing already extract transaction costs; the
+  reviewed import flow persists enabled costs as separate expenses. This change exposes that
+  existing relation in History without changing storage or parser behavior.
+- **Feature discovery:** updated Settings > What's New release notes and the feature guide, plus
+  README. Community advanced to `2.0.12-community` / code 15.
+- **Verification:** `git diff --check` and static call-site/resource checks passed. Existing parser
+  fixtures cover parsed transaction costs; new unit and History UI regressions cover fee matching,
+  filtering, and tablet details. Gradle checks could not start because `JAVA_HOME` is unset and no
+  `java` executable is available. No emulator was started.
+
 ## 2026-10-12 — Add budget search and tablet budget grids
 
 - **Quality of life:** search budgets by custom name, category, or period using case-insensitive

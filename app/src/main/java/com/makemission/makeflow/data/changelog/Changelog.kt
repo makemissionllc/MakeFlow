@@ -15,13 +15,29 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-12",
         changes = listOf(
+            "Find logged M-PESA charges with the new Fees filter in History",
+            "See an imported M-PESA charge alongside its original transaction in tablet review, even when filters hide the fee row",
+            "See linked M-PESA fees in History rows when fee logging is enabled",
+            "Browse all major workflows and recent additions in the Settings feature guide",
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.11-community",
+        date = "2026-10-12",
+        changes = listOf(
             "Search budgets by custom name or category and clear the search in one tap",
             "See expanded tablet budgets in two columns in portrait and three in landscape",
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.10-community",
+        date = "2026-10-12",
+        changes = listOf(
             "Find accounts quickly by name or currency without changing total net worth",
             "View live account balances and recent transactions side by side on tablets",
             "Keep account selection after resizing, with transfers shown in each account's currency",
             "Clear account search in one tap, select activity notes and references to copy, and edit accounts from the tablet pane",
-            "Browse the feature guide in Settings > What's New alongside all release notes"
+            "Browse a feature guide in Settings > What's New alongside versioned release notes"
         )
     ),
     ChangelogEntry(

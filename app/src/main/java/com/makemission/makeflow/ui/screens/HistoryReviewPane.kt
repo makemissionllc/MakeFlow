@@ -60,6 +60,7 @@ import java.time.format.FormatStyle
 @Composable
 internal fun HistoryReviewPane(
     transaction: TransactionEntity?,
+    feeTransaction: TransactionEntity?,
     accounts: List<AccountEntity>,
     categories: List<CategoryEntity>,
     defaultCurrency: String,
@@ -189,6 +190,13 @@ internal fun HistoryReviewPane(
                                         )
                                         ReviewAmount(entry.amount, account, defaultCurrency)
                                         ReviewField(stringResource(R.string.add_account), account?.name ?: stringResource(R.string.history_unlinked_account))
+                                        if (feeTransaction != null) {
+                                            val feeAccount = accounts.find { it.id == feeTransaction.accountId }
+                                            ReviewField(
+                                                stringResource(R.string.history_mpesa_fee),
+                                                CurrencyFormatter.format(feeTransaction.amount, feeAccount?.currencyCode ?: defaultCurrency)
+                                            )
+                                        }
                                     }
                                     ReviewField(
                                         stringResource(R.string.history_review_date),

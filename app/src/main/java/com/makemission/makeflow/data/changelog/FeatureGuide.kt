@@ -13,11 +13,12 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("History and summaries", listOf(
         "Search notes, amounts, accounts, categories, and references. Combine search with date presets, type, and account focus. Account focus is shared with Home; choose All accounts to clear it.",
-        "Open Summary for matching income, spending, and net change grouped by currency. Transfers and incomplete records are disclosed separately. Swipe an entry to delete it; the brief Undo action restores it."
+        "Use Fees to find parser-imported M-PESA charges. With Log M-PESA fees enabled, History links each charge to its original transaction. Open Summary for matching income, spending, and net change grouped by currency. Transfers and incomplete records are disclosed separately. Swipe an entry to delete it; the brief Undo action restores it."
     )),
     FeatureGuideEntry("Tablet workspaces", listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
         "In expanded Accounts, select an account for its live balance and latest 20 transactions. Transfer in and Transfer out use that account's own amount; unavailable amounts are labelled.",
+        "In expanded History, an M-PESA transaction shows its logged fee beside the original amount, even when the current search or filters hide the separate fee entry.",
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."
     )),
     FeatureGuideEntry("Budgets and savings goals", listOf(
@@ -32,7 +33,7 @@ val featureGuideEntries = listOf(
         "Enable optional weekly finance-review reminders in Settings. Notification permission is required; reminders can be disabled again."
     )),
     FeatureGuideEntry("M-PESA and on-device assistance", listOf(
-        "Share or paste M-PESA messages for review before saving. Community builds also offer an opt-in new-message listener after SMS permission and disclosure; the Play build does not include it.",
+        "Share or paste M-PESA messages for review before saving. Parsed transaction costs are logged as a separate expense when Log M-PESA fees is enabled and linked back in History. Community builds also offer an opt-in new-message listener after SMS permission and disclosure; the Play build does not include it.",
         "Category suggestions use history, corrections, and on-device classification. Supported devices may offer optional Gemini Nano message suggestions, receipt hints, and monthly reflections. Review suggestions before use."
     )),
     FeatureGuideEntry("Insights, reviews, and exports", listOf(

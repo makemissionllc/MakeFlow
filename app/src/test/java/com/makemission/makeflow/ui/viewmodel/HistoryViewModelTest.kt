@@ -219,6 +219,24 @@ class HistoryViewModelTest {
     }
 
     @Test
+    fun feesFilterShowsOnlyLinkedMpesaCostExpenses() = runTest(testDispatcher) {
+        val repo = FakeFinanceRepository()
+        val fee = createTransaction("fee", amount = 22.0, note = "M-PESA transaction cost for ABC123")
+            .copy(externalReference = "ABC123-fee")
+        repo.addTransaction(createTransaction("main", note = "Coffee").copy(externalReference = "ABC123"))
+        repo.addTransaction(fee)
+        repo.addTransaction(createTransaction("other-fee", note = "Other fee").copy(externalReference = "RECEIPT-fee"))
+
+        val viewModel = HistoryViewModel(repo, createTestUserPrefs())
+        val job = launch { viewModel.filteredTransactions.collect {} }
+        viewModel.selectedFilter.value = "FEES"
+        runCurrent()
+
+        assertEquals(listOf("fee"), viewModel.filteredTransactions.value.map { it.id })
+        job.cancel()
+    }
+
+    @Test
     fun datePeriodCombinesWithSearchTypeAndFocusedAccount() = runTest(testDispatcher) {
         val repo = FakeFinanceRepository()
         val now = ZonedDateTime.parse("2026-10-09T12:00:00+03:00[Africa/Nairobi]")

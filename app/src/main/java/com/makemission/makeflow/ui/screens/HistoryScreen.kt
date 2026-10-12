@@ -90,6 +90,7 @@ import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.HistoryPeriod
+import com.makemission.makeflow.domain.MpesaFeeMatcher
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -109,6 +110,7 @@ fun HistoryScreen(
     onEditTransaction: ((TransactionEntity) -> Unit)? = null
 ) {
     val transactions by viewModel.filteredTransactions.collectAsState()
+    val allTransactions by viewModel.transactions.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
@@ -123,6 +125,10 @@ fun HistoryScreen(
     var selectedTransactionId by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedTransaction = transactions.find { it.id == selectedTransactionId }
     val selectedIndex = transactions.indexOfFirst { it.id == selectedTransactionId }
+    val feeByReference = remember(allTransactions) { MpesaFeeMatcher.byOriginalReference(allTransactions) }
+    val selectedFee = selectedTransaction?.externalReference
+        ?.takeUnless { it.endsWith("-fee") }
+        ?.let(feeByReference::get)
 
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -168,6 +174,7 @@ fun HistoryScreen(
                     hapticManager = hapticManager,
                     config = config,
                     transactions = transactions,
+                    feeByReference = feeByReference,
                     accounts = accounts,
                     categories = categories,
                     currencySymbol = currencySymbol,
@@ -189,6 +196,7 @@ fun HistoryScreen(
             Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
                 HistoryReviewPane(
                     transaction = selectedTransaction,
+                    feeTransaction = selectedFee,
                     accounts = accounts,
                     categories = categories,
                     defaultCurrency = selectedCurrency,
@@ -213,6 +221,7 @@ fun HistoryScreen(
             hapticManager = hapticManager,
             config = config,
             transactions = transactions,
+            feeByReference = feeByReference,
             accounts = accounts,
             categories = categories,
             currencySymbol = currencySymbol,
@@ -235,6 +244,7 @@ private fun HistoryListContent(
     hapticManager: HapticManager,
     config: com.makemission.makeflow.ui.components.AdaptiveConfig,
     transactions: List<TransactionEntity>,
+    feeByReference: Map<String, TransactionEntity>,
     accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
     categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
     currencySymbol: String,
@@ -375,7 +385,8 @@ private fun HistoryListContent(
                             Icon(Icons.Outlined.DateRange, contentDescription = stringResource(R.string.history_date_range))
                         }
                     )
-                    listOf("ALL" to R.string.history_all_types, "INCOME" to R.string.add_income, "EXPENSE" to R.string.add_expense)
+                    listOf("ALL" to R.string.history_all_types, "INCOME" to R.string.add_income,
+                        "EXPENSE" to R.string.add_expense, "FEES" to R.string.history_fees)
                         .forEach { (filter, label) ->
                             FilterChip(
                                 selected = selectedFilter == filter,
@@ -500,6 +511,13 @@ private fun HistoryListContent(
                             MaterialTheme.colorScheme.outline
                         }
                         val account = accounts.find { it.id == tx.accountId }
+                        val linkedFee = tx.externalReference?.takeUnless { it.endsWith("-fee") }
+                            ?.let(feeByReference::get)
+                        val feeAccount = linkedFee?.let { fee -> accounts.find { it.id == fee.accountId } }
+                        val feeLabel = linkedFee?.let { fee ->
+                            stringResource(R.string.history_mpesa_fee_amount,
+                                CurrencyFormatter.format(fee.amount, feeAccount?.currencyCode ?: selectedCurrency))
+                        }
                         val accountName = account?.name ?: ""
                         val fromAccount = if (tx.type == "TRANSFER") accounts.find { it.id == tx.fromAccountId } else null
                         val toAccount = if (tx.type == "TRANSFER") accounts.find { it.id == tx.toAccountId } else null
@@ -620,6 +638,10 @@ private fun HistoryListContent(
                                                 if (isNotEmpty()) append(" - ")
                                                 append(tx.note)
                                             }
+                                            feeLabel?.let {
+                                                if (isNotEmpty()) append(" · ")
+                                                append(it)
+                                            }
                                         }
                                         Text(
                                             text = subtitle.ifEmpty { "" },
@@ -670,6 +692,10 @@ private fun HistoryListContent(
                                                 if (tx.note.isNotBlank()) {
                                                     if (isNotEmpty()) append(" - ")
                                                     append(tx.note)
+                                                }
+                                                feeLabel?.let {
+                                                    if (isNotEmpty()) append(" · ")
+                                                    append(it)
                                                 }
                                             }
                                             if (subtitle.isNotEmpty()) {

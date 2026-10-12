@@ -68,6 +68,15 @@
     <string name="add_save_another">Save &amp; add another</string>
     <string name="add_frequent_categories">Frequent categories</string>
     <string name="add_update">Update</string>
+    <string name="update_check_title">Check for app updates</string>
+    <string name="update_check_summary">Check GitHub Releases and download a newer Community version</string>
+    <string name="update_check_started">Checking GitHub for an update. You’ll be notified when one is ready.</string>
+    <string name="update_ready_title">MakeFlow update downloaded</string>
+    <string name="update_ready_body">Version %1$s is ready to install. Tap to continue.</string>
+    <string name="update_install_permission">Allow installs from MakeFlow, then return to finish installing this update.</string>
+    <string name="update_install_permission_denied">Allow MakeFlow to install apps, then tap the update notification again.</string>
+    <string name="update_file_unavailable">This update file is unavailable. Check for updates again.</string>
+    <string name="update_installer_unavailable">Android could not open the package installer for this update.</string>
     <string name="history_date_range">Date range</string>
     <string name="history_all_time">All time</string>
     <string name="history_today">Today</string>

@@ -6,6 +6,31 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Add Community GitHub updates and faster template entry
+
+- **Community app updates:** added automatic GitHub latest-release checks on app start and daily,
+  with a manual Settings action. A newer compatible APK downloads in the background; a notification
+  opens Android's install flow. Checks are limited to non-debug Community installs and do not run
+  for the Play package. The APK package, version, signing certificate, size, and GitHub SHA-256
+  (when supplied) are checked before notification. Android still requires install-source access
+  and final user confirmation.
+- **Release constraint:** GitHub must publish a signed APK whose signing key matches the installed
+  Community app. Incompatible or unsigned APKs are rejected. No signing keys were added to the repo.
+- **Quality of life:** applying a saved transaction template now restores its saved category as
+  well as amount, type, account, and note.
+- **Tablet feature:** expanded transaction forms display saved templates as a two-column quick-pick
+  grid with amounts and account currencies.
+- **Build bug:** fixed the missing `R` import in `BudgetScreen.kt` that caused the three unresolved
+  resource references shown in the attached Android Studio build output.
+- **Search fix:** the unit run caught budget search omitting category IDs; search now checks the
+  category ID alongside its display name, custom budget name, and period.
+- **Feature discovery:** added these changes to Settings > What's New, the feature guide, and README.
+  Community advanced to `2.0.14-community` / code 17; prior `2.0.13-community` notes remain.
+- **Verification:** `git diff --check`, `./gradlew test`, `:app:compileDebugKotlin`, and
+  `:app:compileDebugAndroidTestKotlin` passed. The first test run exposed the category-ID search
+  failure noted above; the rerun passed. ADB could not start its local server in this shell, so
+  no connected-device tests were run and no emulator was started.
+
 ## 2026-10-12 — Simplify repeat transaction entry and add tablet category shortcuts
 
 - **Quality of life:** added Save & add another to the transaction form. After the guarded save

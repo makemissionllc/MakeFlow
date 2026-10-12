@@ -15,18 +15,19 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-12",
         changes = listOf(
-            "Save and start another transaction while keeping the same type, account, and category",
-            "Choose frequently used categories directly from the transaction form on expanded tablet layouts",
-            "Find logged M-PESA charges with the new Fees filter in History",
-            "See an imported M-PESA charge alongside its original transaction in tablet review, even when filters hide the fee row",
-            "See linked M-PESA fees in History rows when fee logging is enabled",
+            "Check GitHub Releases for Community updates, download compatible APKs, and notify you when installation is ready",
+            "Apply saved transaction templates with their category and account restored",
+            "Browse saved transaction templates in a two-column grid on expanded tablets",
+            "Fix budget search resource references that blocked the Kotlin build",
             "Browse all major workflows and recent additions in the Settings feature guide",
         )
     ),
     ChangelogEntry(
-        version = "2.0.12-community",
+        version = "2.0.13-community",
         date = "2026-10-12",
         changes = listOf(
+            "Save and start another transaction while keeping the same type, account, and category",
+            "Choose frequently used categories directly from the transaction form on expanded tablet layouts",
             "Find logged M-PESA charges with the new Fees filter in History",
             "See an imported M-PESA charge alongside its original transaction in tablet review, even when filters hide the fee row",
             "See linked M-PESA fees in History rows when fee logging is enabled",

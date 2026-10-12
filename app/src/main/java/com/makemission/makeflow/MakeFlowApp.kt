@@ -3,6 +3,7 @@ package com.makemission.makeflow
 import android.app.Application
 import android.util.Log
 import com.makemission.makeflow.core.logging.AppLogger
+import com.makemission.makeflow.core.update.GithubAppUpdateScheduler
 import com.makemission.makeflow.data.local.AppDatabase
 import kotlin.system.exitProcess
 
@@ -12,6 +13,7 @@ class MakeFlowApp : Application() {
         super.onCreate()
         val database = AppDatabase.getDatabase(this)
         AppLogger.init(database)
+        GithubAppUpdateScheduler.schedule(this)
         installCrashHandler()
         AppLogger.info("MakeFlowApp", "Application initialized successfully")
     }

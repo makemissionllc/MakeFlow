@@ -10,6 +10,7 @@ val featureGuideEntries = listOf(
     FeatureGuideEntry("Transaction entry", listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
         "Use Save & add another to clear the amount, note, and date while keeping the type, account, and category ready for the next entry. Duplicate checks still apply.",
+        "Applying a saved template restores its saved amount, type, account, category, and note.",
         "Use Log again in the editor to reuse an entry with today's date. Transfers use current available rates. Leaving an unfinished editor or quick-add form offers Keep editing or Discard."
     )),
     FeatureGuideEntry("History and summaries", listOf(
@@ -20,6 +21,7 @@ val featureGuideEntries = listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
         "In expanded Accounts, select an account for its live balance and latest 20 transactions. Transfer in and Transfer out use that account's own amount; unavailable amounts are labelled.",
         "On expanded tablets, choose one of your frequently used categories from the transaction form without opening the category picker.",
+        "Expanded transaction forms show saved templates in a two-column grid with their amount and account currency.",
         "In expanded History, an M-PESA transaction shows its logged fee beside the original amount, even when the current search or filters hide the separate fee entry.",
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."
     )),
@@ -48,6 +50,7 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("Privacy, backup, and preferences", listOf(
         "Finance records are stored locally. JSON backup and restore are user initiated; keep backup and shared statement files private.",
+        "Community builds check GitHub Releases on launch and daily; Check for app updates in Settings starts a manual check. A newer compatible signed APK downloads in the background and notifies you when ready. Android asks you to allow this install source and confirm the update.",
         "Settings includes app lock, light/dark and AMOLED modes, haptic strength, privacy information, and What's New. Setup allows an optional name and skippable tour; motion respects reduced-motion preferences. Some features need permissions or supported device services."
     ))
 )

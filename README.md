@@ -37,7 +37,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   a "Log again" action that reuses transaction details with today's date, and an
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
   "Save & add another" keeps the type, account, and category ready for consecutive entries;
-  expanded tablet transaction forms offer one-tap shortcuts for frequently used categories.
+  saved templates restore their category; expanded tablet forms show frequent categories and
+  saved templates in quick-pick layouts.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
   Filter logged parser-imported M-PESA fees and see each charge beside its source transaction.
@@ -77,7 +78,9 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   until the user opts in.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
   app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
-  skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation.
+  skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation. Community
+  builds check GitHub Releases on launch and daily, download newer compatible APKs, and notify
+  when Android is ready to install an update.
 - **Feature discovery** — Settings > What's New includes versioned release notes and a
   feature guide covering all major workflows, quick-access tools, and tablet workspaces.
 - **Privacy and release** — local finance storage, automatic Android backup disabled,
@@ -90,7 +93,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   `RECEIVE_SMS` permission or SMS receiver.
 - The `community` branch keeps all app features enabled, including the disclosed, opt-in
   M-PESA listener. Build its GitHub APK with `:app:assembleRelease`; its application ID is
-  `com.makemission.makeflow.community`.
+  `com.makemission.makeflow.community`. GitHub updates require a published, signed APK built with
+  the same signing key as the installed app; Android asks the user to allow this source and confirm.
 - Keep Play policy restrictions on the `play` branch. Do not submit the Community artifact
   to Google Play.
 - SMS Retriever is not used for M-PESA: it only returns messages containing this app's

@@ -130,7 +130,8 @@ fun SettingsScreen(
     onRestore: () -> Unit = {},
     onOpenChangelog: () -> Unit = {},
     onOpenPrivacyPolicy: () -> Unit = {},
-    onOpenPermissionSetup: () -> Unit = {}
+    onOpenPermissionSetup: () -> Unit = {},
+    onCheckForUpdates: () -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     val currentCurrency by viewModel.selectedCurrency.collectAsState()
@@ -438,24 +439,37 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version ${BuildConfig.VERSION_NAME}")
                     }
                 }
-                item {
+                if (BuildConfig.APPLICATION_ID == "com.makemission.makeflow.community" && !BuildConfig.DEBUG) item {
                     StaggeredItem(index = 107) {
-                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
+                        SettingsRow(
+                            icon = Icons.Outlined.FileDownload,
+                            title = stringResource(R.string.update_check_title),
+                            subtitle = stringResource(R.string.update_check_summary),
+                            onClick = {
+                                hapticManager?.fire(HapticEvent.NAV_SELECT)
+                                onCheckForUpdates()
+                            }
+                        )
                     }
                 }
                 item {
                     StaggeredItem(index = 108) {
-                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
                     }
                 }
                 item {
                     StaggeredItem(index = 109) {
+                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    }
+                }
+                item {
+                    StaggeredItem(index = 110) {
                         SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
                     }
                 }
                 if (reducedMotion) {
                     item {
-                        StaggeredItem(index = 110) {
+                        StaggeredItem(index = 111) {
                         ReducedMotionRow()
                         }
                     }
@@ -640,18 +654,31 @@ fun SettingsScreen(
                     SettingsRow(icon=Icons.Outlined.Info, title="Mindful Wallet", subtitle="Version ${BuildConfig.VERSION_NAME}")
                     }
                 }
-                item {
+                if (BuildConfig.APPLICATION_ID == "com.makemission.makeflow.community" && !BuildConfig.DEBUG) item {
                     StaggeredItem(index = 23) {
-                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
+                        SettingsRow(
+                            icon = Icons.Outlined.FileDownload,
+                            title = stringResource(R.string.update_check_title),
+                            subtitle = stringResource(R.string.update_check_summary),
+                            onClick = {
+                                hapticManager?.fire(HapticEvent.NAV_SELECT)
+                                onCheckForUpdates()
+                            }
+                        )
                     }
                 }
                 item {
                     StaggeredItem(index = 24) {
-                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
                     }
                 }
                 item {
                     StaggeredItem(index = 25) {
+                        SettingsRow(icon=Icons.Outlined.Info, title="Permission setup", subtitle="Review SMS and notifications access", onClick = onOpenPermissionSetup)
+                    }
+                }
+                item {
+                    StaggeredItem(index = 26) {
                         SettingsRow(icon=Icons.Outlined.Lock, title="Privacy & data", subtitle="How your information is handled", onClick = onOpenPrivacyPolicy)
                     }
                 }

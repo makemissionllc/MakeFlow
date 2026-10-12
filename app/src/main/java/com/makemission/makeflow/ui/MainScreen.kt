@@ -98,6 +98,7 @@ import com.makemission.makeflow.domain.CorrectionRoute
 import com.makemission.makeflow.domain.CorrectionRouter
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.core.notifications.NotificationGate
+import com.makemission.makeflow.core.update.GithubAppUpdateScheduler
 import com.makemission.makeflow.BuildConfig
 import com.makemission.makeflow.data.local.AppDatabase
 import com.makemission.makeflow.domain.AnomalyDetector
@@ -745,6 +746,10 @@ fun MainScreen(
                         onOpenChangelog = { showChangelogScreen = true },
                         onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
                         onOpenPermissionSetup = { showCommunityPermissionSetup = true },
+                        onCheckForUpdates = {
+                            GithubAppUpdateScheduler.checkNow(context)
+                            Toast.makeText(context, R.string.update_check_started, Toast.LENGTH_SHORT).show()
+                        },
                         onDeleteAccount = { account ->
                             savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                                 .let { count ->
@@ -865,6 +870,10 @@ fun MainScreen(
                     onOpenChangelog = { showChangelogScreen = true },
                     onOpenPrivacyPolicy = { showPrivacyPolicyScreen = true },
                     onOpenPermissionSetup = { showCommunityPermissionSetup = true },
+                    onCheckForUpdates = {
+                        GithubAppUpdateScheduler.checkNow(context)
+                        Toast.makeText(context, R.string.update_check_started, Toast.LENGTH_SHORT).show()
+                    },
                     onDeleteAccount = { account ->
                         savingsGoalsViewModel.getActiveGoalCountForAccount(account.id)
                             .let { count ->
@@ -1519,6 +1528,7 @@ private fun OverlayPanels(
     onOpenChangelog: () -> Unit = {},
     onOpenPrivacyPolicy: () -> Unit = {},
     onOpenPermissionSetup: () -> Unit = {},
+    onCheckForUpdates: () -> Unit = {},
     onDeleteAccount: (suspend (AccountEntity) -> String?)? = null
 ) {
     val dimens = LocalAppDimens.current
@@ -1595,7 +1605,8 @@ private fun OverlayPanels(
                 onRestore = onRestore,
                 onOpenChangelog = onOpenChangelog,
                 onOpenPrivacyPolicy = onOpenPrivacyPolicy,
-                onOpenPermissionSetup = onOpenPermissionSetup
+                onOpenPermissionSetup = onOpenPermissionSetup,
+                onCheckForUpdates = onCheckForUpdates
             )
         }
     }

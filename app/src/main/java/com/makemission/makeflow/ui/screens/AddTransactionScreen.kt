@@ -189,6 +189,7 @@ fun AddTransactionScreen(
 
     // === Feature state ===
     var categorySuggestion by remember { mutableStateOf<CategorySuggestion?>(null) }
+    var categorySuggestionSkippedForTemplate by remember { mutableStateOf<Pair<String, String>?>(null) }
     val commitHandler = remember(onCheckDuplicate, onAnomalyCheck, hapticManager) {
         TransactionCommitHandler(onCheckDuplicate, onAnomalyCheck, hapticManager)
     }
@@ -387,6 +388,12 @@ fun AddTransactionScreen(
     }
 
     LaunchedEffect(note, selectedType, smartCategorizationEnabled, correctionMemory, categories, pastTransactions.value) {
+        if (categorySuggestionSkippedForTemplate == (note to selectedType)) {
+            categorySuggestionSkippedForTemplate = null
+            categorySuggestion = null
+            return@LaunchedEffect
+        }
+        categorySuggestionSkippedForTemplate = null
         if (editTransaction != null && note == editTransaction.note && selectedType == editTransaction.type) {
             categorySuggestion = null
             return@LaunchedEffect
@@ -502,6 +509,39 @@ fun AddTransactionScreen(
         } else {
             dismissForm()
         }
+    }
+
+    fun applyTemplate(template: TransactionTemplateEntity) {
+        engine.onClear()
+        val amount = if (template.amount == template.amount.toLong().toDouble()) {
+            template.amount.toLong().toString()
+        } else {
+            template.amount.toString()
+        }
+        amount.forEach { digit ->
+            if (digit == '.') engine.onDecimalPoint() else if (digit.isDigit()) engine.onDigit(digit.digitToInt())
+        }
+        calculatorDisplay = engine.displayValue
+        calculatorRevision++
+        confirmedAmount = null
+
+        val changingType = selectedType != template.type
+        if (changingType) categoryResetSkippedForEdit = true
+        selectedType = template.type
+        selectedAccountId = if (accounts.any { it.id == template.accountId }) template.accountId else selectedAccountId
+        val templateCategory = categories.find { it.id == template.categoryId && it.type == template.type }
+            ?: categories.firstOrNull { it.type == template.type && it.parentCategoryId == null }
+        selectedParentCategory = when {
+            templateCategory == null -> null
+            templateCategory.parentCategoryId == null -> templateCategory
+            else -> categories.find { it.id == templateCategory.parentCategoryId }
+        }
+        selectedChildCategory = templateCategory?.takeIf { it.parentCategoryId != null }
+        categorySuggestion = null
+        categorySuggestionSkippedForTemplate = template.note to template.type
+        note = template.note
+        noteExpanded = template.note.isNotEmpty()
+        hapticManager.fire(HapticEvent.NAV_SELECT)
     }
 
     fun doSave(amount: Double, addAnother: Boolean = false) {
@@ -783,32 +823,52 @@ fun AddTransactionScreen(
             // === Templates (non-edit mode) ===
             if (!isEditMode && templates.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
-                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
-                        templates.forEach { template ->
-                            Text(
-                                text = template.name,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = dimens.textSm,
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
-                                    .clickable {
-                                        engine.onClear()
-                                        val amtStr = if (template.amount == template.amount.toLong().toDouble())
-                                            template.amount.toLong().toString() else template.amount.toString()
-                                        amtStr.forEach { c ->
-                                            if (c == '.') engine.onDecimalPoint()
-                                            else if (c.isDigit()) engine.onDigit(c.digitToInt())
-                                        }
-                                        calculatorDisplay = engine.displayValue
-                                        confirmedAmount = null
-                                        selectedType = template.type
-                                        selectedAccountId = if (accounts.any { it.id == template.accountId })
-                                            template.accountId else selectedAccountId
-                                        note = template.note
+                    if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                        templates.chunked(2).forEach { templateRow ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                                templateRow.forEach { template ->
+                                    val templateCurrency = accounts.firstOrNull { it.id == template.accountId }
+                                        ?.currencyCode ?: currencyCode
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                                            .clickable { applyTemplate(template) }
+                                            .padding(dimens.spacingLarge),
+                                        verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+                                    ) {
+                                        Text(
+                                            text = template.name,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = CurrencyFormatter.format(template.amount, templateCurrency),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
                                     }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
-                            )
+                                }
+                                if (templateRow.size == 1) Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    } else {
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                            templates.forEach { template ->
+                                Text(
+                                    text = template.name,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = dimens.textSm,
+                                    modifier = Modifier
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(dimens.cornerRadiusMedium))
+                                        .clickable { applyTemplate(template) }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                )
+                            }
                         }
                     }
                 }

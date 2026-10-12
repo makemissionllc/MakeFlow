@@ -10,6 +10,7 @@ object NotificationChannels {
     const val CHANNEL_BILL_REMINDERS = "bill_reminders"
     const val CHANNEL_MPESA_IMPORTS = "mpesa_imports"
     const val CHANNEL_FINANCE_REVIEW = "finance_review_reminders"
+    const val CHANNEL_APP_UPDATES = "app_updates"
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -47,6 +48,14 @@ object NotificationChannels {
             description = "Optional reminders to review your finances"
         }
 
-        nm.createNotificationChannels(listOf(budgetChannel, billChannel, mpesaChannel, financeReviewChannel))
+        val appUpdatesChannel = NotificationChannel(
+            CHANNEL_APP_UPDATES,
+            "App updates",
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = "Downloaded MakeFlow Community updates ready to install"
+        }
+
+        nm.createNotificationChannels(listOf(budgetChannel, billChannel, mpesaChannel, financeReviewChannel, appUpdatesChannel))
     }
 }

@@ -77,6 +77,7 @@ import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.BudgetViewModel
 import com.makemission.makeflow.widget.WidgetUpdateHelper
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)

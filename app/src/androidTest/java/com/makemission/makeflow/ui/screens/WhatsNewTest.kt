@@ -79,6 +79,30 @@ class WhatsNewTest {
         rule.onNodeWithText("Updates").performClick().assertIsSelected()
     }
 
+    @Test fun interactiveTourCoversTheGuideAndOpensTransactionEntry() {
+        var transactionEntryOpened = false
+        show(onStartTransactionEntry = { transactionEntryOpened = true })
+        rule.onNodeWithText("Feature guide").performClick()
+        rule.onNodeWithTag("start_interactive_tour").performClick()
+        rule.onNodeWithText("Accounts and currencies").assertIsDisplayed()
+        rule.onNodeWithText("Next").performClick()
+        rule.onNodeWithText("Transaction entry").assertIsDisplayed()
+        rule.onNodeWithText("Try transaction entry").performClick()
+        rule.runOnIdle { assertEquals(true, transactionEntryOpened) }
+    }
+
+    @Test fun expandedTourSelectsTabletTopicsBesideTheirDetails() {
+        show(tablet = true)
+        rule.onNodeWithText("Feature guide").performClick()
+        rule.onNodeWithTag("start_interactive_tour").performClick()
+        rule.onNodeWithText("Tablet workspaces").performClick()
+        rule.onNodeWithTag("tour_step_features").performScrollToNode(
+            hasText("Expanded tablets show a feature list beside animated step details", substring = true)
+        )
+        rule.onNodeWithText("Expanded tablets show a feature list beside animated step details", substring = true)
+            .assertIsDisplayed()
+    }
+
     private fun saveScreenshot(name: String) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val bitmap = rule.onRoot().captureToImage().asAndroidBitmap()
@@ -86,7 +110,8 @@ class WhatsNewTest {
     }
 
     private fun show(tablet: Boolean = false, fontScale: Float = 1f,
-        restoration: StateRestorationTester? = null, onBack: () -> Unit = {}) {
+        restoration: StateRestorationTester? = null, onBack: () -> Unit = {},
+        onStartTransactionEntry: () -> Unit = {}) {
         val content: @androidx.compose.runtime.Composable () -> Unit = {
             DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(
                 if (tablet) DpSize(1200.dp, 900.dp) else DpSize(400.dp, 800.dp)
@@ -96,7 +121,7 @@ class WhatsNewTest {
                         LocalDeviceLayoutMode provides if (tablet) DeviceLayoutMode.EXPANDED else DeviceLayoutMode.COMPACT,
                         LocalAppDimens provides if (tablet) expandedDimens else compactDimens,
                         LocalReducedMotion provides true
-                    ) { ChangelogScreen(onBack) }
+                    ) { ChangelogScreen(onBack, onStartTransactionEntry = onStartTransactionEntry) }
                 }
             }
         }

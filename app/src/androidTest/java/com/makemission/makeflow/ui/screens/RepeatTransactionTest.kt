@@ -7,6 +7,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticManager
@@ -18,6 +20,7 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.DuplicateCheckResult
+import com.makemission.makeflow.domain.CategoryUsage
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -138,6 +141,35 @@ class RepeatTransactionTest {
         composeTestRule.onNodeWithText(
             "Available balance · ${CurrencyFormatter.format(5000.0, "KES")}"
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun frequentCategoryQuickPickIsAvailableOnPhone() {
+        showEditorContent(DeviceLayoutMode.COMPACT) {
+            AddTransactionScreen(
+                onDismiss = {},
+                onSave = { _, _, _, _, _, _, _, _, _ -> },
+                accounts = accounts,
+                categories = listOf(CategoryEntity(id = "food", name = "Food", type = "EXPENSE")),
+                currencyCode = "KES",
+                hapticManager = haptics(),
+                smartCategorizationEnabled = false,
+                onGetCategoryUsages = {
+                    val now = System.currentTimeMillis()
+                    listOf(
+                        CategoryUsage("food", "EXPENSE", now),
+                        CategoryUsage("food", "EXPENSE", now - 1_000),
+                        CategoryUsage("food", "EXPENSE", now - 2_000)
+                    )
+                }
+            )
+        }
+
+        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+            composeTestRule.onAllNodesWithTag("frequent_category_food").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithText("Frequent categories").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("frequent_category_food").assertIsDisplayed()
     }
 
     private fun showEditor(

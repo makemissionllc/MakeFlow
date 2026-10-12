@@ -15,6 +15,9 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-12",
         changes = listOf(
+            "Choose frequent transaction categories directly on phones as well as tablets",
+            "Explore every feature guide section in a hands-on, animated tour from Settings > What's New",
+            "Navigate the feature tour in two panes on expanded tablets",
             "See the selected account's available balance while recording a transaction on expanded tablets",
             "See both account balances while setting up a transfer on expanded tablets",
             "See parser-imported M-PESA charges as distinct fee labels in History",

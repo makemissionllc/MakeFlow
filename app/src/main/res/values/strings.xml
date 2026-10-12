@@ -67,6 +67,15 @@
     <string name="add_save">Save</string>
     <string name="add_save_another">Save &amp; add another</string>
     <string name="add_frequent_categories">Frequent categories</string>
+    <string name="tour_start">Take the interactive tour</string>
+    <string name="tour_start_description">Explore every app feature with a guided, hands-on walkthrough.</string>
+    <string name="tour_title">Interactive tour</string>
+    <string name="tour_step_of">Step %1$d of %2$d</string>
+    <string name="tour_previous">Previous</string>
+    <string name="tour_next">Next</string>
+    <string name="tour_finish">Finish tour</string>
+    <string name="tour_back_to_guide">Back to feature guide</string>
+    <string name="tour_try_transaction">Try transaction entry</string>
     <string name="add_available_balance">Available balance · %1$s</string>
     <string name="add_transfer_balance">%1$s balance · %2$s</string>
     <string name="add_update">Update</string>

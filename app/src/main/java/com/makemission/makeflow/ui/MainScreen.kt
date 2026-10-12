@@ -1013,6 +1013,14 @@ fun MainScreen(
             }
             ChangelogScreen(
                 hapticManager = hapticManager,
+                onStartTransactionEntry = {
+                    showChangelogScreen = false
+                    shortcutPendingType.value = "EXPENSE"
+                    showAddTransaction = true
+                    scope.launch(Dispatchers.IO) {
+                        userPrefDataStore.saveLastSeenChangelogVersion(CURRENT_CHANGELOG_VERSION)
+                    }
+                },
                 onBack = {
                     showChangelogScreen = false
                     scope.launch(Dispatchers.IO) {

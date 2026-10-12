@@ -6,6 +6,26 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Add transaction category shortcuts and an interactive feature tour
+
+- **Quality of life:** frequent transaction categories now appear as quick-pick chips on
+  phones as well as tablets, avoiding an extra category-picker step for common entries.
+- **Tablet feature:** the Settings guided tour uses a two-pane layout on expanded screens,
+  with feature topics beside the selected walkthrough step.
+- **Interactive tutorial:** Settings > What's New now has an animated step-by-step tour
+  covering every Feature Guide section. The transaction step opens the actual expense form
+  so users can try the flow. Step changes use shared motion tokens and honor reduced motion;
+  navigation controls provide haptic feedback.
+- **Feature discovery:** added all three changes to the release notes, feature guide, and
+  README. Community advanced to `2.0.16-community` / code 19.
+- **Verification:** `./gradlew test` passed. `./gradlew connectedAndroidTest` passed all 99
+  instrumented tests on the connected OPPO CPH2745 (Android 16); no emulator was started.
+  An initial incremental build hit a KSP/Kotlin cache flush issue, so checks were rerun in a
+  fresh Gradle process with in-process Kotlin compilation. The first compile found an
+  incorrect Compose animation import, which was fixed. The first UI run exposed a mismatch
+  in the tablet tour test's expected copy; after correcting it, an intermittent destroyed
+  Activity failure appeared in `AccountFocusSheetTest`, then the final full device rerun passed.
+
 ## 2026-10-12 — Smooth selection feedback and fit narrow forms
 
 - **Motion:** transaction type and account selection colors now transition using shared motion

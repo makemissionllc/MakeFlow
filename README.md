@@ -38,7 +38,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
   "Save & add another" keeps the type, account, and category ready for consecutive entries;
   saved templates restore their category, and the surfaced amount display and clearer type selection make entries easier to review before saving.
-  Expanded tablet forms show frequent categories and saved templates in quick-pick layouts,
+  Frequent category chips are available on phones and tablets. Expanded tablet forms show saved templates in quick-pick layouts,
   with current account balances beside the entry controls.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
@@ -85,6 +85,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   when Android is ready to install an update.
 - **Feature discovery** — Settings > What's New includes versioned release notes and a
   feature guide covering all major workflows, quick-access tools, and tablet workspaces.
+  Its interactive animated tour walks through every guide section and opens transaction
+  entry for practice; expanded tablets show the tour's topic list beside the current step.
 - **Privacy and release** — local finance storage, automatic Android backup disabled,
   user-initiated export/restore, in-app privacy policy, and a Play manifest without SMS
   listener access. See `PRIVACY_POLICY.md` and `PLAY_STORE_RELEASE_CHECKLIST.md`.

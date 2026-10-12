@@ -72,6 +72,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -1027,7 +1028,7 @@ fun AddTransactionScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (layoutMode == DeviceLayoutMode.EXPANDED && frequentCategories.isNotEmpty()) {
+                if (frequentCategories.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(dimens.spacingMedium))
                     Text(
                         text = stringResource(R.string.add_frequent_categories),
@@ -1041,6 +1042,7 @@ fun AddTransactionScreen(
                         frequentCategories.forEach { category ->
                             PickerChip(
                                 text = category.name,
+                                modifier = Modifier.testTag("frequent_category_${category.id}"),
                                 emphasized = category.id == resolvedCategoryId,
                                 onClick = {
                                     selectedParentCategory = if (category.parentCategoryId == null) category

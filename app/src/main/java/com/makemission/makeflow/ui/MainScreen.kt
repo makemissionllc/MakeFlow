@@ -1003,6 +1003,7 @@ fun MainScreen(
                 }
             }
             ChangelogScreen(
+                hapticManager = hapticManager,
                 onBack = {
                     showChangelogScreen = false
                     scope.launch(Dispatchers.IO) {

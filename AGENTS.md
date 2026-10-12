@@ -17,6 +17,9 @@ Every coding agent working in this repo **must** read and follow this file, plus
    `./gradlew connectedAndroidTest` (instrumented, needs device). If the environment
    lacks a JDK (`JAVA_HOME` unset, as in some agent sandboxes), say so and do a static
    import/usage cross-check instead of claiming a build passed.
+   Do not start emulators or other device simulation environments. Run instrumented
+   tests only on a connected physical Android device; otherwise compile their sources
+   and report device UI verification as not run.
 5. **Log it.** Append an entry to `Documentation.md` (newest first) for every code
    change, error found, and fix applied.
 6. **Commit + push.** After every edit, commit and push to the current branch unless

@@ -1,181 +1,119 @@
 package com.makemission.makeflow.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.makemission.makeflow.R
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.data.changelog.changelogEntries
-import com.makemission.makeflow.ui.components.CollapsingTopBar
+import com.makemission.makeflow.data.changelog.featureGuideEntries
+import com.makemission.makeflow.ui.components.LocalAdaptiveConfig
+import com.makemission.makeflow.ui.components.PrimaryDockContentInset
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 
 @Composable
-fun ChangelogScreen(onBack: () -> Unit) {
+fun ChangelogScreen(onBack: () -> Unit, hapticManager: HapticManager? = null) {
     val dimens = LocalAppDimens.current
-    val listState = rememberLazyListState()
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
-            contentPadding = PaddingValues(bottom = 32.dp)
-        ) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp)
+    val config = LocalAdaptiveConfig.current
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    val updatesState = rememberLazyListState()
+    val guideState = rememberLazyListState()
+    Surface(color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground) {
+        Box(modifier = Modifier.fillMaxSize().padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())) {
+            Column(modifier = Modifier.align(Alignment.TopCenter).fillMaxHeight()
+                .widthIn(max = dimens.onboardingContentMaxWidth).fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().heightIn(min = config.barHeight)
+                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                    IconButton(onClick = {
+                        hapticManager?.fire(HapticEvent.NAV_SELECT)
+                        onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.whats_new_back))
+                    }
+                    Text(stringResource(R.string.whats_new_title), style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                }
+                TabRow(selectedTabIndex = selectedTab, containerColor = MaterialTheme.colorScheme.background) {
+                    listOf(R.string.whats_new_updates, R.string.whats_new_guide).forEachIndexed { index, label ->
+                        Tab(selected = selectedTab == index, onClick = {
+                            hapticManager?.fire(HapticEvent.TAB_SWITCH)
+                            selectedTab = index
+                        }, text = { Text(stringResource(label)) })
+                    }
+                }
+                LazyColumn(
+                    state = if (selectedTab == 0) updatesState else guideState,
+                    modifier = Modifier.weight(1f).fillMaxWidth().testTag("whats_new_list"),
+                    contentPadding = PaddingValues(start = dimens.paddingLarge, end = dimens.paddingLarge,
+                        top = dimens.paddingLarge, bottom = PrimaryDockContentInset()),
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXLarge)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(26.dp)
-                            )
+                    if (selectedTab == 0) {
+                        items(changelogEntries, key = { it.version }) { entry ->
+                            ChangeSection("v${entry.version}", entry.date, entry.changes)
                         }
-                        Column {
-                            Text(
-                                text = "What's New",
-                                color = MaterialTheme.colorScheme.onSurface,
-                                fontSize = dimens.textXxl,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Latest updates and improvements",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                                fontSize = dimens.textM
-                            )
+                    } else {
+                        items(featureGuideEntries, key = { it.title }) { entry ->
+                            ChangeSection(entry.title, null, entry.features)
                         }
                     }
                 }
-            }
-
-            items(changelogEntries) { entry ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
-                    ) {
-                        Text(
-                            text = "v" + entry.version,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = dimens.textXl,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f))
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = entry.date,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                            fontSize = dimens.textSm,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(Modifier.height(14.dp))
-
-                    entry.changes.forEach { change ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 10.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            Text(
-                                text = "\u2022",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = dimens.textM,
-                                lineHeight = 20.sp,
-                                modifier = Modifier.width(16.dp)
-                            )
-                            Text(
-                                text = change,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                fontSize = dimens.textM,
-                                lineHeight = 20.sp
-                            )
-                        }
-                    }
-                }
-
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
             }
         }
+    }
+}
 
-        CollapsingTopBar(
-            title = "What's New",
-            scrollState = listState,
-            navigationIcon = {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+@Composable
+private fun ChangeSection(title: String, subtitle: String?, changes: List<String>) {
+    val dimens = LocalAppDimens.current
+    Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)) {
+        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.primary)
+        if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        changes.forEach { change ->
+            Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
+                Text("\u2022", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                Text(change, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             }
-        )
+        }
+        HorizontalDivider(modifier = Modifier.padding(top = dimens.spacingMedium))
     }
 }

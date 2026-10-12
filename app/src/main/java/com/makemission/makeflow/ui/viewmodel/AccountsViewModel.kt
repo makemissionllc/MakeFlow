@@ -17,6 +17,7 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.repository.ExchangeRateRepository
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
+import com.makemission.makeflow.domain.AccountActivity
 import java.util.UUID
 
 class AccountsViewModel(
@@ -81,6 +82,10 @@ class AccountsViewModel(
             )
         )
     }
+
+    fun observeAccountActivity(accountId: String) = financeRepository
+        .getTransactionsInRangeForAccount(Long.MIN_VALUE, Long.MAX_VALUE, accountId)
+        .map { AccountActivity.recent(it, accountId) }
 
     suspend fun updateAccount(
         existing: AccountEntity,

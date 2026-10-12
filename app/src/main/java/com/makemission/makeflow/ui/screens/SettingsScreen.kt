@@ -440,7 +440,7 @@ fun SettingsScreen(
                 }
                 item {
                     StaggeredItem(index = 107) {
-                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
                     }
                 }
                 item {
@@ -642,7 +642,7 @@ fun SettingsScreen(
                 }
                 item {
                     StaggeredItem(index = 23) {
-                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="See what has changed", onClick = onOpenChangelog)
+                    SettingsRow(icon=Icons.Outlined.Campaign, title="What's New", subtitle="Updates and feature guide", onClick = onOpenChangelog)
                     }
                 }
                 item {

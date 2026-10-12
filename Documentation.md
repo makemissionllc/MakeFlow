@@ -6,6 +6,43 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Add account search and tablet account activity
+
+- **Quality of life:** Accounts gains case-insensitive, multi-term name/currency search
+  with one-tap clearing, saved across restoration and resizing. Net worth still includes
+  all accounts, not just search matches; legacy currencies follow the selected default.
+- **Tablet feature:** expanded Accounts has live selected-account balances and the latest
+  20 transactions, scrollable separately from the account list. Transfers use source or
+  destination amounts for the selected account, with missing/invalid amounts disclosed.
+  Notes/references are selectable; Edit opens the existing account sheet. Selection is
+  saved by ID and details disappear when deleted or filtered out, avoiding stale entities.
+- **Design:** reused typography/spacing/color tokens, existing reduced-motion-aware
+  counters and row feedback, themed surfaces, and haptic selection/clear/edit feedback.
+  The narrow tablet account list no longer squeezes two account cards into each row.
+- **Release:** Community `2.0.10-community` / code 13. Updated README and in-app changelog.
+  No schema, permission, dependency, or network changes.
+- **Feature discovery:** expanded Settings > What's New into Updates and Feature guide
+  tabs covering all major workflows, recent additions, widget access, tablet workspaces,
+  and permission/device limitations, without making users repeat onboarding. The page
+  uses design tokens, bounded tablet text width, saved tab/scroll state, and haptic feedback.
+- **Verification policy:** per the user's latest instruction, do not start emulators or
+  other device simulation environments. Recorded this in `AGENTS.md`. No emulator is
+  running and no physical device is connected; UI tests will remain unrun. Earlier
+  emulator attempts had ADB authorization issues, resolved with temporary data, but no
+  UI tests completed. A missing temporary data directory was created before retrying.
+  Interrupted build sessions are not treated as successful.
+- **Final checks:** `:app:test` passed all 486 tests (15 new search/activity/guide and
+  release-note checks); `:app:compileDebugAndroidTestKotlin` passed, including 11 new
+  Accounts/What's New UI tests for adaptive layouts, large text, restoration, search,
+  transfer amounts, live updates, and deletion. These UI tests were compiled, not run.
+  `:app:assembleRelease` passed with lint and R8 minification, producing the unsigned
+  Community APK. The initial offline release attempt lacked desktop/JVM lint artifacts;
+  retrying with downloads enabled resolved dependencies without changing library versions
+  or disabling lint. `git diff --check` passed. No visual or physical haptic verification
+  is claimed without a connected device.
+
+---
+
 ## 2026-10-09 — Add History account switching and tablet review controls
 
 - **Quality of life:** choose the shared account focus directly from History using the

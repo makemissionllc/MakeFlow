@@ -13,6 +13,17 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 val changelogEntries = listOf(
     ChangelogEntry(
         version = BuildConfig.VERSION_NAME,
+        date = "2026-10-12",
+        changes = listOf(
+            "Find accounts quickly by name or currency without changing total net worth",
+            "View live account balances and recent transactions side by side on tablets",
+            "Keep account selection after resizing, with transfers shown in each account's currency",
+            "Clear account search in one tap, select activity notes and references to copy, and edit accounts from the tablet pane",
+            "Browse the feature guide in Settings > What's New alongside all release notes"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.9-community",
         date = "2026-10-09",
         changes = listOf(
             "Switch account focus directly in History without losing your search or date filters",

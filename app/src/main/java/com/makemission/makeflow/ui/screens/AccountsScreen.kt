@@ -38,24 +38,30 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
 import com.makemission.makeflow.widget.WidgetUpdateHelper
@@ -75,6 +81,9 @@ import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.viewmodel.AccountsViewModel
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.haptics.HapticEvent
+import com.makemission.makeflow.domain.AccountSearch
+import com.makemission.makeflow.R
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -87,7 +96,7 @@ fun AccountsScreen(
     hapticManager: HapticManager? = null
 ) {
     val dimens = LocalAppDimens.current
-    val accounts by viewModel.accounts.collectAsState()
+    val allAccounts by viewModel.accounts.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
     val unconvertedAccountCount by viewModel.unconvertedAccountCount.collectAsState()
     val selectedCurrency by viewModel.selectedCurrency.collectAsState()
@@ -100,17 +109,30 @@ fun AccountsScreen(
     var showEditAccount by remember { mutableStateOf<AccountEntity?>(null) }
     var accountToDelete by remember { mutableStateOf<AccountEntity?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
-    var selectedAccount by remember { mutableStateOf<AccountEntity?>(null) }
+    var selectedAccountId by rememberSaveable { mutableStateOf<String?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val accounts = remember(allAccounts, searchQuery, selectedCurrency) {
+        AccountSearch.filter(allAccounts, searchQuery, selectedCurrency)
+    }
+    val selectedAccount = accounts.find { it.id == selectedAccountId }
+    val clearSearch = {
+        hapticManager?.fire(HapticEvent.NAV_SELECT)
+        searchQuery = ""
+    }
     val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(accounts) {
+    LaunchedEffect(allAccounts) {
         WidgetUpdateHelper.updateWidgets(context)
     }
 
     if (layoutMode == DeviceLayoutMode.COMPACT) {
         AccountsCompactLayout(
             accounts = accounts,
+            hasAccounts = allAccounts.isNotEmpty(),
+            searchQuery = searchQuery,
+            onSearchChange = { searchQuery = it },
+            onClearSearch = clearSearch,
             selectedCurrency = selectedCurrency,
             exchangeRates = exchangeRates,
             totalBalance = totalBalance,
@@ -122,7 +144,7 @@ fun AccountsScreen(
             onOpenExchangeRates = onOpenExchangeRates,
             hapticManager = hapticManager
         )
-    } else if (layoutMode == DeviceLayoutMode.EXPANDED && accounts.isNotEmpty()) {
+    } else if (layoutMode == DeviceLayoutMode.EXPANDED) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
@@ -174,55 +196,34 @@ fun AccountsScreen(
                         }
                         }
                     }
-                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
-                        val chunked = accounts.chunked(2)
-                        itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
-                            StaggeredItem(index = index + 2) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(config.cardSpacing)
+                    item { AccountSearchField(searchQuery, { searchQuery = it }, clearSearch) }
+                    if (accounts.isEmpty()) {
+                        item { Text(stringResource(if (allAccounts.isEmpty()) R.string.accounts_empty else R.string.accounts_no_matches),
+                            style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                    itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
+                        StaggeredItem(index = index + 2) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().testTag("account_${account.id}")
+                                    .semantics { selected = selectedAccountId == account.id }
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(if (selectedAccountId == account.id) MaterialTheme.colorScheme.secondaryContainer
+                                        else MaterialTheme.colorScheme.surfaceContainer)
+                                    .pressScale().combinedClickable(onClick = {
+                                        hapticManager?.fire(HapticEvent.NAV_SELECT)
+                                        selectedAccountId = account.id
+                                        showEditAccount = null
+                                    }, onLongClick = {
+                                        hapticManager?.fire(HapticEvent.NAV_SELECT)
+                                        accountToDelete = account
+                                    })
+                                    .padding(dimens.paddingMedium),
+                                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
                             ) {
-                                chunk.forEach { account ->
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
-                                        CardContainer {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ selectedAccount = account; showEditAccount = null }, onLongClick={ accountToDelete = account }),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
-                                                Spacer(Modifier.width(14.dp))
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                                    Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
-                                                }
-                                                Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
-                                            }
-                                        }
-                                    }
-                                }
-                                if (chunk.size == 1) { Spacer(modifier = Modifier.weight(1f)) }
-                            }
-                            }
-                        }
-                    } else {
-                        itemsIndexed(accounts, key = { _, account -> account.id }) { index, account ->
-                            val dotColor = try { Color(android.graphics.Color.parseColor(account.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
-                            StaggeredItem(index = index + 2) {
-                            CardContainer {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().pressScale().combinedClickable(onClick={ selectedAccount = account; showEditAccount = null }, onLongClick={ accountToDelete = account }),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(Modifier.size(14.dp).clip(CircleShape).background(dotColor, CircleShape))
-                                    Spacer(Modifier.width(14.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(account.name, style=MaterialTheme.typography.bodyLarge, color=MaterialTheme.colorScheme.onSurface)
-                                        Text("Initial: ${CurrencyFormatter.format(account.initialBalance, account.currencyCode ?: selectedCurrency)}", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurface.copy(alpha=0.5f))
-                                    }
-                                    Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency), style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurface, textAlign=TextAlign.End)
-                                }
-                            }
+                                Text(account.name, style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text(CurrencyFormatter.format(account.balance, account.currencyCode ?: selectedCurrency),
+                                    style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                             }
                         }
                     }
@@ -254,64 +255,22 @@ fun AccountsScreen(
                     }
                 )
             }
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
-            )
+            VerticalDivider(modifier = Modifier.fillMaxHeight())
             Box(modifier = Modifier.weight(0.6f).fillMaxHeight()) {
-                if (selectedAccount != null) {
-                    val acct = selectedAccount!!
-                    val dotColor = try { Color(android.graphics.Color.parseColor(acct.colorHex)) } catch (_: Exception) { LocalMakeFlowColors.current.colorSuccess }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(
-                                top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight + 8.dp,
-                                start = 24.dp, end = 24.dp
-                            )
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            Text(
-                                text = "Account Details",
-                                style = MaterialTheme.typography.titleLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(dotColor, CircleShape)
-                            )
-                            Text(
-                                text = acct.name,
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = CurrencyFormatter.format(acct.balance, acct.currencyCode ?: selectedCurrency),
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Initial balance: ${CurrencyFormatter.format(acct.initialBalance, acct.currencyCode ?: selectedCurrency)}",
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
+                key(selectedAccount?.id) {
+                    val activityFlow = remember(selectedAccount?.id, viewModel) {
+                        selectedAccount?.let { viewModel.observeAccountActivity(it.id) }
+                            ?: kotlinx.coroutines.flow.flowOf(emptyList())
                     }
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Select an account to see details",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
+                    val activity by activityFlow.collectAsState(initial = null)
+                    AccountActivityPane(
+                        account = selectedAccount,
+                        activity = activity,
+                        defaultCurrency = selectedCurrency,
+                        topPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding() + config.barHeight,
+                        onEdit = { hapticManager?.fire(HapticEvent.NAV_SELECT); showEditAccount = selectedAccount },
+                        onClear = { hapticManager?.fire(HapticEvent.NAV_SELECT); selectedAccountId = null }
+                    )
                 }
             }
         }
@@ -321,7 +280,7 @@ fun AccountsScreen(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            if (accounts.isEmpty()) {
+            if (allAccounts.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -398,6 +357,11 @@ fun AccountsScreen(
                         }
                     }
 
+                    item { AccountSearchField(searchQuery, { searchQuery = it }, clearSearch) }
+                    if (accounts.isEmpty()) {
+                        item { Text(stringResource(R.string.accounts_no_matches), style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
                     if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
                         val chunked = accounts.chunked(2)
                         itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
@@ -567,6 +531,10 @@ fun AccountsScreen(
 @OptIn(ExperimentalFoundationApi::class)
 private fun AccountsCompactLayout(
     accounts: List<AccountEntity>,
+    hasAccounts: Boolean,
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    onClearSearch: () -> Unit,
     selectedCurrency: String,
     exchangeRates: List<ExchangeRateEntity>,
     totalBalance: Double,
@@ -653,6 +621,7 @@ private fun AccountsCompactLayout(
                     )
                 }
             }
+            item { AccountSearchField(searchQuery, onSearchChange, onClearSearch) }
             if (accounts.isEmpty()) {
                 item {
                     Column(
@@ -665,7 +634,7 @@ private fun AccountsCompactLayout(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "No accounts yet",
+                            text = if (hasAccounts) stringResource(R.string.accounts_no_matches) else "No accounts yet",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

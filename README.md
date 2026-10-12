@@ -28,7 +28,10 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 
 ## App features
 
-- **Accounts** — multiple accounts with per-account currency, balances, guarded delete.
+- **Accounts** — multiple accounts with per-account currency, balances, guarded delete,
+  and name/currency search that leaves total net worth unchanged. Expanded tablet windows
+  show live account details and the latest 20 transactions, with account-specific transfer
+  amounts, selectable notes/references, and selection retained across resizing/restoration.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts,
   a "Log again" action that reuses transaction details with today's date, and an
@@ -70,6 +73,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
   app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
   skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation.
+- **Feature discovery** — Settings > What's New includes versioned release notes and a
+  feature guide covering all major workflows, quick-access tools, and tablet workspaces.
 - **Privacy and release** — local finance storage, automatic Android backup disabled,
   user-initiated export/restore, in-app privacy policy, and a Play manifest without SMS
   listener access. See `PRIVACY_POLICY.md` and `PLAY_STORE_RELEASE_CHECKLIST.md`.

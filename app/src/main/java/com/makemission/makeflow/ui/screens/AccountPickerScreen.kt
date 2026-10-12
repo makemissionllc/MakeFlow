@@ -1,6 +1,7 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +30,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +43,9 @@ import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.theme.LocalAppDimens
+import com.makemission.makeflow.core.device.LocalReducedMotion
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
+import com.makemission.makeflow.ui.theme.OverlayTransition
 
 @Composable
 fun AccountPickerScreen(
@@ -50,6 +56,7 @@ fun AccountPickerScreen(
     onBack: () -> Unit
 ) {
     val dimens = LocalAppDimens.current
+    val reducedMotion = LocalReducedMotion.current
     BackHandler(onBack = onBack)
 
     Column(
@@ -91,21 +98,49 @@ fun AccountPickerScreen(
                 val isSelected = account.id == selectedAccountId
                 val cardShape = RoundedCornerShape(dimens.shapeCornerMedium)
                 val accountCurrency = account.currencyCode?.takeIf(String::isNotBlank) ?: currencyCode
+                val selectionAnimation = if (reducedMotion) OverlayTransition.reducedColor
+                    else LocalExpressiveMotion.current.colorAnimationSpec
+                val cardColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surfaceContainerLow,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionSurface"
+                )
+                val borderColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionBorder"
+                )
+                val avatarColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionAvatar"
+                )
+                val avatarContentColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionAvatarContent"
+                )
+                val accountNameColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurface,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionName"
+                )
+                val accountDetailsColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = selectionAnimation,
+                    label = "accountSelectionDetails"
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(cardShape)
-                        .background(
-                            if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                        .then(
-                            if (isSelected) Modifier.border(
-                                dimens.spacingXSmall,
-                                MaterialTheme.colorScheme.primary,
-                                cardShape
-                            ) else Modifier
-                        )
+                        .background(cardColor)
+                        .border(dimens.spacingXSmall, borderColor, cardShape)
                         .pressScale()
                         .selectable(
                             selected = isSelected,
@@ -120,15 +155,12 @@ fun AccountPickerScreen(
                         modifier = Modifier
                             .size(dimens.avatarSize)
                             .clip(CircleShape)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.surfaceContainerHigh
-                            ),
+                            .background(avatarColor),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = account.name.take(1).uppercase(),
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = avatarContentColor,
                             fontWeight = FontWeight.Bold,
                             fontSize = dimens.textXl
                         )
@@ -137,14 +169,14 @@ fun AccountPickerScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = account.name,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+                            color = accountNameColor,
                             style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = CurrencyFormatter.format(account.balance, accountCurrency),
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = accountDetailsColor,
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }

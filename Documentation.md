@@ -6,6 +6,22 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Smooth selection feedback and fit narrow forms
+
+- **Motion:** transaction type and account selection colors now transition using shared motion
+  tokens; reduced-motion mode uses the immediate color spec. Screen-level transitions already
+  used the shared adaptive overlay specs.
+- **Alignment:** quick transaction, budget, and recurring-payment amount fields now shrink to
+  available row width, with a shared maximum-width dimension and display text token.
+- **Build cleanup:** removed redundant always-true edit checks from the quick transaction sheet.
+  The first compile caught a missing Compose state delegate import in the account picker; the import
+  was added and the follow-up compile passed.
+- **Feature discovery:** added the selection feedback and responsive amount field behavior to the
+  current release notes and Settings feature guide.
+- **Verification:** `./gradlew test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed. `./gradlew connectedAndroidTest` passed all 96 instrumented tests on the connected OPPO
+  CPH2745 (Android 16). No emulator was started.
+
 ## 2026-10-12 — Polish transaction entry, history, and tablet balances
 
 - **Transaction entry:** styled the selected income/expense/transfer choice with the primary

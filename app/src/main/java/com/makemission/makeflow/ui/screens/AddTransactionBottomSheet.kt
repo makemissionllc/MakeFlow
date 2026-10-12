@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -493,7 +494,7 @@ fun AddTransactionBottomSheet(
                             innerTextField()
                         }
                     },
-                    modifier = Modifier.width(200.dp)
+                    modifier = Modifier.widthIn(max = dimens.amountInputMaxWidth).weight(1f)
                 )
             }
 
@@ -860,7 +861,7 @@ fun AddTransactionBottomSheet(
                     scope.launch {
                         val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
                         val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
-                        if (isEditMode && onUpdate != null && editTransaction != null) {
+                        if (isEditMode && onUpdate != null) {
                             val updatedEntity = editTransaction.copy(
                                 amount = amount,
                                 type = selectedType,
@@ -872,7 +873,7 @@ fun AddTransactionBottomSheet(
                                 timestamp = selectedDate,
                                 destinationAmount = transferDestinationAmount
                             )
-                            if (commitHandler != null && editTransaction != null) {
+                            if (commitHandler != null) {
                                 commitHandler.update(entity = updatedEntity, originalTransaction = editTransaction) {
                                     onUpdate(it)
                                 }

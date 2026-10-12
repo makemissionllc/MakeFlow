@@ -27,6 +27,7 @@ data class AppDimens(
     val avatarSize: Dp = 44.dp,
     val transactionRowMinHeight: Dp = 64.dp,
     val dashboardMeterWidth: Dp = 100.dp,
+    val amountInputMaxWidth: Dp = 200.dp,
     val onboardingContentMaxWidth: Dp = 640.dp,
     val navbarHeight: Dp = 68.dp,
     val navbarFabSize: Dp = 56.dp,

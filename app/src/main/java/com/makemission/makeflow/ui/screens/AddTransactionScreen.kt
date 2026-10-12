@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -97,6 +98,7 @@ import com.makemission.makeflow.domain.AnomalyResult
 import com.makemission.makeflow.domain.AnomalySeverity
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.components.FittedAmountText
 import com.makemission.makeflow.domain.CalculatorEngine
@@ -890,9 +892,21 @@ fun AddTransactionScreen(
                     stringResource(R.string.add_transfer) to "TRANSFER"
                 ).forEach { (label, value) ->
                     val isSelected = selectedType == value
+                    val segmentBackground by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+                            else LocalExpressiveMotion.current.colorAnimationSpec,
+                        label = "transactionTypeBackground"
+                    )
+                    val segmentContent by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+                            else LocalExpressiveMotion.current.colorAnimationSpec,
+                        label = "transactionTypeContent"
+                    )
                     Text(
                         text = label,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = segmentContent,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -900,7 +914,7 @@ fun AddTransactionScreen(
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(dimens.shapeCornerPill))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                segmentBackground,
                                 RoundedCornerShape(dimens.shapeCornerPill)
                             )
                             .clickable {

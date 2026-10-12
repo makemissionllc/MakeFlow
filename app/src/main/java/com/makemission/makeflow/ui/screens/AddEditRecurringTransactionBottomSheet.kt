@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -156,7 +157,7 @@ fun AddEditRecurringTransactionBottomSheet(
             Text(
                 text = currencySymbol,
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 32.sp,
+                fontSize = dimens.textDisplayLarge,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.width(dimens.spacingMedium))
@@ -169,7 +170,7 @@ fun AddEditRecurringTransactionBottomSheet(
                 },
                 textStyle = TextStyle(
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 32.sp,
+                    fontSize = dimens.textDisplayLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 ),
@@ -182,14 +183,14 @@ fun AddEditRecurringTransactionBottomSheet(
                             Text(
                                 text = "0.00",
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                fontSize = 32.sp,
+                                fontSize = dimens.textDisplayLarge,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                         innerTextField()
                     }
                 },
-                modifier = Modifier.width(200.dp)
+                modifier = Modifier.widthIn(max = dimens.amountInputMaxWidth).weight(1f)
             )
         }
 

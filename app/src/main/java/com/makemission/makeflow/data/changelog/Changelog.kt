@@ -20,6 +20,8 @@ val changelogEntries = listOf(
             "See parser-imported M-PESA charges as distinct fee labels in History",
             "Show account-specific currencies and a clear selection state in account pickers",
             "Give the amount display a surfaced card and make the selected transaction type easier to scan",
+            "Animate transaction type and account selection changes, respecting reduced-motion settings",
+            "Let amount fields fit narrow layouts instead of forcing a fixed width",
             "Repair the version 13 to 14 database upgrade for older category tables",
             "Browse all major workflows and recent additions in the Settings feature guide",
         )

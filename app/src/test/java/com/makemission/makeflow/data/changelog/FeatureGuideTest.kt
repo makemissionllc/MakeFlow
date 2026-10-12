@@ -15,7 +15,7 @@ class FeatureGuideTest {
 
     @Test fun guideCoversEveryMajorWorkflow() {
         assertEquals(setOf("Accounts and currencies", "Transaction entry", "History and summaries",
-            "Tablet workspaces", "Budgets and savings goals", "Recurring payments and reminders",
+            "Tablet workspaces", "Budgets and savings goals", "Tablet budget workspace", "Recurring payments and reminders",
             "M-PESA and on-device assistance", "Insights, reviews, and exports", "Widgets and quick access",
             "Privacy, backup, and preferences"), featureGuideEntries.map { it.title }.toSet())
     }

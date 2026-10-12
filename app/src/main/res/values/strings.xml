@@ -92,6 +92,9 @@
     <string name="whats_new_guide">Feature guide</string>
     <string name="whats_new_back">Back</string>
     <string name="accounts_search_clear">Clear account search</string>
+    <string name="budget_search">Search budgets or categories</string>
+    <string name="budget_search_clear">Clear budget search</string>
+    <string name="budget_no_matches">No matching budgets</string>
     <string name="accounts_no_matches">No matching accounts</string>
     <string name="accounts_empty">No accounts yet</string>
     <string name="accounts_activity">Account activity</string>

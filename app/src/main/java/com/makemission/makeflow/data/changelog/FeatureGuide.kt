@@ -21,8 +21,11 @@ val featureGuideEntries = listOf(
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."
     )),
     FeatureGuideEntry("Budgets and savings goals", listOf(
-        "Set category budgets, track spending progress, and review suggestions and spending alerts.",
+        "Search budgets by custom name or category, track spending progress, and review suggestions and spending alerts. Clear search to restore every budget.",
         "Create savings goals, link accounts, and review feasibility estimates and spending trade-offs. Estimates depend on your recorded activity."
+    )),
+    FeatureGuideEntry("Tablet budget workspace", listOf(
+        "Expanded tablet layouts show budgets in two columns in portrait and three in landscape, so more limits stay visible together."
     )),
     FeatureGuideEntry("Recurring payments and reminders", listOf(
         "Create recurring income or expenses, edit schedules, and pause or resume rules. Due entries are processed by the app.",

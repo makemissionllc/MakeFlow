@@ -15,6 +15,8 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-12",
         changes = listOf(
+            "Search budgets by custom name or category and clear the search in one tap",
+            "See expanded tablet budgets in two columns in portrait and three in landscape",
             "Find accounts quickly by name or currency without changing total net worth",
             "View live account balances and recent transactions side by side on tablets",
             "Keep account selection after resizing, with transfers shown in each account's currency",

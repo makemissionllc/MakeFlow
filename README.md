@@ -50,7 +50,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   reviewed before use. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` for the release decision.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
-- **Budgets** — per-category budgets with suggestion engine, forecaster, spending velocity alerts.
+- **Budgets** — search by budget name or category; per-category limits with suggestion engine,
+  forecaster, spending velocity alerts, and expanded tablet grids that adapt to portrait and landscape.
 - **Savings goals** — targets, linked accounts, feasibility analysis with trade-off suggestions.
 - **Recurring** — rules with due/overdue processing plus auto-detected patterns from history.
 - **Insights** — trends, forecasts, seasonality, anomalies, frugal streaks, savings capacity,

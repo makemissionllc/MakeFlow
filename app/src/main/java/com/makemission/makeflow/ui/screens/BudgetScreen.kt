@@ -26,11 +26,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Search
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,11 +43,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,6 +69,7 @@ import com.makemission.makeflow.ui.components.AnimatedDoodle
 import com.makemission.makeflow.ui.components.StaggeredItem
 import com.makemission.makeflow.ui.verticalFadingEdge
 import com.makemission.makeflow.data.local.entity.BudgetEntity
+import com.makemission.makeflow.domain.BudgetSearch
 import com.makemission.makeflow.domain.BudgetSuggestion
 import com.makemission.makeflow.domain.SuggestionReason
 import com.makemission.makeflow.ui.theme.LocalAppDimens
@@ -127,6 +133,8 @@ fun BudgetScreen(
     var showAddBudget by remember { mutableStateOf(false) }
     var editingBudget by remember { mutableStateOf<BudgetEntity?>(null) }
     var budgetToDelete by remember { mutableStateOf<BudgetEntity?>(null) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val visibleBudgets = remember(budgets, searchQuery) { BudgetSearch.filter(budgets, searchQuery) }
     val scope = rememberCoroutineScope()
 
     var lastDockAddRequest by remember { mutableStateOf(dockAddRequest) }
@@ -195,11 +203,37 @@ fun BudgetScreen(
                     if (!isPrimaryDestination) {
                         item { LargeTitleItem(title = "Budget", scrollState = listState) }
                     }
-                    item { MonthlyBudgetOverview(budgets, selectedCurrency) }
-                    item { BudgetWarningNotice(budgets) }
-                    if (config.layoutMode != DeviceLayoutMode.COMPACT && config.isLandscape) {
-                        val columns = if (config.layoutMode == DeviceLayoutMode.EXPANDED) 3 else 2
-                        val chunked = budgets.chunked(columns)
+                    item {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(R.string.budget_search)) },
+                            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = {
+                                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                                        searchQuery = ""
+                                    }) {
+                                        Icon(Icons.Rounded.Close, contentDescription = stringResource(R.string.budget_search_clear))
+                                    }
+                                }
+                            },
+                            singleLine = true,
+                            shape = MaterialTheme.shapes.large
+                        )
+                    }
+                    if (visibleBudgets.isEmpty()) {
+                        item { Text(stringResource(R.string.budget_no_matches), style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    }
+                    item { MonthlyBudgetOverview(visibleBudgets, selectedCurrency) }
+                    item { BudgetWarningNotice(visibleBudgets) }
+                    if (config.layoutMode == DeviceLayoutMode.EXPANDED ||
+                        (config.layoutMode == DeviceLayoutMode.MEDIUM && config.isLandscape)) {
+                        val columns = if (config.layoutMode == DeviceLayoutMode.EXPANDED && config.isLandscape) 3 else 2
+                        val chunked = visibleBudgets.chunked(columns)
                         itemsIndexed(chunked, key = { _, chunk -> chunk.map { it.id }.joinToString() }) { index, chunk ->
                             StaggeredItem(index = index + 1) {
                             Row(
@@ -234,7 +268,7 @@ fun BudgetScreen(
                             }
                         }
                     } else {
-                        itemsIndexed(budgets, key = { _, budget -> budget.id }) { index, budget ->
+                        itemsIndexed(visibleBudgets, key = { _, budget -> budget.id }) { index, budget ->
                             StaggeredItem(index = index + 1) {
                             val suggestion = suggestionsByCategory[budget.categoryId]
                             if (suggestion != null) {

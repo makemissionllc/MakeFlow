@@ -6,6 +6,19 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Add budget search and tablet budget grids
+
+- **Quality of life:** search budgets by custom name, category, or period using case-insensitive
+  multi-term matching; clear in one tap. The monthly overview and warning follow the visible results.
+- **Tablet feature:** expanded windows show budget cards in two columns in portrait and three in
+  landscape; medium landscape retains its two-column layout. Phone and medium portrait stay in a list.
+- **Feature discovery:** added both improvements to What's New and its feature guide. The guide
+  continues to cover every major workflow and recent addition. README now notes budget search and
+  responsive tablet grids. Release advanced to Community `2.0.11-community` / code 14.
+- **Verification:** `git diff --check` passed. Gradle unit and Kotlin compile checks could not
+  start because `JAVA_HOME` is unset and no `java` executable is available. No emulator was
+  started; tablet UI behavior was not device-verified.
+
 ## 2026-10-12 — Add account search and tablet account activity
 
 - **Quality of life:** Accounts gains case-insensitive, multi-term name/currency search

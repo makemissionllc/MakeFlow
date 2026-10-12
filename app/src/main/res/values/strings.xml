@@ -67,6 +67,8 @@
     <string name="add_save">Save</string>
     <string name="add_save_another">Save &amp; add another</string>
     <string name="add_frequent_categories">Frequent categories</string>
+    <string name="add_available_balance">Available balance · %1$s</string>
+    <string name="add_transfer_balance">%1$s balance · %2$s</string>
     <string name="add_update">Update</string>
     <string name="update_check_title">Check for app updates</string>
     <string name="update_check_summary">Check GitHub Releases and download a newer Community version</string>

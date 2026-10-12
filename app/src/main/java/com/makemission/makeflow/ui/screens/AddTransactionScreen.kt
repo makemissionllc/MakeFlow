@@ -270,7 +270,6 @@ fun AddTransactionScreen(
             .take(4)
             .mapNotNull { ranked -> categories.find { it.id == ranked.categoryId } }
     }
-
     // === Calculator engine ===
     val engine = remember {
         val e = CalculatorEngine()
@@ -893,7 +892,7 @@ fun AddTransactionScreen(
                     val isSelected = selectedType == value
                     Text(
                         text = label,
-                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -901,7 +900,7 @@ fun AddTransactionScreen(
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(dimens.shapeCornerPill))
                             .background(
-                                if (isSelected) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                                 RoundedCornerShape(dimens.shapeCornerPill)
                             )
                             .clickable {
@@ -922,8 +921,13 @@ fun AddTransactionScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingMedium),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+                    verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
                 ) {
                     calculatorExpression?.let { expression ->
                         Text(
@@ -959,6 +963,33 @@ fun AddTransactionScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = if (receivedAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.add_transfer_balance,
+                                stringResource(R.string.add_from),
+                                CurrencyFormatter.format(fromAccountForAmount?.balance ?: 0.0, amountCurrencyCode)
+                            ),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.add_transfer_balance,
+                                stringResource(R.string.add_to),
+                                CurrencyFormatter.format(toAccountForAmount?.balance ?: 0.0, destinationCurrencyCode)
+                            ),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             } else {
                 val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: stringResource(R.string.add_category)
                 val isSmartPick = resolvedCategoryId != null && categorySuggestion?.categoryId == resolvedCategoryId
@@ -971,6 +1002,16 @@ fun AddTransactionScreen(
                         showCategoryPicker = true
                     }
                     PickerChip("${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
+                }
+                if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                    Text(
+                        text = stringResource(
+                            R.string.add_available_balance,
+                            CurrencyFormatter.format(fromAccountForAmount?.balance ?: 0.0, amountCurrencyCode)
+                        ),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 if (layoutMode == DeviceLayoutMode.EXPANDED && frequentCategories.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(dimens.spacingMedium))
@@ -1149,7 +1190,7 @@ fun AddTransactionScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(dimens.spacingXLarge))
         }
 
         // === Save button (fixed at bottom) ===

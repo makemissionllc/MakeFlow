@@ -1,11 +1,14 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import org.junit.Rule
 import org.junit.Test
 import java.util.UUID
@@ -17,7 +20,7 @@ class PickerScreenTest {
 
     private val accounts = listOf(
         AccountEntity(id = "a1", name = "Cash", balance = 500.0, initialBalance = 0.0),
-        AccountEntity(id = "a2", name = "Bank", balance = 1000.0, initialBalance = 0.0),
+        AccountEntity(id = "a2", name = "Bank", balance = 1000.0, initialBalance = 0.0, currencyCode = "USD"),
         AccountEntity(id = "a3", name = "M-Pesa", balance = 200.0, initialBalance = 0.0)
     )
 
@@ -43,7 +46,7 @@ class PickerScreenTest {
             AccountPickerScreen(
                 accounts = accounts,
                 selectedAccountId = "a1",
-                currencyCode = "KSH",
+                currencyCode = "KES",
                 onAccountSelected = {},
                 onBack = {}
             )
@@ -52,6 +55,7 @@ class PickerScreenTest {
         accounts.forEach { account ->
             composeTestRule.onNodeWithText(account.name).assertIsDisplayed()
         }
+        composeTestRule.onNodeWithTag("account_picker_a1").assertIsSelected()
     }
 
     @Test
@@ -60,15 +64,15 @@ class PickerScreenTest {
             AccountPickerScreen(
                 accounts = accounts,
                 selectedAccountId = "a1",
-                currencyCode = "KSH",
+                currencyCode = "KES",
                 onAccountSelected = {},
                 onBack = {}
             )
         }
 
-        composeTestRule.onNodeWithText("KSh 500.00").assertIsDisplayed()
-        composeTestRule.onNodeWithText("KSh 1,000.00").assertIsDisplayed()
-        composeTestRule.onNodeWithText("KSh 200.00").assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.format(500.0, "KES")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.format(1000.0, "USD")).assertIsDisplayed()
+        composeTestRule.onNodeWithText(CurrencyFormatter.format(200.0, "KES")).assertIsDisplayed()
     }
 
     @Test
@@ -80,7 +84,7 @@ class PickerScreenTest {
                 selectedCategoryId = null,
                 accounts = accounts,
                 selectedAccountId = null,
-                currencyCode = "KSH",
+                currencyCode = "KES",
                 onItemSelected = {},
                 onBack = {}
             )
@@ -102,7 +106,7 @@ class PickerScreenTest {
                 selectedCategoryId = null,
                 accounts = accounts,
                 selectedAccountId = null,
-                currencyCode = "KSH",
+                currencyCode = "KES",
                 onItemSelected = {},
                 onBack = {}
             )
@@ -123,7 +127,7 @@ class PickerScreenTest {
                 selectedCategoryId = null,
                 accounts = accounts,
                 selectedAccountId = null,
-                currencyCode = "KSH",
+                currencyCode = "KES",
                 onItemSelected = {},
                 onBack = {}
             )

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.FontScale
 import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -177,7 +178,7 @@ class AccountsWorkflowTest {
         rule.onNodeWithText("Updated transfer").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("+" + CurrencyFormatter.format(1700.0, "KES")).assertIsDisplayed()
         rule.onNodeWithContentDescription("Edit account").performClick()
-        rule.onNodeWithText("Updated bank").assertIsDisplayed()
+        rule.onNodeWithTag("account_edit_name_input").assertTextEquals("Updated bank")
         rule.onNodeWithContentDescription("Close").performClick()
         runBlocking { repository.deleteTransaction(transfer.copy(destinationAmount = 1700.0, note = "Updated transfer")) }
         rule.onNodeWithText("No transactions in this account yet").performScrollTo().assertIsDisplayed()

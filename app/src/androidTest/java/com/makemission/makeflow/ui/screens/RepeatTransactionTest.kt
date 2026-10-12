@@ -1,14 +1,18 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.haptics.HapticStrength
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.ExchangeRateEntity
@@ -127,34 +131,68 @@ class RepeatTransactionTest {
         }
     }
 
+    @Test
+    fun expandedTransactionEntryShowsSelectedAccountBalance() {
+        showNewEntry()
+
+        composeTestRule.onNodeWithText(
+            "Available balance · ${CurrencyFormatter.format(5000.0, "KES")}"
+        ).assertIsDisplayed()
+    }
+
     private fun showEditor(
         transaction: TransactionEntity,
         rates: List<ExchangeRateEntity> = emptyList(),
         duplicate: DuplicateCheckResult? = null
     ) {
+        showEditorContent(DeviceLayoutMode.COMPACT) {
+            AddTransactionScreen(
+                onDismiss = {},
+                onSave = { _, _, _, _, _, _, _, _, _ -> insertCount += 1 },
+                accounts = accounts,
+                categories = listOf(CategoryEntity(id = "food", name = "Food", type = "EXPENSE")),
+                currencyCode = "KES",
+                exchangeRates = rates,
+                hapticManager = haptics(),
+                smartCategorizationEnabled = false,
+                editTransaction = transaction,
+                onUpdate = { updateCount += 1 },
+                onCheckDuplicate = {
+                    candidate = it
+                    duplicate
+                }
+            )
+        }
+    }
+
+    private fun showNewEntry() {
+        showEditorContent(DeviceLayoutMode.EXPANDED) {
+            AddTransactionScreen(
+                onDismiss = {},
+                onSave = { _, _, _, _, _, _, _, _, _ -> insertCount += 1 },
+                accounts = accounts,
+                categories = listOf(CategoryEntity(id = "food", name = "Food", type = "EXPENSE")),
+                currencyCode = "KES",
+                initialAmount = "100",
+                hapticManager = haptics(),
+                smartCategorizationEnabled = false,
+            )
+        }
+    }
+
+    private fun showEditorContent(mode: DeviceLayoutMode, content: @androidx.compose.runtime.Composable () -> Unit) {
         composeTestRule.setContent {
-            val context = LocalContext.current
-            val haptics = remember(context) {
-                HapticManager(context).apply { strength = HapticStrength.OFF }
-            }
-            MakeFlowTheme(themeMode = "light") {
-                AddTransactionScreen(
-                    onDismiss = {},
-                    onSave = { _, _, _, _, _, _, _, _, _ -> insertCount += 1 },
-                    accounts = accounts,
-                    categories = listOf(CategoryEntity(id = "food", name = "Food", type = "EXPENSE")),
-                    currencyCode = "KES",
-                    exchangeRates = rates,
-                    hapticManager = haptics,
-                    smartCategorizationEnabled = false,
-                    editTransaction = transaction,
-                    onUpdate = { updateCount += 1 },
-                    onCheckDuplicate = {
-                        candidate = it
-                        duplicate
-                    }
-                )
+            CompositionLocalProvider(LocalDeviceLayoutMode provides mode) {
+                MakeFlowTheme(themeMode = "light") {
+                    content()
+                }
             }
         }
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun haptics(): HapticManager {
+        val context = LocalContext.current
+        return remember(context) { HapticManager(context).apply { strength = HapticStrength.OFF } }
     }
 }

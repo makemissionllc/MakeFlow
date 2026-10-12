@@ -206,7 +206,11 @@ class HistorySummaryTest {
         }
         composeTestRule.waitUntil(5000) { viewModel.filteredTransactions.value.singleOrNull()?.id == "mpesa-fee" }
         composeTestRule.onNodeWithText("Fees").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithText("M-PESA transaction cost for ABC123").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("history_transaction_mpesa-fee")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("M-PESA transaction cost for ABC123", substring = true)
+            .assertIsDisplayed()
     }
 
     @Test

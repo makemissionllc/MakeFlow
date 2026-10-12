@@ -47,6 +47,8 @@ class WhatsNewTest {
         rule.onNodeWithText("v${BuildConfig.VERSION_NAME}").assertIsDisplayed()
         rule.onNodeWithText("Feature guide").performClick().assertIsSelected()
         rule.onNodeWithText("Accounts and currencies").assertIsDisplayed()
+        rule.onNodeWithTag("whats_new_list").performScrollToNode(hasText("surfaced amount display", substring = true))
+        rule.onNodeWithText("surfaced amount display", substring = true).assertIsDisplayed()
         rule.onNodeWithTag("whats_new_list").performScrollToNode(hasText("Widgets and quick access"))
         rule.onNodeWithText("Widgets and quick access").assertIsDisplayed()
         rule.onNodeWithText("Updates").performClick()
@@ -60,9 +62,10 @@ class WhatsNewTest {
         show(tablet = true, restoration = restoration)
         rule.onNodeWithText("Feature guide").performClick()
         rule.onNodeWithTag("whats_new_list").performScrollToNode(hasText("Tablet workspaces"))
+        rule.onNodeWithTag("whats_new_list").performScrollToNode(hasText("available balance", substring = true))
         restoration.emulateSavedInstanceStateRestore()
         rule.onNodeWithText("Feature guide").assertIsSelected()
-        rule.onNodeWithText("Tablet workspaces").assertIsDisplayed()
+        rule.onNodeWithText("selected account's available balance", substring = true).assertIsDisplayed()
         saveScreenshot("whats_new_tablet.png")
     }
 

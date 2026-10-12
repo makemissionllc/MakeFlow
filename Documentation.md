@@ -6,6 +6,36 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Polish transaction entry, history, and tablet balances
+
+- **Transaction entry:** styled the selected income/expense/transfer choice with the primary
+  container colors and placed the amount display in a tokenized surface card for clearer review.
+- **Account selection:** account picker rows now use each account's own currency and show a
+  strong, accessible selected state. The edit account name field and Settings list have stable
+  test selectors; Settings scroll tests now bring lazy content into view before checking it.
+- **History:** linked parser-imported M-PESA charges now appear as distinct fee labels beneath
+  their source transactions. History rows use a quieter surfaced background and secondary text
+  uses the theme's on-surface variant.
+- **Tablet feature:** expanded transaction entry shows the selected account's available balance;
+  transfers show both source and destination balances using their respective currencies.
+- **Upgrade bug:** the v13→14 database migration assumed category tables already had `type` and
+  `parentCategoryId`. It now checks existing columns and adds either missing column before
+  seeding categories, fixing upgrades from older category schemas. Enabled Room schema export and
+  checked in the current v22 schema snapshot.
+- **Device test fixes:** replaced historical Room test-helper setup with an instrumented SQLite
+  helper because the repository had no historical schema snapshots; corrected the alphabetical
+  migration expectation and ignored SQLite internal tables. Also corrected the sample package
+  ID, account-currency fixtures, and scrolling/semantics selectors for lazy and combined UI rows.
+- **Discarded experiment:** a recent-name note shortcut did not update note state in the connected
+  UI run, so its control and test were removed before release rather than shipping an unverified
+  shortcut.
+- **Feature discovery:** added this release to Settings > What's New and the Feature guide, and
+  updated README. Community advanced to `2.0.15-community` / code 18; `2.0.14-community` notes
+  remain in the versioned changelog.
+- **Verification:** `./gradlew test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed. `./gradlew connectedAndroidTest` passed all 96 instrumented tests on the connected
+  OPPO CPH2745 (Android 16). No emulator was started.
+
 ## 2026-10-12 — Add Community GitHub updates and faster template entry
 
 - **Community app updates:** added automatic GitHub latest-release checks on app start and daily,

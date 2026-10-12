@@ -532,7 +532,7 @@ private fun HistoryListContent(
                         } else CurrencyFormatter.format(tx.amount, transactionCurrency)
                         val rowBackground by animateColorAsState(
                             targetValue = if (isReviewLayout && selectedTransaction?.id == tx.id) MaterialTheme.colorScheme.secondaryContainer
-                                else MaterialTheme.colorScheme.background,
+                                else MaterialTheme.colorScheme.surfaceContainerLow,
                             animationSpec = if (LocalReducedMotion.current) OverlayTransition.reducedColor
                                 else LocalExpressiveMotion.current.colorAnimationSpec,
                             label = "historySelection"
@@ -638,15 +638,11 @@ private fun HistoryListContent(
                                                 if (isNotEmpty()) append(" - ")
                                                 append(tx.note)
                                             }
-                                            feeLabel?.let {
-                                                if (isNotEmpty()) append(" · ")
-                                                append(it)
-                                            }
                                         }
                                         Text(
                                             text = subtitle.ifEmpty { "" },
                                             style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.weight(0.4f),
                                             maxLines = 1
                                         )
@@ -693,16 +689,12 @@ private fun HistoryListContent(
                                                     if (isNotEmpty()) append(" - ")
                                                     append(tx.note)
                                                 }
-                                                feeLabel?.let {
-                                                    if (isNotEmpty()) append(" · ")
-                                                    append(it)
-                                                }
                                             }
                                             if (subtitle.isNotEmpty()) {
                                                 Text(
                                                     subtitle,
                                                     style = MaterialTheme.typography.labelMedium,
-                                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                     maxLines = if (isReviewLayout) 2 else Int.MAX_VALUE,
                                                     overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                                 )
@@ -710,6 +702,18 @@ private fun HistoryListContent(
                                         }
                                         Text(if (tx.type == "TRANSFER") formattedAmount else "$prefix$formattedAmount", color=amountColor, style=MaterialTheme.typography.bodyLarge, fontWeight=FontWeight.SemiBold, textAlign=TextAlign.End, modifier = Modifier.padding(end = 4.dp))
                                     }
+                                }
+                                feeLabel?.let { label ->
+                                    Text(
+                                        text = label,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        modifier = Modifier
+                                            .padding(start = dimens.spacingXXLarge, bottom = dimens.spacingSmall)
+                                            .clip(MaterialTheme.shapes.small)
+                                            .background(MaterialTheme.colorScheme.primaryContainer)
+                                            .padding(horizontal = dimens.spacingMedium, vertical = dimens.spacingXSmall)
+                                    )
                                 }
                                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f), thickness = 0.5.dp)
                             }

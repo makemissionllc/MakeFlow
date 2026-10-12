@@ -15,11 +15,24 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-12",
         changes = listOf(
-            "Check GitHub Releases for Community updates, download compatible APKs, and notify you when installation is ready",
-            "Apply saved transaction templates with their category and account restored",
-            "Browse saved transaction templates in a two-column grid on expanded tablets",
-            "Fix budget search resource references that blocked the Kotlin build",
+            "See the selected account's available balance while recording a transaction on expanded tablets",
+            "See both account balances while setting up a transfer on expanded tablets",
+            "See parser-imported M-PESA charges as distinct fee labels in History",
+            "Show account-specific currencies and a clear selection state in account pickers",
+            "Give the amount display a surfaced card and make the selected transaction type easier to scan",
+            "Repair the version 13 to 14 database upgrade for older category tables",
             "Browse all major workflows and recent additions in the Settings feature guide",
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.14-community",
+        date = "2026-10-12",
+        changes = listOf(
+            "Check GitHub Releases for Community updates and notify when a compatible APK is ready to install",
+            "Apply saved transaction templates with their saved category and account restored",
+            "Browse templates in a two-column quick-pick grid on expanded tablets",
+            "Fix budget search resource references that blocked the Kotlin build",
+            "Browse all major workflows and recent additions in the Settings feature guide"
         )
     ),
     ChangelogEntry(

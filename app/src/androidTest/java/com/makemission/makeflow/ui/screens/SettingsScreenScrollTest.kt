@@ -1,11 +1,14 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.room.Room
@@ -60,15 +63,16 @@ class SettingsScreenScrollTest {
 
     @Test
     fun csvExportOpensSharedDateRangeSheet() {
-        composeTestRule.onNodeWithText("Export CSV").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasText("Export CSV"))
+        composeTestRule.onNodeWithText("Export CSV").performClick()
         composeTestRule.onNodeWithText("All time").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithText("Last month").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun scrollsThroughSettingsToPrivacySection() {
+        composeTestRule.onNodeWithTag("settings_list").performScrollToNode(hasText("Touch feedback"))
         composeTestRule.onNodeWithText("Touch feedback")
-            .performScrollTo()
             .assertIsDisplayed()
         composeTestRule.onNodeWithText("Standard").assertIsDisplayed()
         repeat(4) {

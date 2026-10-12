@@ -37,11 +37,13 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   a "Log again" action that reuses transaction details with today's date, and an
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
   "Save & add another" keeps the type, account, and category ready for consecutive entries;
-  saved templates restore their category; expanded tablet forms show frequent categories and
-  saved templates in quick-pick layouts.
+  saved templates restore their category, and the surfaced amount display and clearer type selection make entries easier to review before saving.
+  Expanded tablet forms show frequent categories and saved templates in quick-pick layouts,
+  with current account balances beside the entry controls.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
-  Filter logged parser-imported M-PESA fees and see each charge beside its source transaction.
+  Filter logged parser-imported M-PESA fees and see each charge beside its source transaction
+  in a distinct fee label.
   A live summary shows matching income, spending, and net change in separate account-currency
   totals; transfers are counted separately and incomplete records are disclosed.
   Switch the shared account focus directly from History without losing other filters.

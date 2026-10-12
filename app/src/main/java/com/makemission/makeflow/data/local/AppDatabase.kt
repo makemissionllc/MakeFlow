@@ -61,7 +61,7 @@ import kotlinx.coroutines.runBlocking
         AppLogEntity::class
     ],
     version = 22,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
 
@@ -330,6 +330,16 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_13_14 = object : Migration(13, 14) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                val categoryColumns = mutableSetOf<String>()
+                db.query("PRAGMA table_info(categories)").use { cursor ->
+                    while (cursor.moveToNext()) categoryColumns += cursor.getString(1)
+                }
+                if ("type" !in categoryColumns) {
+                    db.execSQL("ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'EXPENSE'")
+                }
+                if ("parentCategoryId" !in categoryColumns) {
+                    db.execSQL("ALTER TABLE categories ADD COLUMN parentCategoryId TEXT")
+                }
                 db.execSQL(
                     """INSERT INTO categories (id, name, type, parentCategoryId, iconName, colorHex, monthlyBudget)
                         SELECT hex(randomblob(16)), 'Services/Errands', 'EXPENSE', id, 'assignment', '#FFA726', 0.0

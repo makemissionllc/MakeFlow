@@ -9,6 +9,7 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("Transaction entry", listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
+        "Use Save & add another to clear the amount, note, and date while keeping the type, account, and category ready for the next entry. Duplicate checks still apply.",
         "Use Log again in the editor to reuse an entry with today's date. Transfers use current available rates. Leaving an unfinished editor or quick-add form offers Keep editing or Discard."
     )),
     FeatureGuideEntry("History and summaries", listOf(
@@ -18,6 +19,7 @@ val featureGuideEntries = listOf(
     FeatureGuideEntry("Tablet workspaces", listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
         "In expanded Accounts, select an account for its live balance and latest 20 transactions. Transfer in and Transfer out use that account's own amount; unavailable amounts are labelled.",
+        "On expanded tablets, choose one of your frequently used categories from the transaction form without opening the category picker.",
         "In expanded History, an M-PESA transaction shows its logged fee beside the original amount, even when the current search or filters hide the separate fee entry.",
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."
     )),

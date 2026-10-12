@@ -109,7 +109,10 @@ import com.makemission.makeflow.domain.TransactionExitGuard
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.domain.CategoryUsage
+import com.makemission.makeflow.domain.CategoryUsageRanker
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -141,6 +144,7 @@ fun AddTransactionScreen(
     onCheckDuplicate: (suspend (TransactionEntity) -> DuplicateCheckResult?)? = null,
     categoryClassifier: CategoryClassifier? = null,
     smartCategorizationEnabled: Boolean = true,
+    showSaveAndAddAnother: Boolean = true,
     correctionMemory: Map<String, String> = emptyMap(),
     onCategoryCorrected: ((description: String, correctedCategoryId: String, originalSuggestedCategoryId: String?) -> Unit)? = null,
     initialType: String = "EXPENSE",
@@ -157,6 +161,7 @@ fun AddTransactionScreen(
     logMpesaCosts: Boolean = true
 ) {
     val dimens = LocalAppDimens.current
+    val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var isRepeatMode by rememberSaveable(editTransaction?.id) { mutableStateOf(false) }
@@ -193,6 +198,7 @@ fun AddTransactionScreen(
     var receiptSuggestion by remember { mutableStateOf<NanoReceiptScanner.ReceiptSuggestion?>(null) }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
     val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
+    var addAnotherAfterSave by remember { mutableStateOf(false) }
     var usualAmounts by remember { mutableStateOf<List<Double>>(emptyList()) }
 
     val receiptPicker = rememberLauncherForActivityResult(
@@ -258,6 +264,11 @@ fun AddTransactionScreen(
 
     val resolvedCategoryId = if (selectedType == "TRANSFER") null
         else selectedChildCategory?.id ?: selectedParentCategory?.id
+    val frequentCategories = remember(categoryUsages.value, categories, selectedType) {
+        CategoryUsageRanker.rank(categoryUsages.value)[selectedType].orEmpty()
+            .take(4)
+            .mapNotNull { ranked -> categories.find { it.id == ranked.categoryId } }
+    }
 
     // === Calculator engine ===
     val engine = remember {
@@ -280,6 +291,18 @@ fun AddTransactionScreen(
     var calculatorDisplay by remember { mutableStateOf(engine.displayValue) }
     var calculatorRevision by remember { mutableIntStateOf(0) }
     val calculatorExpression = remember(calculatorRevision) { engine.expression }
+
+    fun resetForNextTransaction() {
+        engine.onClear()
+        calculatorDisplay = engine.displayValue
+        calculatorRevision++
+        confirmedAmount = null
+        note = ""
+        noteExpanded = false
+        selectedDate = Calendar.getInstance().timeInMillis
+        categorySuggestion = null
+        commitHandler.clearAlerts()
+    }
 
     val isAmountConfirmed = confirmedAmount != null
     val parsedAmount = confirmedAmount ?: engine.displayValue.toDoubleOrNull()
@@ -472,7 +495,17 @@ fun AddTransactionScreen(
         }
     }
 
-    fun doSave(amount: Double) {
+    fun completeSave() {
+        if (addAnotherAfterSave) {
+            addAnotherAfterSave = false
+            resetForNextTransaction()
+        } else {
+            dismissForm()
+        }
+    }
+
+    fun doSave(amount: Double, addAnother: Boolean = false) {
+        addAnotherAfterSave = addAnother
         scope.launch {
             val fromId = if (selectedType == "TRANSFER") selectedTransferFromId else null
             val toId = if (selectedType == "TRANSFER") selectedTransferToId else null
@@ -510,7 +543,7 @@ fun AddTransactionScreen(
                         onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                         fireCorrection()
                     },
-                    onComplete = { dismissForm() }
+                    onComplete = { completeSave() }
                 )
             }
         }
@@ -879,6 +912,32 @@ fun AddTransactionScreen(
                     }
                     PickerChip("${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
                 }
+                if (layoutMode == DeviceLayoutMode.EXPANDED && frequentCategories.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(dimens.spacingMedium))
+                    Text(
+                        text = stringResource(R.string.add_frequent_categories),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+                    ) {
+                        frequentCategories.forEach { category ->
+                            PickerChip(
+                                text = category.name,
+                                emphasized = category.id == resolvedCategoryId,
+                                onClick = {
+                                    selectedParentCategory = if (category.parentCategoryId == null) category
+                                    else categories.find { it.id == category.parentCategoryId }
+                                    selectedChildCategory = category.takeIf { it.parentCategoryId != null }
+                                    categorySuggestion = null
+                                    hapticManager.fire(HapticEvent.NAV_SELECT)
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingLarge))
@@ -1042,28 +1101,54 @@ fun AddTransactionScreen(
                 .padding(horizontal = dimens.paddingMedium)
                 .padding(bottom = dimens.paddingMedium + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
-            Button(
-                onClick = {
-                    val amount = parsedAmount ?: return@Button
-                    doSave(amount)
-                },
-                enabled = isSaveEnabled,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
-                ),
-                shape = RoundedCornerShape(dimens.shapeCornerPill),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(dimens.primaryButtonHeight)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
             ) {
-                Text(
-                    text = if (isEditMode) stringResource(R.string.add_update) else stringResource(R.string.add_save),
-                    fontSize = dimens.textL,
-                    fontWeight = FontWeight.Bold
-                )
+                Button(
+                    onClick = {
+                        val amount = parsedAmount ?: return@Button
+                        doSave(amount)
+                    },
+                    enabled = isSaveEnabled,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    ),
+                    shape = RoundedCornerShape(dimens.shapeCornerPill),
+                    modifier = Modifier
+                        .weight(if (!isEditMode && !isRepeatMode && showSaveAndAddAnother) 1.15f else 1f)
+                        .height(dimens.primaryButtonHeight)
+                ) {
+                    Text(
+                        text = if (isEditMode) stringResource(R.string.add_update) else stringResource(R.string.add_save),
+                        fontSize = dimens.textL,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                if (!isEditMode && !isRepeatMode && showSaveAndAddAnother) {
+                    OutlinedButton(
+                        onClick = {
+                            val amount = parsedAmount ?: return@OutlinedButton
+                            hapticManager.fire(HapticEvent.NAV_SELECT)
+                            doSave(amount, addAnother = true)
+                        },
+                        enabled = isSaveEnabled,
+                        shape = RoundedCornerShape(dimens.shapeCornerPill),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(dimens.primaryButtonHeight)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.add_save_another),
+                            fontSize = dimens.textSm,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
             }
         }
     }
@@ -1152,6 +1237,7 @@ fun AddTransactionScreen(
         AdaptiveAlertSheet(
             onDismissRequest = {
                 commitHandler.clearAlerts()
+                addAnotherAfterSave = false
             },
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = {
@@ -1174,7 +1260,7 @@ fun AddTransactionScreen(
                                 onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
                                 fireCorrection()
                             },
-                            onComplete = { dismissForm() }
+                            onComplete = { completeSave() }
                         )
                     }
                 }) {
@@ -1184,6 +1270,7 @@ fun AddTransactionScreen(
             dismissButton = {
                 TextButton(onClick = {
                     commitHandler.clearAlerts()
+                    addAnotherAfterSave = false
                 }) {
                     Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                 }

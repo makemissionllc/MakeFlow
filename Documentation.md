@@ -6,6 +6,21 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-12 — Simplify repeat transaction entry and add tablet category shortcuts
+
+- **Quality of life:** added Save & add another to the transaction form. After the guarded save
+  completes, the form clears amount, note, and date while keeping transaction type, account, and
+  category selected. Duplicate checks remain in place; parsed M-PESA review hides this action.
+- **Tablet feature:** expanded transaction forms show up to four frequently used categories for
+  the selected transaction type. Choosing a chip applies the category and keeps account entry in
+  the same flow.
+- **Feature discovery:** added both features to Settings > What's New and the feature guide, and
+  updated README. Community advanced to `2.0.13-community` / code 16; the `2.0.12-community`
+  notes remain in the versioned changelog.
+- **Verification:** `git diff --check` and static import/call-site checks passed. Gradle checks
+  could not start because Java and `adb` are unavailable in this shell. The attached physical
+  device could not be verified from this environment; no emulator was started.
+
 ## 2026-10-12 — Link parsed M-PESA fees in History
 
 - **Quality of life:** History adds a Fees filter for parser-created M-PESA fee expenses. Linked

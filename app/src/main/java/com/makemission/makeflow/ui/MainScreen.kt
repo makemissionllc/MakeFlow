@@ -1119,8 +1119,11 @@ fun MainScreen(
                 initialTransferFromId = mpesaInitialTransferFromId,
                 initialTransferToId = mpesaInitialTransferToId,
                 onDismiss = onDismissAction,
+                showSaveAndAddAnother = editingTransaction == null && mpesaExternalReference == null,
                 onSave = { amount, type, categoryId, accountId, note, timestamp, fromAccountId, toAccountId, destinationAmount ->
-                    scope.launch(Dispatchers.IO) {
+                    val externalReference = mpesaExternalReference
+                    val cost = mpesaTransactionCost
+                    withContext(Dispatchers.IO) {
                         repository.insertTransaction(
                             TransactionEntity(
                                 amount = amount,
@@ -1131,12 +1134,11 @@ fun MainScreen(
                                 toAccountId = toAccountId,
                                 note = note,
                                 timestamp = timestamp,
-                                externalReference = mpesaExternalReference,
+                                externalReference = externalReference,
                                 destinationAmount = destinationAmount
                             )
                         )
-                        val cost = mpesaTransactionCost
-                        if (mpesaExternalReference != null && logMpesaCosts && cost != null && cost > 0) {
+                        if (externalReference != null && logMpesaCosts && cost != null && cost > 0) {
                             val feeCategoryId = categories.find {
                                 it.name == "Transaction Fees" && it.parentCategoryId != null
                             }?.id
@@ -1146,19 +1148,18 @@ fun MainScreen(
                                     type = "EXPENSE",
                                     categoryId = feeCategoryId,
                                     accountId = accountId,
-                                    note = "M-PESA transaction cost for ${mpesaExternalReference}",
+                                    note = "M-PESA transaction cost for ${externalReference}",
                                     timestamp = timestamp,
-                                    externalReference = "${mpesaExternalReference}-fee"
+                                    externalReference = "${externalReference}-fee"
                                 )
                             )
                         }
-                        WidgetUpdateHelper.updateWidgets(context)
-                        mpesaExternalReference = null
-                        mpesaTransactionCost = null
-                        mpesaAiAssisted = false
-                        shortcutPendingType.value = null
-                        showAddTransaction = false
                     }
+                    WidgetUpdateHelper.updateWidgets(context)
+                    mpesaExternalReference = null
+                    mpesaTransactionCost = null
+                    mpesaAiAssisted = false
+                    shortcutPendingType.value = null
                 },
                 accounts = accounts,
                 categories = categories,

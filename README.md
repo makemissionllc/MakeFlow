@@ -36,6 +36,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts,
   a "Log again" action that reuses transaction details with today's date, and an
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
+  "Save & add another" keeps the type, account, and category ready for consecutive entries;
+  expanded tablet transaction forms offer one-tap shortcuts for frequently used categories.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
   Filter logged parser-imported M-PESA fees and see each charge beside its source transaction.

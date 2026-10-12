@@ -276,6 +276,10 @@ fun MainScreen(
     }
 
     val accounts by homeViewModel.accounts.collectAsState()
+    val lastTransactionAccountId by userPrefDataStore.lastTransactionAccountId.collectAsState(initial = null)
+    val defaultTransactionAccountId = lastTransactionAccountId?.takeIf { savedId ->
+        accounts.any { it.id == savedId }
+    }
     val categories by homeViewModel.categories.collectAsState()
     val currencySymbol by homeViewModel.currencySymbol.collectAsState()
     val currencyCode by homeViewModel.selectedCurrency.collectAsState()
@@ -1132,7 +1136,7 @@ fun MainScreen(
                 initialAmount = mpesaInitialAmount,
                 initialNote = mpesaInitialNote,
                 initialTimestamp = mpesaInitialTimestamp,
-                initialAccountId = mpesaInitialAccountId,
+                initialAccountId = mpesaInitialAccountId ?: defaultTransactionAccountId,
                 initialTransferFromId = mpesaInitialTransferFromId,
                 initialTransferToId = mpesaInitialTransferToId,
                 onDismiss = onDismissAction,
@@ -1172,6 +1176,7 @@ fun MainScreen(
                             )
                         }
                     }
+                    userPrefDataStore.saveLastTransactionAccountId(accountId)
                     WidgetUpdateHelper.updateWidgets(context)
                     mpesaExternalReference = null
                     mpesaTransactionCost = null
@@ -1274,6 +1279,7 @@ fun MainScreen(
                 onUpdate = { entity ->
                     scope.launch(Dispatchers.IO) {
                         repository.updateTransaction(entity)
+                        userPrefDataStore.saveLastTransactionAccountId(entity.accountId)
                         WidgetUpdateHelper.updateWidgets(context)
                         editingTransaction = null
                         showAddTransaction = false

@@ -5,7 +5,8 @@ data class FeatureGuideEntry(val title: String, val features: List<String>)
 val featureGuideEntries = listOf(
     FeatureGuideEntry("Accounts and currencies", listOf(
         "Create and edit accounts with individual currencies and opening balances. Search by name or currency code; clearing search restores the list without changing net worth.",
-        "Net worth converts balances to your default currency using available daily reference rates. Accounts with missing conversions are disclosed and excluded."
+        "Net worth converts balances to your default currency using available daily reference rates. Accounts with missing conversions are disclosed and excluded.",
+        "New transactions start with the account used last time. If that account no longer exists, entry falls back to the first available account."
     )),
     FeatureGuideEntry("Transaction entry", listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
@@ -22,6 +23,7 @@ val featureGuideEntries = listOf(
     FeatureGuideEntry("Tablet workspaces", listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
         "In expanded Accounts, select an account for its live balance and latest 20 transactions. Transfer in and Transfer out use that account's own amount; unavailable amounts are labelled.",
+        "Select accounts from a two-column grid on expanded tablets, with each account's currency and balance visible on its card.",
         "Choose frequently used categories from the transaction form without opening the category picker on phones or tablets.",
         "Expanded transaction forms show saved templates in a two-column grid with their amount and account currency.",
         "Expanded transaction forms show the selected account's available balance, and both balances for transfers.",

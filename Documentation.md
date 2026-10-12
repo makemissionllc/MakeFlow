@@ -6,6 +6,22 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-13 — Remember transaction accounts and streamline tablet selection
+
+- **Quality of life:** new transactions now default to the most recently used account. The
+  choice is saved in DataStore, restored on later app launches, and ignored if that account
+  has since been removed. Transfers remember their source account.
+- **Tablet feature:** expanded tablet account selection uses two columns, keeping account
+  names, per-account balances, and currencies together in a scan-friendly grid.
+- **Interactive tutorial:** updated the Accounts and currencies and Tablet workspaces steps;
+  the Settings tour automatically includes these details and continues to animate step changes.
+- **Feature discovery:** added both features to the release notes, feature guide, and README.
+  Community advanced to `2.0.17-community` / code 20.
+- **Verification:** `./gradlew test :app:compileDebugAndroidTestKotlin` passed. The connected
+  Android test task compiled, but could not install on the attached device because the installed
+  `com.makemission.makeflow.community` package uses a different signing key
+  (`INSTALL_FAILED_UPDATE_INCOMPATIBLE`). The installed app and its data were left intact.
+
 ## 2026-10-12 — Add transaction category shortcuts and an interactive feature tour
 
 - **Quality of life:** frequent transaction categories now appear as quick-pick chips on

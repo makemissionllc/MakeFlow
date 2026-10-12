@@ -20,6 +20,9 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +47,8 @@ import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.ui.components.pressScale
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.core.device.LocalReducedMotion
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.OverlayTransition
 
@@ -57,6 +62,7 @@ fun AccountPickerScreen(
 ) {
     val dimens = LocalAppDimens.current
     val reducedMotion = LocalReducedMotion.current
+    val isExpanded = LocalDeviceLayoutMode.current == DeviceLayoutMode.EXPANDED
     BackHandler(onBack = onBack)
 
     Column(
@@ -86,102 +92,136 @@ fun AccountPickerScreen(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = dimens.paddingLarge,
-                vertical = dimens.spacingMedium
-            ),
-            verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-        ) {
-            items(accounts, key = { it.id }) { account ->
-                val isSelected = account.id == selectedAccountId
-                val cardShape = RoundedCornerShape(dimens.shapeCornerMedium)
-                val accountCurrency = account.currencyCode?.takeIf(String::isNotBlank) ?: currencyCode
-                val selectionAnimation = if (reducedMotion) OverlayTransition.reducedColor
-                    else LocalExpressiveMotion.current.colorAnimationSpec
-                val cardColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionSurface"
-                )
-                val borderColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionBorder"
-                )
-                val avatarColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionAvatar"
-                )
-                val avatarContentColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionAvatarContent"
-                )
-                val accountNameColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurface,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionName"
-                )
-                val accountDetailsColor by animateColorAsState(
-                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = selectionAnimation,
-                    label = "accountSelectionDetails"
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(cardShape)
-                        .background(cardColor)
-                        .border(dimens.spacingXSmall, borderColor, cardShape)
-                        .pressScale()
-                        .selectable(
-                            selected = isSelected,
-                            role = Role.RadioButton,
-                            onClick = { onAccountSelected(account.id) }
-                        )
-                        .testTag("account_picker_${account.id}")
-                        .padding(dimens.paddingLarge),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(dimens.avatarSize)
-                            .clip(CircleShape)
-                            .background(avatarColor),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = account.name.take(1).uppercase(),
-                            color = avatarContentColor,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = dimens.textXl
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(dimens.spacingXLarge))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = account.name,
-                            color = accountNameColor,
-                            style = MaterialTheme.typography.titleMedium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = CurrencyFormatter.format(account.balance, accountCurrency),
-                            color = accountDetailsColor,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
+        val pickerPadding = androidx.compose.foundation.layout.PaddingValues(
+            horizontal = dimens.paddingLarge,
+            vertical = dimens.spacingMedium
+        )
+        if (isExpanded) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.fillMaxSize().testTag("account_picker_grid"),
+                contentPadding = pickerPadding,
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+            ) {
+                items(accounts, key = { it.id }) { account ->
+                    AccountPickerCard(
+                        account = account,
+                        selected = account.id == selectedAccountId,
+                        currencyCode = currencyCode,
+                        reducedMotion = reducedMotion,
+                        onClick = { onAccountSelected(account.id) }
+                    )
                 }
             }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().testTag("account_picker_list"),
+                contentPadding = pickerPadding,
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+            ) {
+                items(accounts, key = { it.id }) { account ->
+                    AccountPickerCard(
+                        account = account,
+                        selected = account.id == selectedAccountId,
+                        currencyCode = currencyCode,
+                        reducedMotion = reducedMotion,
+                        onClick = { onAccountSelected(account.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountPickerCard(
+    account: AccountEntity,
+    selected: Boolean,
+    currencyCode: String,
+    reducedMotion: Boolean,
+    onClick: () -> Unit
+) {
+    val dimens = LocalAppDimens.current
+    val cardShape = RoundedCornerShape(dimens.shapeCornerMedium)
+    val accountCurrency = account.currencyCode?.takeIf(String::isNotBlank) ?: currencyCode
+    val selectionAnimation = if (reducedMotion) OverlayTransition.reducedColor
+        else LocalExpressiveMotion.current.colorAnimationSpec
+    val cardColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surfaceContainerLow,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionSurface"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionBorder"
+    )
+    val avatarColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionAvatar"
+    )
+    val avatarContentColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionAvatarContent"
+    )
+    val accountNameColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurface,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionName"
+    )
+    val accountDetailsColor by animateColorAsState(
+        targetValue = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = selectionAnimation,
+        label = "accountSelectionDetails"
+    )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .background(cardColor)
+            .border(dimens.spacingXSmall, borderColor, cardShape)
+            .pressScale()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .testTag("account_picker_${account.id}")
+            .padding(dimens.paddingLarge),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(dimens.avatarSize)
+                .clip(CircleShape)
+                .background(avatarColor),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = account.name.take(1).uppercase(),
+                color = avatarContentColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = dimens.textXl
+            )
+        }
+        Spacer(modifier = Modifier.width(dimens.spacingXLarge))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = account.name,
+                color = accountNameColor,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = CurrencyFormatter.format(account.balance, accountCurrency),
+                color = accountDetailsColor,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }

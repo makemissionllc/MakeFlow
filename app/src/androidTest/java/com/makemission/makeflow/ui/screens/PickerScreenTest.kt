@@ -1,5 +1,6 @@
 package com.makemission.makeflow.ui.screens
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -9,6 +10,8 @@ import androidx.compose.ui.test.performClick
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.core.format.CurrencyFormatter
+import com.makemission.makeflow.core.layout.DeviceLayoutMode
+import com.makemission.makeflow.core.layout.LocalDeviceLayoutMode
 import org.junit.Rule
 import org.junit.Test
 import java.util.UUID
@@ -73,6 +76,26 @@ class PickerScreenTest {
         composeTestRule.onNodeWithText(CurrencyFormatter.format(500.0, "KES")).assertIsDisplayed()
         composeTestRule.onNodeWithText(CurrencyFormatter.format(1000.0, "USD")).assertIsDisplayed()
         composeTestRule.onNodeWithText(CurrencyFormatter.format(200.0, "KES")).assertIsDisplayed()
+    }
+
+    @Test
+    fun expandedAccountPickerUsesTwoColumnGrid() {
+        composeTestRule.setContent {
+            CompositionLocalProvider(LocalDeviceLayoutMode provides DeviceLayoutMode.EXPANDED) {
+                AccountPickerScreen(
+                    accounts = accounts,
+                    selectedAccountId = "a1",
+                    currencyCode = "KES",
+                    onAccountSelected = {},
+                    onBack = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("account_picker_grid").assertIsDisplayed()
+        accounts.forEach { account ->
+            composeTestRule.onNodeWithTag("account_picker_${account.id}").assertIsDisplayed()
+        }
     }
 
     @Test

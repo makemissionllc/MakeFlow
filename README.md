@@ -29,9 +29,11 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 ## App features
 
 - **Accounts** — multiple accounts with per-account currency, balances, guarded delete,
-  and name/currency search that leaves total net worth unchanged. Expanded tablet windows
+  and name/currency search that leaves total net worth unchanged. Transaction entry remembers
+  the last-used account. Expanded tablet windows
   show live account details and the latest 20 transactions, with account-specific transfer
-  amounts, selectable notes/references, and selection retained across resizing/restoration.
+  amounts, a two-column account picker, selectable notes/references, and selection retained
+  across resizing/restoration.
 - **Transactions** — add/edit with calculator keypad, transfers (`from/to` account),
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts,
   a "Log again" action that reuses transaction details with today's date, and an

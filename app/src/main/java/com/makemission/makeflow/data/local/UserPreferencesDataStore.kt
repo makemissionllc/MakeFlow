@@ -171,6 +171,20 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val lastTransactionAccountId: Flow<String?> = dataStore.data.map { prefs ->
+        prefs[LAST_TRANSACTION_ACCOUNT_KEY]
+    }
+
+    suspend fun saveLastTransactionAccountId(accountId: String?) {
+        dataStore.edit { prefs ->
+            if (accountId.isNullOrBlank()) {
+                prefs.remove(LAST_TRANSACTION_ACCOUNT_KEY)
+            } else {
+                prefs[LAST_TRANSACTION_ACCOUNT_KEY] = accountId
+            }
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -243,6 +257,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val MANUAL_CARD_ORDER_KEY = stringPreferencesKey("manual_card_order")
         private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
+        private val LAST_TRANSACTION_ACCOUNT_KEY = stringPreferencesKey("last_transaction_account_id")
         private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
         private val LOG_MPESA_COSTS_KEY = booleanPreferencesKey("log_mpesa_costs")
         private val MPESA_AUTO_IMPORT_ENABLED_KEY = booleanPreferencesKey("mpesa_auto_import_enabled")

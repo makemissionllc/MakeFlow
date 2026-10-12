@@ -13,8 +13,10 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 val changelogEntries = listOf(
     ChangelogEntry(
         version = BuildConfig.VERSION_NAME,
-        date = "2026-10-12",
+        date = "2026-10-13",
         changes = listOf(
+            "Start each transaction with the account you used last time",
+            "Choose accounts faster from a two-column picker on expanded tablets",
             "Choose frequent transaction categories directly on phones as well as tablets",
             "Explore every feature guide section in a hands-on, animated tour from Settings > What's New",
             "Navigate the feature tour in two panes on expanded tablets",

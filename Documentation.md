@@ -27,9 +27,12 @@ Conventions: `path:line` for code refs, commit hashes where available.
 - **Feature discovery:** added these changes to Settings > What's New, the feature guide, and README.
   Community advanced to `2.0.14-community` / code 17; prior `2.0.13-community` notes remain.
 - **Verification:** `git diff --check`, `./gradlew test`, `:app:compileDebugKotlin`, and
-  `:app:compileDebugAndroidTestKotlin` passed. The first test run exposed the category-ID search
-  failure noted above; the rerun passed. ADB could not start its local server in this shell, so
-  no connected-device tests were run and no emulator was started.
+  `:app:compileDebugAndroidTestKotlin` passed. The first unit run exposed the category-ID search
+  failure noted above; the rerun passed. A connected OPPO device ran 95 instrumented tests: 69
+  passed and 26 failed. Twenty migration tests could not find historical Room schema JSON assets;
+  the remaining failures were the sample test's outdated package ID and five UI assertions that
+  could not find or uniquely identify expected content, including the parser-fee History row in
+  the Fees filter. No emulator was started.
 
 ## 2026-10-12 — Simplify repeat transaction entry and add tablet category shortcuts
 

@@ -6,6 +6,16 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-20 — Honor reduced motion in dashboard card movement
+
+- **Dashboard motion:** dashboard cards use shared ease-in-out placement timing and quick
+  ease-out fades when inserted or removed. Those item animations are disabled when reduced
+  motion is active, while normal reordering still shows where each card moves.
+- **Verification:** `./gradlew :app:compileDebugKotlin :app:assembleDebug --rerun-tasks`
+  passed (38 tasks). Compilation reported existing unchecked-cast warnings in the category
+  classifiers and a shadowed `String.compareTo` extension in `BudgetSuggestionEngine.kt`.
+  `git diff --check` passed; no tests or device UI checks were run.
+
 ## 2026-10-20 — Refine shared UI motion for faster navigation
 
 - **Motion:** screen and tab transitions now use short ease-out timing, while changing

@@ -173,6 +173,10 @@ fun HomeDashboard(
     val currentMonthLabel = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
 
     val config = LocalAdaptiveConfig.current
+    val reducedMotion = LocalReducedMotion.current
+    val dashboardItemFadeIn = if (reducedMotion) null else OverlayTransition.fastEnter
+    val dashboardItemPlacement = if (reducedMotion) null else OverlayTransition.itemPlacementChange
+    val dashboardItemFadeOut = if (reducedMotion) null else OverlayTransition.fastExit
     val isCompact = config.layoutMode == DeviceLayoutMode.COMPACT
     val horizontalPadding = if (isCompact) dimens.paddingLarge else config.horizontalPadding
     val focusedAccountName = when (val state = focusedAccountState) {
@@ -330,7 +334,13 @@ fun HomeDashboard(
             cardOrder.forEach { cardType ->
                 when (cardType) {
                     DashboardCardType.INSIGHTS_SUMMARY -> item {
-                        Box(Modifier.animateItem()) {
+                        Box(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = dashboardItemFadeIn,
+                                placementSpec = dashboardItemPlacement,
+                                fadeOutSpec = dashboardItemFadeOut
+                            )
+                        ) {
                             CashFlowCard(
                                 income = formattedIncome,
                                 expenses = formattedExpenses,
@@ -341,7 +351,13 @@ fun HomeDashboard(
                         }
                     }
                     DashboardCardType.ACCOUNTS -> item {
-                        Box(Modifier.animateItem()) {
+                        Box(
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = dashboardItemFadeIn,
+                                placementSpec = dashboardItemPlacement,
+                                fadeOutSpec = dashboardItemFadeOut
+                            )
+                        ) {
                             AccountsCard(
                                 accounts = accountChips,
                                 onOpenAccounts = {
@@ -356,7 +372,11 @@ fun HomeDashboard(
                         item {
                             Box(
                                 modifier = Modifier
-                                    .animateItem()
+                                    .animateItem(
+                                        fadeInSpec = dashboardItemFadeIn,
+                                        placementSpec = dashboardItemPlacement,
+                                        fadeOutSpec = dashboardItemFadeOut
+                                    )
                                     .clickable {
                                         viewModel.logCardInteraction(DashboardCardType.BUDGET_PROGRESS)
                                     }
@@ -368,7 +388,13 @@ fun HomeDashboard(
                     DashboardCardType.RECURRING -> {
                         if (pendingRecurringTransactions.isNotEmpty()) {
                             item {
-                                Box(modifier = Modifier.animateItem()) {
+                                Box(
+                                    modifier = Modifier.animateItem(
+                                        fadeInSpec = dashboardItemFadeIn,
+                                        placementSpec = dashboardItemPlacement,
+                                        fadeOutSpec = dashboardItemFadeOut
+                                    )
+                                ) {
                                     PendingRecurringCard(
                                         items = pendingRecurringTransactions,
                                         currencyCode = selectedCurrency,
@@ -382,7 +408,11 @@ fun HomeDashboard(
                             item {
                                 Box(
                                     modifier = Modifier
-                                        .animateItem()
+                                        .animateItem(
+                                            fadeInSpec = dashboardItemFadeIn,
+                                            placementSpec = dashboardItemPlacement,
+                                            fadeOutSpec = dashboardItemFadeOut
+                                        )
                                         .clickable {
                                             viewModel.logCardInteraction(DashboardCardType.RECURRING)
                                         }

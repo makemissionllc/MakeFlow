@@ -104,10 +104,10 @@ fun MonthlyFinanceReviewSheet(
                     if (reducedMotion) {
                         fadeIn(OverlayTransition.reducedEnter) togetherWith fadeOut(OverlayTransition.reducedExit)
                     } else {
-                        (fadeIn(OverlayTransition.enterSpring) + slideInVertically(
+                        (fadeIn(OverlayTransition.enterFade) + slideInVertically(
                             animationSpec = OverlayTransition.enterSlide,
                             initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
-                        )) togetherWith (fadeOut(OverlayTransition.exitSpring) + slideOutVertically(
+                        )) togetherWith (fadeOut(OverlayTransition.exitFade) + slideOutVertically(
                             animationSpec = OverlayTransition.exitSlide,
                             targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
                         ))

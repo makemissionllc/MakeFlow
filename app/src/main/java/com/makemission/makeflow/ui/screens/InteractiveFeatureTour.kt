@@ -195,10 +195,10 @@ private fun TourStepContent(
                     fadeIn(OverlayTransition.reducedEnter) togetherWith fadeOut(OverlayTransition.reducedExit)
                 } else {
                     val direction = if (targetState >= initialState) 1 else -1
-                    (fadeIn(OverlayTransition.enterSpring) + slideInHorizontally(
+                    (fadeIn(OverlayTransition.enterFade) + slideInHorizontally(
                         animationSpec = OverlayTransition.enterSlide,
                         initialOffsetX = { direction * it / 5 }
-                    )) togetherWith (fadeOut(OverlayTransition.exitSpring) + slideOutHorizontally(
+                    )) togetherWith (fadeOut(OverlayTransition.exitFade) + slideOutHorizontally(
                         animationSpec = OverlayTransition.exitSlide,
                         targetOffsetX = { -direction * it / 5 }
                     ))
@@ -232,12 +232,12 @@ private fun TourStepContent(
                 AnimatedVisibility(
                     visible = entry.title == "Widgets and quick access",
                     enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
-                    else fadeIn(OverlayTransition.enterSpring) + slideInVertically(
+                    else fadeIn(OverlayTransition.enterFade) + slideInVertically(
                         animationSpec = OverlayTransition.enterSlide,
                         initialOffsetY = { it / 6 }
                     ),
                     exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
-                    else fadeOut(OverlayTransition.exitSpring) + slideOutVertically(
+                    else fadeOut(OverlayTransition.exitFade) + slideOutVertically(
                         animationSpec = OverlayTransition.exitSlide,
                         targetOffsetY = { it / 6 }
                     ),

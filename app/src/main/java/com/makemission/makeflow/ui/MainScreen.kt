@@ -621,8 +621,8 @@ fun MainScreen(
     val reducedMotion = LocalReducedMotion.current
     val slideEnter = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
     val slideExit = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
-    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring
-    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring
+    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterFade
+    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitFade
     val layoutMode = LocalDeviceLayoutMode.current
     val isNavRail = layoutMode != DeviceLayoutMode.COMPACT
 
@@ -694,36 +694,36 @@ fun MainScreen(
             }
 
             Box(Modifier.align(Alignment.BottomEnd).padding(end = 24.dp, bottom = 24.dp)) {
-                        androidx.compose.animation.AnimatedVisibility(
-                            visible = !showAddTransaction,
-                            enter = scaleIn(
-                                animationSpec = if (reducedMotion) {
-                                    OverlayTransition.reducedEnter
-                                } else {
-                                    OverlayTransition.bouncyEnter
-                                }
-                            ) + fadeIn(
-                                if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.bouncyEnter
-                            ),
-                            exit = scaleOut(
-                                animationSpec = if (reducedMotion) {
-                                    OverlayTransition.reducedExit
-                                } else {
-                                    OverlayTransition.bouncyExit
-                                }
-                            ) + fadeOut(
-                                if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.bouncyExit
-                            ) + slideOutVertically(
-                                animationSpec = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide,
-                                targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
-                            )
-                        ) {
-                            AddTransactionFloatingActionButton(
-                                onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
-                                fabSize = config.fabSize
-                            )
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = !showAddTransaction,
+                    enter = scaleIn(
+                        animationSpec = if (reducedMotion) {
+                            OverlayTransition.reducedEnter
+                        } else {
+                            OverlayTransition.fastEnter
                         }
-                    }
+                    ) + fadeIn(
+                        if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.fastEnter
+                    ),
+                    exit = scaleOut(
+                        animationSpec = if (reducedMotion) {
+                            OverlayTransition.reducedExit
+                        } else {
+                            OverlayTransition.fastExit
+                        }
+                    ) + fadeOut(
+                        if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.fastExit
+                    ) + slideOutVertically(
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide,
+                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                    )
+                ) {
+                    AddTransactionFloatingActionButton(
+                        onClick = { hapticManager.fire(HapticEvent.NAV_SELECT); showAddTransaction = true },
+                        fabSize = config.fabSize
+                    )
+                }
+            }
 
                     OverlayPanels(
                         showBudgetScreen = showBudgetScreen,
@@ -1415,15 +1415,16 @@ private fun TabContentAnimated(
     AnimatedContent(
         targetState = activeTab,
         transitionSpec = {
+            // Keep tab direction tied to the app's left-to-right order for spatial continuity.
             val direction = if (tabIndex >= previousTabIndex.value) 1 else -1
             previousTabIndex.value = tabIndex
             val enterSlide = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
             val exitSlide = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
-            (fadeIn(if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring) + slideInHorizontally(
+            (fadeIn(if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterFade) + slideInHorizontally(
                 animationSpec = enterSlide,
                 initialOffsetX = { (it * OverlayTransition.TabSlideFraction * direction).toInt() }
             )) togetherWith
-            (fadeOut(if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring) + slideOutHorizontally(
+            (fadeOut(if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitFade) + slideOutHorizontally(
                 animationSpec = exitSlide,
                 targetOffsetX = { -(it * OverlayTransition.TabSlideFraction * direction).toInt() }
             ))
@@ -1548,8 +1549,8 @@ private fun OverlayPanels(
     val dimens = LocalAppDimens.current
     val slideEnter = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.enterSlide
     val slideExit = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.exitSlide
-    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterSpring
-    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitSpring
+    val fadeEnter = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.enterFade
+    val fadeExit = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.exitFade
 
     AnimatedVisibility(
         visible = showBudgetScreen,
@@ -1754,16 +1755,10 @@ fun FloatingCapsuleNavBar(
                 AnimatedVisibility(
                     visible = isSelected,
                     enter = fadeIn(
-                        animationSpec = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.bouncyEnter
-                    ) + slideInVertically(
-                        animationSpec = if (reducedMotion) OverlayTransition.reducedEnterSlide else OverlayTransition.bouncyEnterSlide,
-                        initialOffsetY = { it }
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedEnter else OverlayTransition.fastEnter
                     ),
                     exit = fadeOut(
-                        animationSpec = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.bouncyExit
-                    ) + slideOutVertically(
-                        animationSpec = if (reducedMotion) OverlayTransition.reducedExitSlide else OverlayTransition.bouncyExitSlide,
-                        targetOffsetY = { -it / 2 }
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedExit else OverlayTransition.fastExit
                     )
                 ) {
                     Text(

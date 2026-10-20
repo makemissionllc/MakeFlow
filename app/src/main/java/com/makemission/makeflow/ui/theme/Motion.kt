@@ -1,5 +1,6 @@
 package com.makemission.makeflow.ui.theme
 
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
@@ -21,9 +22,9 @@ object ExpressiveMotion {
     val StandardDecelerate = CubicBezierEasing(0.0f, 0.0f, 0.0f, 1.0f)
     val StandardAccelerate = CubicBezierEasing(0.2f, 0.0f, 1.0f, 1.0f)
 
-    const val StaggerDelayMillis = 36
-    const val MaxStaggerIndex = 8
-    val StaggerOffset = 12.dp
+    const val StaggerDelayMillis = 18
+    const val MaxStaggerIndex = 6
+    val StaggerOffset = 8.dp
     val StandardMorph = tween<Float>(durationMillis = 500, easing = EmphasizedEasing)
 
     fun <T> bouncySpring(
@@ -38,8 +39,8 @@ data class ExpressiveMotionSpec(
     val pressScale: Float,
     val releaseScale: Float,
     val longPressScale: Float,
-    val scaleAnimationSpec: SpringSpec<Float>,
-    val colorAnimationSpec: SpringSpec<Color>,
+    val scaleAnimationSpec: AnimationSpec<Float>,
+    val colorAnimationSpec: AnimationSpec<Color>,
     val scalePressDown: Float,
     val elevationPressIncrease: Dp,
     val elevationDefault: Dp,
@@ -49,13 +50,13 @@ data class ExpressiveMotionSpec(
             pressScale = 0.96f,
             releaseScale = 1f,
             longPressScale = 0.94f,
-            scaleAnimationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessMedium
+            scaleAnimationSpec = tween<Float>(
+                durationMillis = 100,
+                easing = ExpressiveMotion.StandardDecelerate
             ),
-            colorAnimationSpec = spring<Color>(
-                dampingRatio = Spring.DampingRatioNoBouncy,
-                stiffness = Spring.StiffnessMediumLow
+            colorAnimationSpec = tween<Color>(
+                durationMillis = 180,
+                easing = ExpressiveMotion.EmphasizedEasing
             ),
             scalePressDown = 0.96f,
             elevationPressIncrease = 4.dp,
@@ -70,51 +71,39 @@ val LocalExpressiveMotion = staticCompositionLocalOf { ExpressiveMotionSpec.Defa
 object OverlayTransition {
 
     val navigationCrossfade = tween<Float>(
-        durationMillis = 360,
-        easing = ExpressiveMotion.EmphasizedEasing
+        durationMillis = 220,
+        easing = ExpressiveMotion.StandardDecelerate
     )
     val reducedNavigationCrossfade = tween<Float>(
-        durationMillis = 150,
+        durationMillis = 90,
         easing = ExpressiveMotion.StandardDecelerate
     )
-    val valueSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
-    val progressSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMedium
-    )
+    val valueChange = tween<Float>(durationMillis = 240, easing = ExpressiveMotion.EmphasizedEasing)
+    val progressChange = tween<Float>(durationMillis = 220, easing = ExpressiveMotion.EmphasizedEasing)
     val reducedProgress = tween<Float>(
-        durationMillis = 160,
+        durationMillis = 100,
         easing = ExpressiveMotion.StandardDecelerate
     )
-    val contentSizeSpring = spring<IntSize>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessMediumLow
-    )
+    val contentSizeChange = tween<IntSize>(durationMillis = 220, easing = ExpressiveMotion.EmphasizedEasing)
     val reducedContentSize = tween<IntSize>(
-        durationMillis = 160,
+        durationMillis = 100,
         easing = ExpressiveMotion.StandardDecelerate
     )
     val reducedColor = tween<Color>(
-        durationMillis = 120,
+        durationMillis = 100,
         easing = ExpressiveMotion.StandardDecelerate
     )
+    val fastEnter = tween<Float>(durationMillis = 120, easing = ExpressiveMotion.StandardDecelerate)
+    val fastExit = tween<Float>(durationMillis = 90, easing = ExpressiveMotion.StandardDecelerate)
     const val TabSlideFraction = 1f / 6f
     const val ValueShiftFraction = 0.16f
 
     // ── Float specs (fade, scale, progress) ──
-    val enterSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    val exitSpring = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    val reducedEnter = tween<Float>(durationMillis = 200)
-    val reducedExit = tween<Float>(durationMillis = 150)
+    val enterFade = tween<Float>(durationMillis = 220, easing = ExpressiveMotion.StandardDecelerate)
+    val exitFade = tween<Float>(durationMillis = 160, easing = ExpressiveMotion.StandardDecelerate)
+    val reducedEnter = tween<Float>(durationMillis = 100, easing = ExpressiveMotion.StandardDecelerate)
+    val reducedExit = tween<Float>(durationMillis = 80, easing = ExpressiveMotion.StandardDecelerate)
+    // Reserve bounce for illustrations and explicitly playful moments.
     val bouncyEnter = spring<Float>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMedium
@@ -125,16 +114,10 @@ object OverlayTransition {
     )
 
     // ── IntOffset specs (slide) ──
-    val enterSlide = spring<IntOffset>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    val exitSlide = spring<IntOffset>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-    val reducedEnterSlide = tween<IntOffset>(durationMillis = 200)
-    val reducedExitSlide = tween<IntOffset>(durationMillis = 150)
+    val enterSlide = tween<IntOffset>(durationMillis = 220, easing = ExpressiveMotion.StandardDecelerate)
+    val exitSlide = tween<IntOffset>(durationMillis = 160, easing = ExpressiveMotion.StandardDecelerate)
+    val reducedEnterSlide = tween<IntOffset>(durationMillis = 100, easing = ExpressiveMotion.StandardDecelerate)
+    val reducedExitSlide = tween<IntOffset>(durationMillis = 80, easing = ExpressiveMotion.StandardDecelerate)
     val bouncyEnterSlide = spring<IntOffset>(
         dampingRatio = Spring.DampingRatioMediumBouncy,
         stiffness = Spring.StiffnessMedium

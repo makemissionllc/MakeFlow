@@ -6,6 +6,18 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-20 — Refine shared UI motion for faster navigation
+
+- **Motion:** screen and tab transitions now use short ease-out timing, while changing
+  values, progress, and content size use smooth ease-in-out timing. Reduced-motion timings
+  are shorter; selection labels and the transaction action button use quick fades without
+  bounce. List entrances stagger less, and bounce remains for illustrative moments.
+- **Navigation:** retained directional tab movement and overlay entry paths so transitions
+  continue to reinforce where each screen sits in the app.
+- **Verification:** `git diff --check` and static motion-token/import usage checks passed.
+  Gradle compilation could not run because this environment has no Java runtime. No tests
+  or device UI checks were run.
+
 ## 2026-10-13 — Speed up widget entry and repeat recent transactions
 
 - **Quality of life:** quick-add widgets now show the account that will be selected and

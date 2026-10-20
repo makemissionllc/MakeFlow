@@ -57,7 +57,7 @@ fun StaggeredItem(
             delay((index.coerceIn(0, ExpressiveMotion.MaxStaggerIndex) * delayPerItem).toLong())
             progress.animateTo(
                 targetValue = 1f,
-                animationSpec = OverlayTransition.enterSpring
+                animationSpec = OverlayTransition.enterFade
             )
         }
     }
@@ -79,7 +79,7 @@ fun AnimatedCounter(
     modifier: Modifier = Modifier,
     color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
-    animationSpec: AnimationSpec<Float> = OverlayTransition.valueSpring,
+    animationSpec: AnimationSpec<Float> = OverlayTransition.valueChange,
     formatter: (Double) -> String = { String.format("%,.2f", it) }
 ) {
     val animatedValue by animateFloatAsState(
@@ -182,7 +182,7 @@ fun AnimatedProgressBar(
     color: Color,
     trackColor: Color = Color.Unspecified,
     modifier: Modifier = Modifier,
-    animationSpec: AnimationSpec<Float> = OverlayTransition.progressSpring
+    animationSpec: AnimationSpec<Float> = OverlayTransition.progressChange
 ) {
     val reduced = LocalReducedMotion.current
     val spec = if (reduced) OverlayTransition.reducedProgress else animationSpec
@@ -207,7 +207,7 @@ fun Modifier.animateAppContentSize(): Modifier {
         animationSpec = if (reduced) {
             OverlayTransition.reducedContentSize
         } else {
-            OverlayTransition.contentSizeSpring
+            OverlayTransition.contentSizeChange
         }
     )
 }

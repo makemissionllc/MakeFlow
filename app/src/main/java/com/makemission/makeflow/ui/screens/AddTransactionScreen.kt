@@ -667,7 +667,7 @@ fun AddTransactionScreen(
             slideInVertically(
                 animationSpec = OverlayTransition.enterSlide,
                 initialOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
-            ) + fadeIn(OverlayTransition.enterSpring)
+            ) + fadeIn(OverlayTransition.enterFade)
         },
         exit = if (reducedMotion) {
             fadeOut(OverlayTransition.reducedExit)
@@ -675,7 +675,7 @@ fun AddTransactionScreen(
             slideOutVertically(
                 animationSpec = OverlayTransition.exitSlide,
                 targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
-            ) + fadeOut(OverlayTransition.exitSpring)
+            ) + fadeOut(OverlayTransition.exitFade)
         }
     ) {
         commitHandler.anomalyResult?.let { result ->

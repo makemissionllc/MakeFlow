@@ -175,6 +175,16 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         prefs[LAST_TRANSACTION_ACCOUNT_KEY]
     }
 
+    val dashboardBalanceHidden: Flow<Boolean> = dataStore.data.map { prefs ->
+        prefs[DASHBOARD_BALANCE_HIDDEN_KEY] ?: false
+    }
+
+    suspend fun saveDashboardBalanceHidden(hidden: Boolean) {
+        dataStore.edit { prefs ->
+            prefs[DASHBOARD_BALANCE_HIDDEN_KEY] = hidden
+        }
+    }
+
     suspend fun saveLastTransactionAccountId(accountId: String?) {
         dataStore.edit { prefs ->
             if (accountId.isNullOrBlank()) {
@@ -258,6 +268,7 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val SMART_CATEGORIZATION_KEY = booleanPreferencesKey("smart_categorization")
         private val FOCUSED_ACCOUNT_ID_KEY = stringPreferencesKey("focused_account_id")
         private val LAST_TRANSACTION_ACCOUNT_KEY = stringPreferencesKey("last_transaction_account_id")
+        private val DASHBOARD_BALANCE_HIDDEN_KEY = booleanPreferencesKey("dashboard_balance_hidden")
         private val LAST_SEEN_CHANGELOG_KEY = stringPreferencesKey("last_seen_changelog_version")
         private val LOG_MPESA_COSTS_KEY = booleanPreferencesKey("log_mpesa_costs")
         private val MPESA_AUTO_IMPORT_ENABLED_KEY = booleanPreferencesKey("mpesa_auto_import_enabled")

@@ -1488,7 +1488,8 @@ private fun TabContentAnimated(
                 HistoryScreen(
                     viewModel = historyViewModel,
                     hapticManager = hapticManager,
-                    onEditTransaction = onEditTransaction
+                    onEditTransaction = onEditTransaction,
+                    onAddTransaction = onAddTransaction
                 )
             }
         }

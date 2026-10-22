@@ -37,6 +37,7 @@ import androidx.compose.material.icons.rounded.Receipt
 import androidx.compose.material.icons.rounded.BarChart
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.SwapHoriz
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -44,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Button
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -107,10 +109,12 @@ import java.util.TimeZone
 fun HistoryScreen(
     viewModel: HistoryViewModel,
     hapticManager: HapticManager,
-    onEditTransaction: ((TransactionEntity) -> Unit)? = null
+    onEditTransaction: ((TransactionEntity) -> Unit)? = null,
+    onAddTransaction: ((String) -> Unit)? = null
 ) {
     val transactions by viewModel.filteredTransactions.collectAsState()
     val allTransactions by viewModel.transactions.collectAsState()
+    val transactionsLoaded by viewModel.transactionsLoaded.collectAsState()
     val accounts by viewModel.accounts.collectAsState()
     val categories by viewModel.categories.collectAsState()
     val currencySymbol by viewModel.currencySymbol.collectAsState()
@@ -174,6 +178,7 @@ fun HistoryScreen(
                     hapticManager = hapticManager,
                     config = config,
                     transactions = transactions,
+                    transactionsLoaded = transactionsLoaded,
                     feeByReference = feeByReference,
                     accounts = accounts,
                     categories = categories,
@@ -181,6 +186,7 @@ fun HistoryScreen(
                     selectedCurrency = selectedCurrency,
                     selectedFilter = selectedFilter,
                     selectedTransaction = selectedTransaction,
+                    onAddTransaction = onAddTransaction,
                     groupedTransactions = groupedTransactions,
                     listState = listState,
                     snackbarHostState = snackbarHostState,
@@ -221,6 +227,7 @@ fun HistoryScreen(
             hapticManager = hapticManager,
             config = config,
             transactions = transactions,
+            transactionsLoaded = transactionsLoaded,
             feeByReference = feeByReference,
             accounts = accounts,
             categories = categories,
@@ -228,6 +235,7 @@ fun HistoryScreen(
             selectedCurrency = selectedCurrency,
             selectedFilter = selectedFilter,
             selectedTransaction = selectedTransaction,
+            onAddTransaction = onAddTransaction,
             groupedTransactions = groupedTransactions,
             listState = listState,
             snackbarHostState = snackbarHostState,
@@ -244,6 +252,7 @@ private fun HistoryListContent(
     hapticManager: HapticManager,
     config: com.makemission.makeflow.ui.components.AdaptiveConfig,
     transactions: List<TransactionEntity>,
+    transactionsLoaded: Boolean,
     feeByReference: Map<String, TransactionEntity>,
     accounts: List<com.makemission.makeflow.data.local.entity.AccountEntity>,
     categories: List<com.makemission.makeflow.data.local.entity.CategoryEntity>,
@@ -251,6 +260,7 @@ private fun HistoryListContent(
     selectedCurrency: String,
     selectedFilter: String,
     selectedTransaction: TransactionEntity?,
+    onAddTransaction: ((String) -> Unit)?,
     groupedTransactions: Map<String, List<TransactionEntity>>,
     listState: androidx.compose.foundation.lazy.LazyListState,
     snackbarHostState: SnackbarHostState,
@@ -457,15 +467,18 @@ private fun HistoryListContent(
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
                             )
                             Text(
-                                text = if (allTransactions.isEmpty()) "No transactions yet" else "No matching transactions",
+                                text = stringResource(
+                                    if (allTransactions.isEmpty()) R.string.history_empty_title
+                                    else R.string.history_no_matches_title
+                                ),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                             )
                             Text(
                                 text = if (allTransactions.isEmpty()) {
-                                    "Tap + to log your first transaction"
+                                    stringResource(R.string.history_empty_first_transaction_support)
                                 } else if (searchQuery.isBlank() && selectedFilter == "ALL" && selectedPeriod == HistoryPeriod.ALL_TIME) {
-                                    "There are no transactions in the selected account"
+                                    stringResource(R.string.history_empty_account_support)
                                 } else {
                                     stringResource(R.string.history_no_matches)
                                 },
@@ -482,6 +495,19 @@ private fun HistoryListContent(
                                     }
                                 ) {
                                     Text(stringResource(R.string.history_clear_filters))
+                                }
+                            }
+                            if (transactionsLoaded && allTransactions.isEmpty() && onAddTransaction != null) {
+                                Button(
+                                    onClick = {
+                                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                                        onAddTransaction("EXPENSE")
+                                    },
+                                    modifier = Modifier.testTag("history_add_first_transaction")
+                                ) {
+                                    Icon(Icons.Rounded.Add, contentDescription = null)
+                                    Spacer(Modifier.width(dimens.spacingSmall))
+                                    Text(stringResource(R.string.history_add_first_transaction))
                                 }
                             }
                         }

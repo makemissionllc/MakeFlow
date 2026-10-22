@@ -13,6 +13,14 @@ val CURRENT_CHANGELOG_VERSION = BuildConfig.VERSION_NAME
 val changelogEntries = listOf(
     ChangelogEntry(
         version = BuildConfig.VERSION_NAME,
+        date = "2026-10-22",
+        changes = listOf(
+            "Hide or show the dashboard total balance with a saved privacy control",
+            "Start the first transaction directly from History's empty state"
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.18-community",
         date = "2026-10-13",
         changes = listOf(
             "Quick-add widgets show and use the last account you selected",

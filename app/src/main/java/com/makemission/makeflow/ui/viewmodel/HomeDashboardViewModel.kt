@@ -59,6 +59,10 @@ class HomeDashboardViewModel(
     val selectedCurrency: StateFlow<String> = userPreferencesDataStore.selectedCurrency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "KES")
 
+    val dashboardBalanceHidden: StateFlow<Boolean> = userPreferencesDataStore.dashboardBalanceHidden
+        // Keep the first frame private until DataStore publishes the saved preference.
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -300,6 +304,12 @@ class HomeDashboardViewModel(
         if (!_focusedAccountReady.value) _focusedAccountReady.value = true
         viewModelScope.launch {
             userPreferencesDataStore.saveFocusedAccountId(accountId)
+        }
+    }
+
+    fun setDashboardBalanceHidden(hidden: Boolean) {
+        viewModelScope.launch {
+            userPreferencesDataStore.saveDashboardBalanceHidden(hidden)
         }
     }
 

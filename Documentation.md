@@ -6,6 +6,25 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Improve first-use History and dashboard privacy
+
+- **History UX:** the empty ledger now explains how to get started and offers an
+  “Add your first transaction” action. It waits for the first Room result before
+  appearing so existing records are not mistaken for an empty ledger during load.
+- **Quality of life:** Home can hide or show its balance from an accessible eye
+  control. The choice is saved in DataStore; the first frame stays masked until the
+  preference loads, and the amount transition respects reduced-motion settings.
+- **Release notes:** updated the feature guide and README; Community advanced to
+  `2.0.19-community` / code 22.
+- **Verification:** `./gradlew clean test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed (497 unit tests and both compilations).
+  `./gradlew :app:connectedAndroidTest` passed all 102 instrumented tests on the
+  physical OPPO CPH2745 (Android 16). Device tests used a temporary isolated debug
+  package; the installed `2.0.18-community` app and its data remained intact.
+  The first unit run read stale generated version metadata; a clean rebuild fixed it.
+  The initial temporary package suffix contained an invalid hyphen and was corrected.
+  The sandbox denied the first ADB daemon start; retrying with device access succeeded.
+
 ## 2026-10-20 — Honor reduced motion in dashboard card movement
 
 - **Dashboard motion:** dashboard cards use shared ease-in-out placement timing and quick

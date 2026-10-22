@@ -24,6 +24,17 @@ class UserPreferencesDataStoreTest {
         assertNull(preferences.lastTransactionAccountId.first())
     }
 
+    @Test
+    fun dashboardBalanceVisibilityDefaultsToShownAndPersistsChanges() = runTest {
+        val preferences = UserPreferencesDataStore(InMemoryDataStore())
+
+        assertEquals(false, preferences.dashboardBalanceHidden.first())
+        preferences.saveDashboardBalanceHidden(true)
+        assertEquals(true, preferences.dashboardBalanceHidden.first())
+        preferences.saveDashboardBalanceHidden(false)
+        assertEquals(false, preferences.dashboardBalanceHidden.first())
+    }
+
     private class InMemoryDataStore : DataStore<Preferences> {
         private val state = MutableStateFlow(emptyPreferences())
         override val data: Flow<Preferences> = state

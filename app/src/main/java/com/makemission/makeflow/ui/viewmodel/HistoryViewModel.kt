@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -31,8 +32,11 @@ class HistoryViewModel(
 ) : ViewModel() {
 
     private val _transactions = financeRepository.getAllTransactions()
+    private val _transactionsLoaded = MutableStateFlow(false)
+    val transactionsLoaded = _transactionsLoaded.asStateFlow()
 
     val transactions: StateFlow<List<TransactionEntity>> = _transactions
+        .onEach { _transactionsLoaded.value = true }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val accounts: StateFlow<List<AccountEntity>> = financeRepository.getAllAccounts()

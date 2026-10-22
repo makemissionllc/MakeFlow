@@ -18,7 +18,7 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("History and summaries", listOf(
         "Search notes, amounts, accounts, categories, and references. Combine search with date presets, type, and account focus. Account focus is shared with Home; choose All accounts to clear it.",
-        "Use Fees to find parser-imported M-PESA charges. With Log M-PESA fees enabled, History links each charge to its original transaction. Open Summary for matching income, spending, and net change grouped by currency. Transfers and incomplete records are disclosed separately. Swipe an entry to delete it; the brief Undo action restores it."
+        "When History has no records yet, add the first transaction from the empty state. Use Fees to find parser-imported M-PESA charges. With Log M-PESA fees enabled, History links each charge to its original transaction. Open Summary for matching income, spending, and net change grouped by currency. Transfers and incomplete records are disclosed separately. Swipe an entry to delete it; the brief Undo action restores it."
     )),
     FeatureGuideEntry("Tablet workspaces", listOf(
         "In expanded History, select an entry for side-by-side details. Previous and Next review filtered results; Page Up and Page Down work while the details pane is focused.",
@@ -58,6 +58,7 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("Privacy, backup, and preferences", listOf(
         "Finance records are stored locally. JSON backup and restore are user initiated; keep backup and shared statement files private.",
+        "Hide or show the Home dashboard's total balance with the eye control. Your choice is remembered on this device.",
         "Community builds check GitHub Releases on launch and daily; Check for app updates in Settings starts a manual check. A newer compatible signed APK downloads in the background and notifies you when ready. Android asks you to allow this install source and confirm the update.",
         "Settings includes app lock, light/dark and AMOLED modes, haptic strength, privacy information, and What's New. The interactive tour covers every feature guide section and can open transaction entry for practice. Setup allows an optional name and skippable tour; motion respects reduced-motion preferences. Some features need permissions or supported device services."
     ))

@@ -44,6 +44,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   with current account balances beside the entry controls.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
+  If there are no transactions yet, add the first one directly from the empty state.
   Filter logged parser-imported M-PESA fees and see each charge beside its source transaction
   in a distinct fee label.
   A live summary shows matching income, spending, and net change in separate account-currency
@@ -83,7 +84,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Reminders** — optional weekly finance-review reminders, scheduled locally and disabled
   until the user opts in.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
-  app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, changelog screen,
+  app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, a saved Home balance visibility control, changelog screen,
   skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation. Community
   builds check GitHub Releases on launch and daily, download newer compatible APKs, and notify
   when Android is ready to install an update.
@@ -103,6 +104,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   M-PESA listener. Build its GitHub APK with `:app:assembleRelease`; its application ID is
   `com.makemission.makeflow.community`. GitHub updates require a published, signed APK built with
   the same signing key as the installed app; Android asks the user to allow this source and confirm.
+- The current Community build is `2.0.19-community` / code 22.
 - Keep Play policy restrictions on the `play` branch. Do not submit the Community artifact
   to Google Play.
 - SMS Retriever is not used for M-PESA: it only returns messages containing this app's

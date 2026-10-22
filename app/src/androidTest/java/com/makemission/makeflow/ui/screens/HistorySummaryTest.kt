@@ -125,6 +125,20 @@ class HistorySummaryTest {
     }
 
     @Test
+    fun emptyHistoryOffersOneTapFirstTransactionAction() {
+        var requestedType: String? = null
+        showHistory(onAddTransaction = { requestedType = it })
+        composeTestRule.waitUntil(5_000) { viewModel.transactionsLoaded.value }
+
+        composeTestRule.onNodeWithTag("history_add_first_transaction")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .performClick()
+
+        assertEquals("EXPENSE", requestedType)
+    }
+
+    @Test
     fun accountPickerFiltersHistoryWithoutLeavingTheScreen() {
         runBlocking {
             repository.insertAccount(AccountEntity("cash", "Daily wallet", 0.0, 0.0, currencyCode = "USD"))
@@ -293,6 +307,7 @@ class HistorySummaryTest {
         mode: DeviceLayoutMode = DeviceLayoutMode.COMPACT,
         restoration: StateRestorationTester? = null,
         onEdit: ((TransactionEntity) -> Unit)? = null,
+        onAddTransaction: ((String) -> Unit)? = null,
         fontScale: Float = 1f
     ) {
         layoutMode.value = mode
@@ -315,7 +330,7 @@ class HistorySummaryTest {
                         LocalReducedMotion provides true
                     ) {
                         val haptics = remember { HapticManager(context).apply { strength = HapticStrength.OFF } }
-                        HistoryScreen(viewModel, haptics, onEdit)
+                        HistoryScreen(viewModel, haptics, onEdit, onAddTransaction)
                     }
                 }
             }

@@ -43,6 +43,8 @@ import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TrackChanges
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material.icons.automirrored.rounded.TrendingUp
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
@@ -152,6 +154,7 @@ fun HomeDashboard(
     val focusedAccountId by viewModel.focusedAccountId.collectAsState()
     val focusedAccountState by viewModel.focusedAccountState.collectAsState()
     val balanceCurrencyCode by viewModel.balanceCurrencyCode.collectAsState()
+    val dashboardBalanceHidden by viewModel.dashboardBalanceHidden.collectAsState()
     val monthlyIncome by viewModel.monthlyIncome.collectAsState()
     val monthlyExpenses by viewModel.monthlyExpenses.collectAsState()
     val parentCategorySpending by viewModel.parentCategorySpending.collectAsState()
@@ -255,6 +258,10 @@ fun HomeDashboard(
                         HomeBalanceHero(
                             balance = totalBalance,
                             currencyCode = balanceCurrencyCode,
+                            balanceHidden = dashboardBalanceHidden,
+                            onToggleBalanceVisibility = {
+                                viewModel.setDashboardBalanceHidden(!dashboardBalanceHidden)
+                            },
                             label = focusedAccountName ?: stringResource(R.string.home_total_balance),
                             supportingLabel = if (focusedAccountName == null) {
                                 when (accounts.size) {
@@ -657,6 +664,8 @@ private fun HomeWelcomeHeader(
 private fun HomeBalanceHero(
     balance: Double,
     currencyCode: String,
+    balanceHidden: Boolean,
+    onToggleBalanceVisibility: () -> Unit,
     label: String,
     supportingLabel: String,
     showSupportingLabel: Boolean,
@@ -667,6 +676,15 @@ private fun HomeBalanceHero(
 ) {
     val dimens = LocalAppDimens.current
     val reducedMotion = LocalReducedMotion.current
+    val hiddenBalanceDescription = stringResource(R.string.home_balance_hidden)
+    val visibilityActionDescription = stringResource(
+        if (balanceHidden) R.string.home_show_balance else R.string.home_hide_balance
+    )
+    val displayedBalance = if (balanceHidden) {
+        stringResource(R.string.home_balance_mask)
+    } else {
+        CurrencyFormatter.formatCompact(balance, currencyCode)
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -683,30 +701,59 @@ private fun HomeBalanceHero(
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        AnimatedContent(
-            targetState = CurrencyFormatter.formatCompact(balance, currencyCode),
-            transitionSpec = {
-                if (reducedMotion) {
-                    (fadeIn(OverlayTransition.reducedEnter) + slideInVertically(
-                        animationSpec = OverlayTransition.reducedEnterSlide,
-                        initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
-                    )) togetherWith (fadeOut(OverlayTransition.reducedExit) + slideOutVertically(
-                        animationSpec = OverlayTransition.reducedExitSlide,
-                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
-                    ))
-                } else {
-                    (fadeIn(OverlayTransition.enterFade) + slideInVertically(
-                        animationSpec = OverlayTransition.enterSlide,
-                        initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
-                    )) togetherWith (fadeOut(OverlayTransition.exitFade) + slideOutVertically(
-                        animationSpec = OverlayTransition.exitSlide,
-                        targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
-                    ))
-                }
-            },
-            label = "homeBalance"
-        ) { amount ->
-            FittedAmountText(text = amount, color = MaterialTheme.colorScheme.onSurface)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+        ) {
+            AnimatedContent(
+                targetState = displayedBalance,
+                modifier = Modifier.weight(1f),
+                transitionSpec = {
+                    if (reducedMotion) {
+                        (fadeIn(OverlayTransition.reducedEnter) + slideInVertically(
+                            animationSpec = OverlayTransition.reducedEnterSlide,
+                            initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
+                        )) togetherWith (fadeOut(OverlayTransition.reducedExit) + slideOutVertically(
+                            animationSpec = OverlayTransition.reducedExitSlide,
+                            targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                        ))
+                    } else {
+                        (fadeIn(OverlayTransition.enterFade) + slideInVertically(
+                            animationSpec = OverlayTransition.enterSlide,
+                            initialOffsetY = { (it * OverlayTransition.ValueShiftFraction).toInt() }
+                        )) togetherWith (fadeOut(OverlayTransition.exitFade) + slideOutVertically(
+                            animationSpec = OverlayTransition.exitSlide,
+                            targetOffsetY = { -(it * OverlayTransition.ValueShiftFraction).toInt() }
+                        ))
+                    }
+                },
+                label = "homeBalance"
+            ) { amount ->
+                FittedAmountText(
+                    text = amount,
+                    modifier = if (balanceHidden) {
+                        Modifier.semantics { contentDescription = hiddenBalanceDescription }
+                    } else {
+                        Modifier
+                    },
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(
+                onClick = {
+                    hapticManager?.fire(HapticEvent.NAV_SELECT)
+                    onToggleBalanceVisibility()
+                },
+                modifier = Modifier.semantics { contentDescription = visibilityActionDescription }
+            ) {
+                Icon(
+                    imageVector = if (balanceHidden) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(dimens.iconSizeMedium),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         if (showSupportingLabel) {
             Text(

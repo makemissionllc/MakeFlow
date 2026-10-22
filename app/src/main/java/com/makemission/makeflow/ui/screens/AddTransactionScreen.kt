@@ -1,21 +1,28 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.using
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -96,6 +104,9 @@ import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.OverlayTransition
 import com.makemission.makeflow.ui.components.FittedAmountText
+import com.makemission.makeflow.ui.components.animateAppContentSize
+import com.makemission.makeflow.ui.components.pressScale
+import androidx.compose.animation.core.MutableTransitionState
 import com.makemission.makeflow.domain.CalculatorEngine
 import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
@@ -458,6 +469,15 @@ fun AddTransactionScreen(
         }
     }
 
+    LaunchedEffect(draftStatus) {
+        if (draftStatus == TransactionDraftStatus.SAVED) {
+            delay(1_800)
+            if (draftStatus == TransactionDraftStatus.SAVED) {
+                draftStatus = null
+            }
+        }
+    }
+
     fun resetForNextTransaction() {
         engine.onClear()
         calculatorDisplay = engine.displayValue
@@ -804,57 +824,63 @@ fun AddTransactionScreen(
 
     // === Sub-screens ===
     if (showAccountPicker) {
-        AccountPickerScreen(
-            accounts = accounts,
-            selectedAccountId = if (selectedType == "TRANSFER") selectedTransferFromId else selectedAccountId,
-            currencyCode = currencyCode,
-            onAccountSelected = { id ->
-                if (selectedType == "TRANSFER") selectedTransferFromId = id
-                else selectedAccountId = id
-                showAccountPicker = false
-            },
-            onBack = { showAccountPicker = false }
-        )
+        TransactionSubScreenTransition {
+            AccountPickerScreen(
+                accounts = accounts,
+                selectedAccountId = if (selectedType == "TRANSFER") selectedTransferFromId else selectedAccountId,
+                currencyCode = currencyCode,
+                onAccountSelected = { id ->
+                    if (selectedType == "TRANSFER") selectedTransferFromId = id
+                    else selectedAccountId = id
+                    showAccountPicker = false
+                },
+                onBack = { showAccountPicker = false }
+            )
+        }
         return
     }
 
     if (showCategoryPicker) {
-        CategoryPickerScreen(
-            selectedType = selectedType,
-            categories = categories,
-            selectedCategoryId = resolvedCategoryId,
-            accounts = accounts,
-            selectedAccountId = selectedTransferToId,
-            currencyCode = currencyCode,
-            categoryUsages = categoryUsages.value,
-            onItemSelected = { id ->
-                if (selectedType == "TRANSFER") {
-                    selectedTransferToId = id
-                } else {
-                    val cat = categories.find { it.id == id }
-                    if (cat != null) {
-                        if (cat.parentCategoryId != null) {
-                            selectedParentCategory = categories.find { it.id == cat.parentCategoryId }
-                            selectedChildCategory = cat
-                        } else {
-                            selectedParentCategory = cat
-                            selectedChildCategory = null
+        TransactionSubScreenTransition {
+            CategoryPickerScreen(
+                selectedType = selectedType,
+                categories = categories,
+                selectedCategoryId = resolvedCategoryId,
+                accounts = accounts,
+                selectedAccountId = selectedTransferToId,
+                currencyCode = currencyCode,
+                categoryUsages = categoryUsages.value,
+                onItemSelected = { id ->
+                    if (selectedType == "TRANSFER") {
+                        selectedTransferToId = id
+                    } else {
+                        val cat = categories.find { it.id == id }
+                        if (cat != null) {
+                            if (cat.parentCategoryId != null) {
+                                selectedParentCategory = categories.find { it.id == cat.parentCategoryId }
+                                selectedChildCategory = cat
+                            } else {
+                                selectedParentCategory = cat
+                                selectedChildCategory = null
+                            }
                         }
                     }
-                }
-                showCategoryPicker = false
-            },
-            onBack = { showCategoryPicker = false }
-        )
+                    showCategoryPicker = false
+                },
+                onBack = { showCategoryPicker = false }
+            )
+        }
         return
     }
 
     if (showDateTimePicker) {
-        DateTimePickerScreen(
-            initialTimestamp = selectedDate,
-            onDateTimeSelected = { selectedDate = it; showDateTimePicker = false },
-            onBack = { showDateTimePicker = false }
-        )
+        TransactionSubScreenTransition {
+            DateTimePickerScreen(
+                initialTimestamp = selectedDate,
+                onDateTimeSelected = { selectedDate = it; showDateTimePicker = false },
+                onBack = { showDateTimePicker = false }
+            )
+        }
         return
     }
 
@@ -974,29 +1000,39 @@ fun AddTransactionScreen(
 
                 Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
-            draftStatus?.let { status ->
-                val statusMessage = when (status) {
-                    TransactionDraftStatus.SAVING -> R.string.transaction_draft_saving
-                    TransactionDraftStatus.SAVED -> R.string.transaction_draft_saved
-                    TransactionDraftStatus.RESTORED -> R.string.transaction_draft_restored
+            AnimatedVisibility(
+                visible = draftStatus != null,
+                enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+            ) {
+                Column {
+                    draftStatus?.let { status ->
+                        val statusMessage = when (status) {
+                            TransactionDraftStatus.SAVING -> R.string.transaction_draft_saving
+                            TransactionDraftStatus.SAVED -> R.string.transaction_draft_saved
+                            TransactionDraftStatus.RESTORED -> R.string.transaction_draft_restored
+                        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.secondaryContainer,
+                                    RoundedCornerShape(dimens.shapeCornerSmall)
+                                )
+                                .padding(horizontal = dimens.spacingXLarge, vertical = dimens.spacingLarge),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = stringResource(statusMessage),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(dimens.spacingMedium))
                 }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            MaterialTheme.colorScheme.secondaryContainer,
-                            RoundedCornerShape(dimens.shapeCornerSmall)
-                        )
-                        .padding(horizontal = dimens.spacingXLarge, vertical = dimens.spacingLarge),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(statusMessage),
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                Spacer(modifier = Modifier.height(dimens.spacingMedium))
             }
 
             if (isEditMode) {
@@ -1123,6 +1159,7 @@ fun AddTransactionScreen(
                             else LocalExpressiveMotion.current.colorAnimationSpec,
                         label = "transactionTypeContent"
                     )
+                    val interactionSource = remember { MutableInteractionSource() }
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
@@ -1133,7 +1170,10 @@ fun AddTransactionScreen(
                                 segmentBackground,
                                 RoundedCornerShape(dimens.shapeCornerPill)
                             )
+                            .pressScale(interactionSource)
                             .selectable(
+                                interactionSource = interactionSource,
+                                indication = LocalIndication.current,
                                 selected = isSelected,
                                 role = Role.RadioButton,
                                 onClick = {
@@ -1174,15 +1214,23 @@ fun AddTransactionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
                     ) {
-                        calculatorExpression?.let { expression ->
-                            Text(
-                                text = expression,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
-                                style = MaterialTheme.typography.titleMedium,
-                                textAlign = TextAlign.Center,
-                            )
-                        }
-                        FittedAmountText(
+                        AnimatedVisibility(
+                                visible = calculatorExpression != null,
+                                enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                                else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                                exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                                else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+                            ) {
+                                calculatorExpression?.let { expression ->
+                                    Text(
+                                        text = expression,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        textAlign = TextAlign.Center,
+                                    )
+                                }
+                            }
+                        AnimatedTransactionAmount(
                             text = CurrencyFormatter.format(amountForDisplay.toDoubleOrNull() ?: 0.0, amountCurrencyCode),
                             color = MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center
@@ -1193,7 +1241,30 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(dimens.spacingLarge))
             }
 
-            if (selectedType == "TRANSFER") {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                AnimatedContent(
+                    targetState = selectedType == "TRANSFER",
+                    transitionSpec = {
+                        val contentEnter = if (reducedMotion) {
+                            OverlayTransition.reducedSequentialContentEnter
+                        } else {
+                            OverlayTransition.sequentialContentEnter
+                        }
+                        val contentExit = if (reducedMotion) {
+                            OverlayTransition.reducedSequentialContentExit
+                        } else {
+                            OverlayTransition.sequentialContentExit
+                        }
+                        (fadeIn(contentEnter) togetherWith fadeOut(contentExit)).using(
+                            SizeTransform(clip = false) { _, _ ->
+                                if (reducedMotion) OverlayTransition.reducedContentSize
+                                else OverlayTransition.contentSizeChange
+                            }
+                        )
+                    },
+                    label = "transactionDetails"
+                ) { isTransfer ->
+            if (isTransfer) {
                 Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
                     PickerChip("${stringResource(R.string.add_from)} · ${fromAccountForAmount?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
                     PickerChip("${stringResource(R.string.add_to)} · ${toAccountForAmount?.name ?: stringResource(R.string.add_account)} · $destinationCurrencyCode", Modifier.weight(1f)) { showCategoryPicker = true }
@@ -1261,8 +1332,24 @@ fun AddTransactionScreen(
                     }
                 }
             }
+                }
+            }
 
             Spacer(modifier = Modifier.height(dimens.spacingLarge))
+            AnimatedVisibility(
+                visible = selectedType != "TRANSFER",
+                enter = if (reducedMotion) {
+                    fadeIn(OverlayTransition.reducedEnter)
+                } else {
+                    expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter)
+                },
+                exit = if (reducedMotion) {
+                    fadeOut(OverlayTransition.reducedExit)
+                } else {
+                    shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+                }
+            ) {
+                Column {
             if (selectedType != "TRANSFER") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
@@ -1272,6 +1359,7 @@ fun AddTransactionScreen(
                     )
                     Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
                         (usualAmounts.distinct().take(4).ifEmpty { listOf(100.0, 200.0, 500.0, 1000.0) }).forEach { value ->
+                            val interactionSource = remember(value) { MutableInteractionSource() }
                             Text(
                                 text = CurrencyFormatter.formatNumber(value, 0),
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f),
@@ -1279,7 +1367,11 @@ fun AddTransactionScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(dimens.shapeCornerPill))
                                     .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                                    .clickable {
+                                    .pressScale(interactionSource)
+                                    .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = LocalIndication.current
+                                    ) {
                                         engine.onClear()
                                         val amount = value.toLong().toString()
                                         amount.forEach { digit -> engine.onDigit(digit.digitToInt()) }
@@ -1294,6 +1386,8 @@ fun AddTransactionScreen(
                     }
                 }
                 Spacer(modifier = Modifier.height(dimens.spacingSmall))
+            }
+                }
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingSmall))
@@ -1326,7 +1420,13 @@ fun AddTransactionScreen(
             Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
             // === Note field (expandable) ===
-            if (noteExpanded) {
+            AnimatedVisibility(
+                visible = noteExpanded,
+                enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+            ) {
                 Column {
                     BasicTextField(
                         value = note,
@@ -1356,25 +1456,42 @@ fun AddTransactionScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(dimens.spacingXSmall))
-                Text(
-                    text = "Collapse",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                    fontSize = dimens.textS,
-                    fontWeight = FontWeight.Medium,
+                Box(
                     modifier = Modifier
-                        .clickable { noteExpanded = false }
-                        .padding(vertical = 4.dp)
-                )
-            } else {
-                Text(
-                    text = "+ Record Name${if (note.isNotEmpty()) ": $note" else " (Optional)"}",
-                    color = if (note.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = dimens.textM,
-                    fontWeight = FontWeight.Medium,
+                        .fillMaxWidth()
+                        .height(dimens.segmentedControlHeight)
+                        .clickable { noteExpanded = false },
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "Collapse",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = dimens.textS,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            AnimatedVisibility(
+                visible = !noteExpanded,
+                enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+            ) {
+                Box(
                     modifier = Modifier
-                        .clickable { noteExpanded = true }
-                        .padding(vertical = 12.dp)
-                )
+                        .fillMaxWidth()
+                        .height(dimens.segmentedControlHeight)
+                        .clickable { noteExpanded = true },
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "+ Record Name${if (note.isNotEmpty()) ": $note" else " (Optional)"}",
+                        color = if (note.isNotEmpty()) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = dimens.textM,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             AnimatedVisibility(
@@ -1777,15 +1894,23 @@ private fun TransactionReviewPane(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.labelMedium
                 )
-                amountExpression?.let { expression ->
-                    Text(
-                        text = expression,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
-                    )
+                AnimatedVisibility(
+                    visible = amountExpression != null,
+                    enter = if (LocalReducedMotion.current) fadeIn(OverlayTransition.reducedEnter)
+                    else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                    exit = if (LocalReducedMotion.current) fadeOut(OverlayTransition.reducedExit)
+                    else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+                ) {
+                    amountExpression?.let { expression ->
+                        Text(
+                            text = expression,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
-                FittedAmountText(
+                AnimatedTransactionAmount(
                     text = amountText,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
@@ -1802,7 +1927,13 @@ private fun TransactionReviewPane(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-            if (transactionType == "TRANSFER") {
+            Crossfade(
+                targetState = transactionType == "TRANSFER",
+                animationSpec = if (LocalReducedMotion.current) OverlayTransition.reducedNavigationCrossfade
+                else OverlayTransition.navigationCrossfade,
+                label = "transactionReviewDetails"
+            ) { isTransfer ->
+            if (isTransfer) {
                 TransactionReviewDetailRow(
                     label = stringResource(R.string.add_from),
                     value = "$transferFromName · $transferFromCurrency",
@@ -1843,6 +1974,7 @@ private fun TransactionReviewPane(
                     value = "$accountName · $accountCurrency",
                     supportingText = stringResource(R.string.add_available_balance, accountBalance)
                 )
+            }
             }
 
             TransactionReviewDetailRow(
@@ -1910,8 +2042,8 @@ private fun CalculatorKeypad(
     hapticManager: HapticManager
 ) {
     val dimens = LocalAppDimens.current
-    val operatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
     val functionColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val reducedMotion = LocalReducedMotion.current
 
     fun pressDigit(d: Int) {
         engine.onDigit(d)
@@ -1930,14 +2062,61 @@ private fun CalculatorKeypad(
         verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
+            val selectedOperator = engine.snapshot().pendingOperator
             listOf(CalculatorEngine.Operator.ADD, CalculatorEngine.Operator.SUBTRACT,
                 CalculatorEngine.Operator.MULTIPLY, CalculatorEngine.Operator.DIVIDE).forEach { op ->
-                Text(op.symbol.toString(), color = operatorColor, fontSize = dimens.textXl,
-                    modifier = Modifier.clickable { pressOperator(op) }.padding(horizontal = dimens.spacingMedium, vertical = dimens.spacingSmall))
+                val selected = selectedOperator == op
+                val keyBackground by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+                    else LocalExpressiveMotion.current.colorAnimationSpec,
+                    label = "calculatorOperatorBackground"
+                )
+                val interactionSource = remember(op) { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(dimens.transactionCalculatorKeyHeight)
+                        .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                        .background(keyBackground)
+                        .pressScale(interactionSource)
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = LocalIndication.current
+                        ) { pressOperator(op) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = op.symbol.toString(),
+                        color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = dimens.textXl,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
-            Text("=", color = MaterialTheme.colorScheme.primary, fontSize = dimens.textXl, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable(onClick = onConfirm).padding(horizontal = dimens.spacingMedium, vertical = dimens.spacingSmall))
+            val confirmInteractionSource = remember { MutableInteractionSource() }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(dimens.transactionCalculatorKeyHeight)
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .pressScale(confirmInteractionSource)
+                    .clickable(
+                        interactionSource = confirmInteractionSource,
+                        indication = LocalIndication.current,
+                        onClick = onConfirm
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "=",
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    fontSize = dimens.textXl,
+                    fontWeight = FontWeight.Bold
+                )
+            }
         }
         // Digits follow the familiar keypad order.
         CalculatorRow {
@@ -1997,11 +2176,20 @@ private fun RowScope.CalcButton(
     onClick: () -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
+    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
             .weight(1f)
-            .height(dimens.primaryButtonHeight)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .height(dimens.transactionCalculatorKeyHeight)
+            .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .pressScale(interactionSource)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -2014,6 +2202,50 @@ private fun RowScope.CalcButton(
 }
 
 @Composable
+private fun AnimatedTransactionAmount(
+    text: String,
+    color: Color,
+    textAlign: TextAlign
+) {
+    val reducedMotion = LocalReducedMotion.current
+    Crossfade(
+        targetState = text,
+        animationSpec = if (reducedMotion) OverlayTransition.reducedNavigationCrossfade
+        else OverlayTransition.valueChange,
+        label = "transactionAmount"
+    ) { displayedAmount ->
+        FittedAmountText(
+            text = displayedAmount,
+            color = color,
+            textAlign = textAlign
+        )
+    }
+}
+
+@Composable
+private fun TransactionSubScreenTransition(content: @Composable () -> Unit) {
+    val reducedMotion = LocalReducedMotion.current
+    val visibility = remember { MutableTransitionState(false) }
+    LaunchedEffect(Unit) {
+        visibility.targetState = true
+    }
+    AnimatedVisibility(
+        visibleState = visibility,
+        enter = if (reducedMotion) {
+            fadeIn(OverlayTransition.reducedEnter)
+        } else {
+            slideInHorizontally(
+                animationSpec = OverlayTransition.enterSlide,
+                initialOffsetX = { it / 12 }
+            ) + fadeIn(OverlayTransition.enterFade)
+        },
+        exit = fadeOut(OverlayTransition.reducedExit)
+    ) {
+        content()
+    }
+}
+
+@Composable
 private fun PickerPill(
     label: String,
     value: String,
@@ -2021,11 +2253,17 @@ private fun PickerPill(
     onClick: () -> Unit
 ) {
     val dimens = LocalAppDimens.current
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick)
+            .pressScale(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -2062,17 +2300,43 @@ private fun PickerChip(
     onClick: () -> Unit
 ) {
     val dimens = LocalAppDimens.current
-    Text(
-        text = text,
-        color = if (emphasized) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-        fontSize = dimens.textSm,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-        modifier = modifier
-            .clip(RoundedCornerShape(dimens.shapeCornerPill))
-            .background(if (emphasized) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(onClick = onClick)
-            .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
+    val reducedMotion = LocalReducedMotion.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val backgroundColor by animateColorAsState(
+        targetValue = if (emphasized) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+        else LocalExpressiveMotion.current.colorAnimationSpec,
+        label = "transactionPickerBackground"
     )
+    val contentColor by animateColorAsState(
+        targetValue = if (emphasized) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+        else LocalExpressiveMotion.current.colorAnimationSpec,
+        label = "transactionPickerContent"
+    )
+    Box(
+        modifier = modifier
+            .heightIn(min = dimens.segmentedControlHeight)
+            .clip(RoundedCornerShape(dimens.shapeCornerPill))
+            .background(backgroundColor)
+            .pressScale(interactionSource)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = text,
+            color = contentColor,
+            fontSize = dimens.textSm,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = dimens.paddingMedium)
+        )
+    }
 }

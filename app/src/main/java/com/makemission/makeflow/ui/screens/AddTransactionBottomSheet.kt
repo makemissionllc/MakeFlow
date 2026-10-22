@@ -1,12 +1,16 @@
 ﻿package com.makemission.makeflow.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -87,6 +92,8 @@ import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
 import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.OverlayTransition
+import com.makemission.makeflow.ui.components.animateAppContentSize
+import com.makemission.makeflow.ui.components.pressScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -486,17 +493,18 @@ fun AddTransactionBottomSheet(
                             else LocalExpressiveMotion.current.colorAnimationSpec,
                         label = "quickTransactionTypeContent"
                     )
-                    Text(
-                        text = label,
-                        color = segmentContent,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Center,
+                    val interactionSource = remember { MutableInteractionSource() }
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(dimens.shapeCornerPill))
                             .background(segmentBackground, RoundedCornerShape(dimens.shapeCornerPill))
+                            .pressScale(interactionSource)
                             .selectable(
+                                interactionSource = interactionSource,
+                                indication = LocalIndication.current,
                                 selected = isSelected,
                                 role = Role.RadioButton,
                                 onClick = {
@@ -505,7 +513,14 @@ fun AddTransactionBottomSheet(
                                 }
                             )
                             .padding(horizontal = dimens.spacingSmall)
-                    )
+                    ) {
+                        Text(
+                            text = label,
+                            color = segmentContent,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
 
@@ -556,7 +571,18 @@ fun AddTransactionBottomSheet(
                 )
             }
 
-            if (selectedType == "TRANSFER") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateAppContentSize()
+            ) {
+                Crossfade(
+                    targetState = selectedType == "TRANSFER",
+                    animationSpec = if (reducedMotion) OverlayTransition.reducedNavigationCrossfade
+                    else OverlayTransition.navigationCrossfade,
+                    label = "quickTransactionDetails"
+                ) { isTransfer ->
+            if (isTransfer) {
                 Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                     Text(
                         text = "From account",
@@ -656,8 +682,15 @@ fun AddTransactionBottomSheet(
                     }
                 }
             }
+                }
 
-            if (selectedType != "TRANSFER") {
+            AnimatedVisibility(
+                visible = selectedType != "TRANSFER",
+                enter = if (reducedMotion) fadeIn(OverlayTransition.reducedEnter)
+                else expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter),
+                exit = if (reducedMotion) fadeOut(OverlayTransition.reducedExit)
+                else shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+            ) {
             Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingMedium)) {
                 Text(
                     text = "Category",
@@ -756,6 +789,7 @@ fun AddTransactionBottomSheet(
                         }
                     }
                 }
+            }
             }
             }
 

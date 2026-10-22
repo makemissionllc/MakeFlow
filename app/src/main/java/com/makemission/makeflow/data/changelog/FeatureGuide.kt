@@ -30,7 +30,7 @@ val featureGuideEntries = listOf(
         "The expanded Quick Action widget on tablets includes a Repeat last transaction action, with the recent amount and note shown before you open the prefilled form.",
         "Choose frequently used categories from the transaction form without opening the category picker on phones or tablets.",
         "Expanded transaction forms show saved templates in a two-column grid with their amount and account currency.",
-        "Transaction entry keeps calculator controls on one side and a live amount, account, category, note, date, and balance review on the other. Transfers include both account balances and the estimated destination amount.",
+        "Transaction entry keeps calculator controls on one side and a live amount, account, category, note, date, and selected account's available balance on the other. Transfers include both account balances and the estimated destination amount.",
         "Settings > What's New opens an interactive tour. Expanded tablets show a feature list beside animated step details; phones use Previous and Next controls.",
         "In expanded History, an M-PESA transaction shows its logged fee beside the original amount, even when the current search or filters hide the separate fee entry.",
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."

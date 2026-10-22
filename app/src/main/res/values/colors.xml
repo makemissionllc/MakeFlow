@@ -2,7 +2,7 @@
 <resources>
     <color name="splash_background">#FFF4F3E8</color>
     <color name="widget_bg">#FFF9F8EF</color>
-    <color name="widget_surface">#FFFFFFFF</color>
+    <color name="widget_surface">#FFF9F8EF</color>
     <color name="widget_action_content">#FF191D15</color>
     <color name="widget_text">#FF191D15</color>
     <color name="widget_muted">#FF626A5B</color>

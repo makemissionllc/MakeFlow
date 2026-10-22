@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
+import androidx.glance.ImageProvider
 import androidx.glance.action.actionStartActivity
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -139,7 +140,7 @@ private fun List<ExchangeRateEntity>.toCurrencyRates(): List<CurrencyRate> = map
 
 @androidx.compose.runtime.Composable
 private fun WidgetContent(data: WidgetData, size: DpSize) {
-    val compact = size.width < WidgetTokens.compactWidth
+    val compact = size.width < WidgetTokens.compactWidth || size.height < WidgetTokens.expandedHeight
     val expanded = size.width >= WidgetTokens.expandedWidth && size.height >= WidgetTokens.expandedHeight
 
     Column(
@@ -150,7 +151,7 @@ private fun WidgetContent(data: WidgetData, size: DpSize) {
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Vertical.Top
     ) {
-        WidgetHeader("MINDFUL", trailing = data.currencyCode)
+        WidgetHeader("Mindful", trailing = data.currencyCode)
         Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
         Text(
             text = "Balance",
@@ -169,9 +170,9 @@ private fun WidgetContent(data: WidgetData, size: DpSize) {
         if (expanded) {
             Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                WidgetMonthAmount("IN THIS MONTH", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
+                WidgetMonthAmount("Income", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
                 Spacer(GlanceModifier.width(WidgetTokens.sectionSpacing))
-                WidgetMonthAmount("OUT THIS MONTH", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
+                WidgetMonthAmount("Spent", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
             }
             Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
         } else {
@@ -196,11 +197,18 @@ private fun WidgetContent(data: WidgetData, size: DpSize) {
                 )
             }
             is WidgetContent.BalanceSummary -> content.projectedEndOfMonth?.let { projected ->
-                Text(
-                    text = "Projected · ${CurrencyFormatter.format(projected, data.currencyCode)}",
-                    style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Medium),
-                    maxLines = 1
-                )
+                Column {
+                    Text(
+                        text = "Month-end forecast",
+                        style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = FontWeight.Medium),
+                        maxLines = 1
+                    )
+                    Text(
+                        text = CurrencyFormatter.format(projected, data.currencyCode),
+                        style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.titleSize, fontWeight = FontWeight.Bold),
+                        maxLines = 1
+                    )
+                }
             }
             is WidgetContent.NoData -> {
                 Text(
@@ -259,29 +267,36 @@ private fun WidgetSpotlight(
     compact: Boolean
 ) {
     Column {
-        Text(
-            text = label.uppercase(),
-            style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.smallLabelSize, fontWeight = FontWeight.Bold),
-            maxLines = 1
-        )
-        Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = GlanceModifier
+                .fillMaxWidth()
+                .background(ImageProvider(R.drawable.widget_action_secondary))
+                .padding(WidgetTokens.compactPadding)
+        ) {
             Text(
-                text = value,
-                modifier = GlanceModifier.defaultWeight(),
-                style = TextStyle(color = WidgetPalette.text, fontSize = if (compact) WidgetTokens.bodySize else WidgetTokens.titleSize, fontWeight = FontWeight.Bold),
+                text = label,
+                style = TextStyle(color = WidgetPalette.accent, fontSize = WidgetTokens.smallLabelSize, fontWeight = FontWeight.Bold),
                 maxLines = 1
             )
-            val formattedAmount = when {
-                amountLabel != null -> amountLabel
-                amount != null && currencyCode != null -> CurrencyFormatter.format(amount, currencyCode)
-                else -> null
-            }
-            formattedAmount?.let {
+            Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = it,
-                    style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Bold),
+                    text = value,
+                    modifier = GlanceModifier.defaultWeight(),
+                    style = TextStyle(color = WidgetPalette.text, fontSize = if (compact) WidgetTokens.bodySize else WidgetTokens.titleSize, fontWeight = FontWeight.Bold),
                     maxLines = 1
                 )
+                val formattedAmount = when {
+                    amountLabel != null -> amountLabel
+                    amount != null && currencyCode != null -> CurrencyFormatter.format(amount, currencyCode)
+                    else -> null
+                }
+                formattedAmount?.let {
+                    Text(
+                        text = it,
+                        style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Bold),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

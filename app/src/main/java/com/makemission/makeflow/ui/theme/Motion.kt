@@ -95,6 +95,18 @@ object OverlayTransition {
     )
     val fastEnter = tween<Float>(durationMillis = 120, easing = ExpressiveMotion.StandardDecelerate)
     val fastExit = tween<Float>(durationMillis = 90, easing = ExpressiveMotion.StandardDecelerate)
+    val sequentialContentExit = tween<Float>(durationMillis = 90, easing = ExpressiveMotion.StandardDecelerate)
+    val sequentialContentEnter = tween<Float>(
+        durationMillis = 120,
+        delayMillis = 90,
+        easing = ExpressiveMotion.StandardDecelerate
+    )
+    val reducedSequentialContentExit = tween<Float>(durationMillis = 40, easing = ExpressiveMotion.StandardDecelerate)
+    val reducedSequentialContentEnter = tween<Float>(
+        durationMillis = 50,
+        delayMillis = 40,
+        easing = ExpressiveMotion.StandardDecelerate
+    )
     val itemPlacementChange = tween<IntOffset>(durationMillis = 220, easing = ExpressiveMotion.EmphasizedEasing)
     const val TabSlideFraction = 1f / 6f
     const val ValueShiftFraction = 0.16f

@@ -187,30 +187,6 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
             .padding(widgetPadding(compact)),
         verticalAlignment = Alignment.Vertical.Top
     ) {
-        QuickActionHeader(data.currencyCode)
-
-        data.quickAddAccountName?.let { accountName ->
-            Text(
-                text = "Using $accountName",
-                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize),
-                maxLines = 1
-            )
-        }
-
-        if (expanded && data.hasAccounts) {
-            Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
-            Text(
-                text = "Balance",
-                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.bodySize, fontWeight = FontWeight.Medium)
-            )
-            Text(
-                text = CurrencyFormatter.format(data.balance, data.currencyCode),
-                style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.amountSize, fontWeight = FontWeight.Bold),
-                maxLines = 1
-            )
-        }
-
-        Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
         if (compact) {
             WidgetActionPill(
                 label = "- Expense",
@@ -224,9 +200,23 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
                 label = "+ Income",
                 action = actionRunCallback<IncomeShortcutCallback>(),
                 primary = true,
+                modifier = GlanceModifier.fillMaxWidth(),
                 height = WidgetTokens.compactActionHeight
             )
         } else {
+            if (expanded) {
+                QuickActionHeader(data.currencyCode)
+
+                data.quickAddAccountName?.let { accountName ->
+                    Text(
+                        text = "Using $accountName",
+                        style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize),
+                        maxLines = 1
+                    )
+                }
+
+                Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
+            }
             Row(
                 modifier = GlanceModifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -267,7 +257,7 @@ private fun QuickActionContent(data: QuickActionData, size: DpSize) {
                     action = actionRunCallback<RepeatLastTransactionCallback>(),
                     primary = false,
                     modifier = GlanceModifier.fillMaxWidth(),
-                    height = WidgetTokens.compactActionHeight
+                    height = WidgetTokens.actionHeight
                 )
             }
         }

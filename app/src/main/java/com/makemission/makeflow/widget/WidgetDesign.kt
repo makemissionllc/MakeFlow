@@ -3,6 +3,8 @@ package com.makemission.makeflow.widget
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.Composable
+import androidx.glance.GlanceTheme
 import androidx.glance.ImageProvider
 import androidx.glance.GlanceModifier
 import androidx.glance.action.Action
@@ -22,26 +24,29 @@ internal object WidgetTokens {
     val compactWidth = 180.dp
     val expandedWidth = 220.dp
     val expandedHeight = 180.dp
-    val compactPadding = 10.dp
-    val standardPadding = 14.dp
+    val compactPadding = 4.dp
+    val standardPadding = 12.dp
     val sectionSpacing = 8.dp
     val compactSpacing = 4.dp
-    val compactActionHeight = 30.dp
-    val actionHeight = 40.dp
-    val labelSize = 10.sp
-    val smallLabelSize = 9.sp
-    val bodySize = 13.sp
-    val titleSize = 16.sp
-    val amountSize = 23.sp
-    val compactAmountSize = 18.sp
-    val actionTextSize = 13.sp
+    val compactActionHeight = 48.dp
+    val actionHeight = 48.dp
+    val labelSize = 12.sp
+    val smallLabelSize = 11.sp
+    val bodySize = 14.sp
+    val titleSize = 17.sp
+    val amountSize = 25.sp
+    val compactAmountSize = 20.sp
+    val actionTextSize = 14.sp
 }
 
 internal object WidgetPalette {
-    val text = ColorProvider(R.color.widget_text)
-    val muted = ColorProvider(R.color.widget_muted)
+    val text: ColorProvider
+        @Composable get() = GlanceTheme.colors.onSurface
+    val muted: ColorProvider
+        @Composable get() = GlanceTheme.colors.onSurfaceVariant
     val accent = ColorProvider(R.color.widget_accent)
-    val expense = ColorProvider(R.color.widget_warning)
+    val expense: ColorProvider
+        @Composable get() = GlanceTheme.colors.error
     val actionText = ColorProvider(R.color.widget_action_content)
 }
 

@@ -111,6 +111,7 @@ class IncomeEntryWidgetReceiver : GlanceAppWidgetReceiver() {
 @androidx.compose.runtime.Composable
 private fun BalanceWidgetContent(data: QuickActionData, size: DpSize) {
     val small = size.width < WidgetTokens.compactWidth || size.height < 90.dp
+    val short = size.height < WidgetTokens.expandedHeight
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -119,10 +120,10 @@ private fun BalanceWidgetContent(data: QuickActionData, size: DpSize) {
             .clickable(actionStartActivity<MainActivity>()),
         verticalAlignment = Alignment.Vertical.CenterVertically
     ) {
-        if (size.height < 90.dp) {
+        if (short) {
             Column(verticalAlignment = Alignment.Vertical.CenterVertically) {
                 Text(
-                    text = "BALANCE",
+                    text = "Balance",
                     style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.smallLabelSize)
                 )
                 Text(
@@ -145,7 +146,7 @@ private fun BalanceWidgetContent(data: QuickActionData, size: DpSize) {
                 ),
                 maxLines = 1
             )
-            if (!small) {
+            if (!small && !short) {
                 Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
                 Text(
                     text = if (data.hasAccounts) "Across your accounts" else "Add an account to begin",
@@ -160,6 +161,7 @@ private fun BalanceWidgetContent(data: QuickActionData, size: DpSize) {
 @androidx.compose.runtime.Composable
 private fun MonthlySummaryWidgetContent(data: WidgetData, size: DpSize) {
     val small = size.width < WidgetTokens.compactWidth
+    val short = size.height < WidgetTokens.expandedHeight
     val expanded = size.width >= WidgetTokens.expandedWidth && size.height >= WidgetTokens.expandedHeight
     Column(
         modifier = GlanceModifier
@@ -173,28 +175,32 @@ private fun MonthlySummaryWidgetContent(data: WidgetData, size: DpSize) {
             Text(
                 text = "This month",
                 modifier = GlanceModifier.defaultWeight(),
-                style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.titleSize, fontWeight = androidx.glance.text.FontWeight.Bold)
+                style = TextStyle(
+                    color = WidgetPalette.text,
+                    fontSize = if (short) WidgetTokens.bodySize else WidgetTokens.titleSize,
+                    fontWeight = androidx.glance.text.FontWeight.Bold
+                )
             )
             Text(
                 text = data.currencyCode,
                 style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize)
             )
         }
-        Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
+        Spacer(GlanceModifier.height(if (short) WidgetTokens.compactSpacing else WidgetTokens.sectionSpacing))
         if (small) {
-            MonthlyAmount("IN", data.monthIncome, data.currencyCode, WidgetPalette.accent)
+            MonthlyAmount("Income", data.monthIncome, data.currencyCode, WidgetPalette.accent)
             Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
-            MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, WidgetPalette.expense)
+            MonthlyAmount("Spent", data.monthExpenses, data.currencyCode, WidgetPalette.expense)
         } else {
             Row(modifier = GlanceModifier.fillMaxWidth()) {
-                MonthlyAmount("IN", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
-                MonthlyAmount("OUT", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
+                MonthlyAmount("Income", data.monthIncome, data.currencyCode, WidgetPalette.accent, GlanceModifier.defaultWeight())
+                MonthlyAmount("Spent", data.monthExpenses, data.currencyCode, WidgetPalette.expense, GlanceModifier.defaultWeight())
             }
         }
         if (expanded) {
             Spacer(GlanceModifier.height(WidgetTokens.sectionSpacing))
             Text(
-                text = "Net · ${CurrencyFormatter.format(data.monthIncome - data.monthExpenses, data.currencyCode)}",
+                text = "Net this month · ${CurrencyFormatter.format(data.monthIncome - data.monthExpenses, data.currencyCode)}",
                 style = TextStyle(color = WidgetPalette.text, fontSize = WidgetTokens.bodySize, fontWeight = androidx.glance.text.FontWeight.Medium),
                 maxLines = 1
             )
@@ -212,8 +218,8 @@ private fun MonthlyAmount(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = label,
-            style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = androidx.glance.text.FontWeight.Medium)
+                text = label,
+                style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = androidx.glance.text.FontWeight.Medium)
         )
         Text(
             text = CurrencyFormatter.format(amount, currencyCode),
@@ -226,6 +232,7 @@ private fun MonthlyAmount(
 @androidx.compose.runtime.Composable
 private fun QuickEntryWidgetContent(label: String, symbol: String, action: Action, size: DpSize) {
     val small = size.width < WidgetTokens.compactWidth
+    val short = size.height < WidgetTokens.expandedHeight
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -235,7 +242,7 @@ private fun QuickEntryWidgetContent(label: String, symbol: String, action: Actio
         verticalAlignment = Alignment.Vertical.CenterVertically,
         horizontalAlignment = Alignment.Horizontal.CenterHorizontally
     ) {
-        if (!small) {
+        if (!small && !short) {
             Text(
                 text = if (symbol == "+") "INCOME" else "EXPENSE",
                 style = TextStyle(color = WidgetPalette.muted, fontSize = WidgetTokens.labelSize, fontWeight = androidx.glance.text.FontWeight.Bold),
@@ -250,7 +257,7 @@ private fun QuickEntryWidgetContent(label: String, symbol: String, action: Actio
             modifier = GlanceModifier.fillMaxWidth(),
             height = WidgetTokens.actionHeight
         )
-        if (!small) {
+        if (!small && !short) {
             Spacer(GlanceModifier.height(WidgetTokens.compactSpacing))
             Text(
                 text = "Tap to log",

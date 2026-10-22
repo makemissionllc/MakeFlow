@@ -6,6 +6,24 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Polish widgets and transaction motion
+
+- **Widget polish:** aligned widget light/dark surfaces with app surfaces, improved
+  text hierarchy and short-height layouts across the six Glance widgets, and brought
+  quick-action hit targets to 48dp. Glance widgets remain static; their tap-through
+  Compose screens use the app's motion system.
+- **Predictable motion:** transaction type and picker changes now crossfade/resize,
+  calculator amount and pending-operation feedback animate, and usual amounts, notes,
+  save status, and tablet review details transition in sync. Motion respects the
+  reduced-motion setting. Save confirmation fades after a short interval while a
+  restored draft remains visible until it is changed.
+- **Verification:** unit tests and debug plus instrumentation-test Kotlin compilation
+  passed; debug APK assembly passed. The connected full suite reported 105/106 on each
+  device because a guide restoration test exposed missing “available balance” copy;
+  after fixing the guide description, that test passed on the OPPO CPH2745 and
+  25091RP04G. The transaction flow was visually checked on both devices and the
+  snapshot widget was checked in the phone launcher. `git diff --check` passed.
+
 ## 2026-10-22 — Refine transaction entry and tablet review
 
 - **Transaction start:** removed receipt-photo scanning from entry, deleted its on-device

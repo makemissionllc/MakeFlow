@@ -6,6 +6,30 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Restore transaction drafts and tune dashboard styling
+
+- **Quality of life:** regular full-screen expense entries now autosave locally after a short
+  pause and can restore the amount (including a pending calculator operation), account, category,
+  note, and date after the form or app closes. Saving or discarding clears the draft. Edit,
+  M-PESA-prefilled, shortcut, and quick-add flows keep their existing behavior.
+- **Visual audit:** system theme follows Android wallpaper colors on Android 12+; explicit light
+  and dark modes keep MakeFlow's palette. The Home balance, account labels, and card-edit control
+  now use typography and spacing tokens with clearer semantic text colors. Swipe-to-delete keeps
+  its standard undo path, and dashboard reordering remains an explicit long-press action; no
+  conflicting swipe action was found in the reviewed flows.
+- **Release:** Community advanced to `2.0.21-community` / code 24. Updated README and in-app guide.
+  Drafts are device-local; no database schema or dependency changes.
+- **Verification:** `./gradlew test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed (506 unit tests and both Kotlin compilations). `./gradlew :app:connectedAndroidTest`
+  passed all 106 tests on the OPPO CPH2745 phone and all 106 on the 25091RP04G tablet. Visual
+  review of isolated builds showed the first-run layouts fitting both screens; the tablet had a
+  pre-existing system picture-in-picture window over part of the app. One phone test attempt was
+  interrupted at 57/106 and passed after a complete rerun. `git diff --check` passed.
+- **Device state:** tests targeted the generated `.community.codextest` package. At cleanup,
+  uninstalling that package on the phone returned `DELETE_FAILED_INTERNAL_ERROR`; a later package
+  query found no MakeFlow package on the phone, while `.community` remained on the tablet. The
+  available package logs did not establish the cause, and the original package was not reinstalled.
+
 ## 2026-10-22 — Align transaction entry and suggest the usual account
 
 - **UI audit:** quick-add and full-screen transaction forms had different selected colors and

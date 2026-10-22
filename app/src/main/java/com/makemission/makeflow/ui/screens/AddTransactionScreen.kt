@@ -93,6 +93,7 @@ import androidx.compose.foundation.layout.widthIn
 import com.makemission.makeflow.core.format.CurrencyFormatter
 import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
+import com.makemission.makeflow.core.logging.AppLogger
 import com.makemission.makeflow.core.ml.CategoryClassifier
 import com.makemission.makeflow.core.ml.NanoReceiptScanner
 import com.makemission.makeflow.data.local.entity.AccountEntity
@@ -115,6 +116,7 @@ import com.makemission.makeflow.domain.AccountSuggester
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.TransactionCommitHandler
 import com.makemission.makeflow.domain.TransactionExitGuard
+import com.makemission.makeflow.domain.TransactionDraft
 import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.domain.CategoryUsage
@@ -126,6 +128,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -134,6 +137,8 @@ import java.math.BigDecimal
 import com.makemission.makeflow.R
 
 private const val ML_CONFIDENCE_THRESHOLD = 0.6f
+
+private enum class TransactionDraftStatus { SAVING, SAVED, RESTORED }
 
 @Composable
 fun AddTransactionScreen(
@@ -167,7 +172,9 @@ fun AddTransactionScreen(
     onUpdate: (suspend (TransactionEntity) -> Unit)? = null,
     mpesaTransactionCost: Double? = null,
     mpesaAiAssisted: Boolean = false,
-    logMpesaCosts: Boolean = true
+    logMpesaCosts: Boolean = true,
+    onLoadDraft: suspend () -> TransactionDraft? = { null },
+    onSaveDraft: suspend (TransactionDraft?) -> Unit = {}
 ) {
     val dimens = LocalAppDimens.current
     val layoutMode = LocalDeviceLayoutMode.current
@@ -175,6 +182,18 @@ fun AddTransactionScreen(
     val context = LocalContext.current
     var isRepeatMode by rememberSaveable(editTransaction?.id) { mutableStateOf(false) }
     val isEditMode = editTransaction != null && !isRepeatMode
+    val draftRecoveryEnabled = editTransaction == null && initialType == "EXPENSE" &&
+        initialAmount.isBlank() && initialNote.isBlank() && initialTimestamp == null &&
+        initialTransferFromId == null && initialTransferToId == null &&
+        mpesaTransactionCost == null && !mpesaAiAssisted
+    var draftLoaded by remember(draftRecoveryEnabled) { mutableStateOf(!draftRecoveryEnabled) }
+    var draftWasRestored by remember { mutableStateOf(false) }
+    var restoringDraft by remember { mutableStateOf(false) }
+    var restoredDraftCategoryId by remember { mutableStateOf<String?>(null) }
+    var draftRestoreVersion by remember { mutableIntStateOf(0) }
+    var draftClearedForCurrentForm by remember { mutableStateOf(false) }
+    var draftStatus by remember { mutableStateOf<TransactionDraftStatus?>(null) }
+    var persistedDraftSnapshot by remember { mutableStateOf<TransactionDraft?>(null) }
 
     // === Sub-screen visibility ===
     var showAccountPicker by remember { mutableStateOf(false) }
@@ -191,9 +210,26 @@ fun AddTransactionScreen(
     var selectedTransferFromId by remember { mutableStateOf(editTransaction?.fromAccountId ?: initialTransferFromId ?: accounts.firstOrNull()?.id ?: "") }
     var selectedTransferToId by remember { mutableStateOf(editTransaction?.toAccountId ?: initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id ?: "") }
     var note by remember { mutableStateOf(editTransaction?.note ?: initialNote) }
-    var selectedDate by rememberSaveable(editTransaction?.id) {
-        mutableStateOf(editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis)
+    val startingTimestamp = remember(editTransaction?.id, initialTimestamp) {
+        editTransaction?.timestamp ?: initialTimestamp ?: Calendar.getInstance().timeInMillis
     }
+    var selectedDate by rememberSaveable(editTransaction?.id) {
+        mutableStateOf(startingTimestamp)
+    }
+    var draftBaselineType by remember { mutableStateOf(initialType) }
+    var draftBaselineAccountId by remember {
+        mutableStateOf(initialAccountId ?: accounts.firstOrNull()?.id.orEmpty())
+    }
+    var draftBaselineFromAccountId by remember {
+        mutableStateOf(initialTransferFromId ?: accounts.firstOrNull()?.id.orEmpty())
+    }
+    var draftBaselineToAccountId by remember {
+        mutableStateOf(initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id.orEmpty())
+    }
+    var draftBaselineCategoryId by remember {
+        mutableStateOf(categories.firstOrNull { it.type == initialType && it.parentCategoryId == null }?.id)
+    }
+    var draftBaselineTimestamp by remember { mutableStateOf(startingTimestamp) }
     var noteExpanded by remember { mutableStateOf(isEditMode || initialNote.isNotEmpty()) }
 
     // === Feature state ===
@@ -283,6 +319,13 @@ fun AddTransactionScreen(
 
     val resolvedCategoryId = if (selectedType == "TRANSFER") null
         else selectedChildCategory?.id ?: selectedParentCategory?.id
+    LaunchedEffect(categories, resolvedCategoryId, selectedType, draftWasRestored) {
+        if (!draftRecoveryEnabled || draftWasRestored || draftBaselineCategoryId != null) return@LaunchedEffect
+        val defaultCategory = categories.firstOrNull { it.type == selectedType && it.parentCategoryId == null }
+        if (selectedType == draftBaselineType && defaultCategory != null && defaultCategory.id == resolvedCategoryId) {
+            draftBaselineCategoryId = defaultCategory.id
+        }
+    }
     val frequentCategories = remember(categoryUsages.value, categories, selectedType) {
         CategoryUsageRanker.rank(categoryUsages.value)[selectedType].orEmpty()
             .take(4)
@@ -310,6 +353,155 @@ fun AddTransactionScreen(
     var calculatorRevision by remember { mutableIntStateOf(0) }
     val calculatorExpression = remember(calculatorRevision) { engine.expression }
 
+    suspend fun persistDraftSafely(draft: TransactionDraft?): Boolean = try {
+        onSaveDraft(draft)
+        true
+    } catch (error: IOException) {
+        AppLogger.error("AddTransactionScreen", "Failed to save transaction draft", error)
+        false
+    }
+
+    suspend fun clearCurrentDraft() {
+        if (!draftRecoveryEnabled) return
+        draftClearedForCurrentForm = true
+        draftStatus = null
+        persistedDraftSnapshot = null
+        draftWasRestored = false
+        persistDraftSafely(null)
+    }
+
+    LaunchedEffect(draftRecoveryEnabled) {
+        if (!draftRecoveryEnabled) {
+            draftLoaded = true
+            return@LaunchedEffect
+        }
+        val draft = try {
+            onLoadDraft()
+        } catch (error: IOException) {
+            AppLogger.error("AddTransactionScreen", "Failed to restore transaction draft", error)
+            null
+        }
+        if (draft != null) {
+            fun availableAccount(savedId: String, fallbackId: String): String = when {
+                accounts.any { it.id == savedId } -> savedId
+                accounts.isEmpty() -> savedId
+                accounts.any { it.id == fallbackId } -> fallbackId
+                else -> accounts.first().id
+            }
+
+            restoringDraft = true
+            draftWasRestored = true
+            persistedDraftSnapshot = draft
+            restoredDraftCategoryId = draft.categoryId
+            selectedType = draft.type
+            selectedAccountId = availableAccount(
+                draft.accountId,
+                initialAccountId ?: accounts.firstOrNull()?.id.orEmpty()
+            )
+            selectedTransferFromId = availableAccount(
+                draft.fromAccountId,
+                initialTransferFromId ?: accounts.firstOrNull()?.id.orEmpty()
+            )
+            selectedTransferToId = availableAccount(
+                draft.toAccountId,
+                initialTransferToId ?: accounts.getOrNull(1)?.id ?: accounts.firstOrNull()?.id.orEmpty()
+            )
+            note = draft.note
+            noteExpanded = draft.note.isNotEmpty()
+            selectedDate = draft.timestamp
+            engine.restore(draft.calculator)
+            calculatorDisplay = engine.displayValue
+            confirmedAmount = draft.confirmedAmount
+            calculatorRevision++
+            categorySuggestionSkippedForTemplate = draft.note to draft.type
+            draftStatus = TransactionDraftStatus.RESTORED
+            draftRestoreVersion++
+        }
+        draftLoaded = true
+    }
+
+    LaunchedEffect(accounts, draftWasRestored) {
+        if (!draftWasRestored || accounts.isEmpty()) return@LaunchedEffect
+        if (accounts.none { it.id == selectedAccountId }) {
+            selectedAccountId = initialAccountId?.takeIf { id -> accounts.any { it.id == id } }
+                ?: accounts.first().id
+        }
+        if (accounts.none { it.id == selectedTransferFromId }) {
+            selectedTransferFromId = accounts.first().id
+        }
+        if (accounts.none { it.id == selectedTransferToId }) {
+            selectedTransferToId = accounts.getOrNull(1)?.id ?: accounts.first().id
+        }
+    }
+
+    LaunchedEffect(
+        draftRecoveryEnabled,
+        draftLoaded,
+        restoringDraft,
+        draftClearedForCurrentForm,
+        draftBaselineType,
+        draftBaselineAccountId,
+        draftBaselineFromAccountId,
+        draftBaselineToAccountId,
+        draftBaselineCategoryId,
+        draftBaselineTimestamp,
+        calculatorRevision,
+        selectedType,
+        selectedAccountId,
+        selectedTransferFromId,
+        selectedTransferToId,
+        resolvedCategoryId,
+        note,
+        selectedDate,
+        confirmedAmount
+    ) {
+        if (!draftRecoveryEnabled || !draftLoaded || restoringDraft || draftClearedForCurrentForm) {
+            return@LaunchedEffect
+        }
+        val hasMeaningfulDraft = TransactionExitGuard.hasUnsavedChanges(
+            current = TransactionExitGuard.FormState(
+                amountInput = confirmedAmount?.toString() ?: calculatorDisplay,
+                type = selectedType,
+                categoryId = resolvedCategoryId,
+                accountId = selectedAccountId,
+                note = note,
+                timestamp = selectedDate,
+                fromAccountId = selectedTransferFromId,
+                toAccountId = selectedTransferToId,
+                hasPendingCalculation = engine.hasUnconfirmedOperation
+            )
+        ) || selectedType != draftBaselineType ||
+            selectedAccountId != draftBaselineAccountId ||
+            resolvedCategoryId != draftBaselineCategoryId ||
+            selectedTransferFromId != draftBaselineFromAccountId ||
+            selectedTransferToId != draftBaselineToAccountId ||
+            selectedDate != draftBaselineTimestamp
+
+        val draft = if (hasMeaningfulDraft) TransactionDraft(
+            type = selectedType,
+            accountId = selectedAccountId,
+            categoryId = resolvedCategoryId,
+            note = note,
+            timestamp = selectedDate,
+            fromAccountId = selectedTransferFromId,
+            toAccountId = selectedTransferToId,
+            calculator = engine.snapshot(),
+            confirmedAmount = confirmedAmount
+        ) else null
+        if (draft == persistedDraftSnapshot) {
+            draftStatus = if (draftWasRestored && draft != null) TransactionDraftStatus.RESTORED else null
+            return@LaunchedEffect
+        }
+        draftStatus = if (draft != null) TransactionDraftStatus.SAVING else null
+        delay(500)
+        if (persistDraftSafely(draft)) {
+            persistedDraftSnapshot = draft
+            draftStatus = if (draft != null) TransactionDraftStatus.SAVED else null
+        } else {
+            draftStatus = null
+        }
+    }
+
     fun resetForNextTransaction() {
         engine.onClear()
         calculatorDisplay = engine.displayValue
@@ -318,6 +510,16 @@ fun AddTransactionScreen(
         note = ""
         noteExpanded = false
         selectedDate = Calendar.getInstance().timeInMillis
+        draftBaselineType = selectedType
+        draftBaselineAccountId = selectedAccountId
+        draftBaselineFromAccountId = selectedTransferFromId
+        draftBaselineToAccountId = selectedTransferToId
+        draftBaselineCategoryId = resolvedCategoryId
+        draftBaselineTimestamp = selectedDate
+        draftClearedForCurrentForm = false
+        draftWasRestored = false
+        draftStatus = null
+        persistedDraftSnapshot = null
         categorySuggestion = null
         commitHandler.clearAlerts()
     }
@@ -355,7 +557,14 @@ fun AddTransactionScreen(
             hasPendingCalculation = engine.hasUnconfirmedOperation
         ),
         original = if (isEditMode) editTransaction else null
-    )
+    ) || (draftRecoveryEnabled && (
+        selectedType != draftBaselineType ||
+            selectedAccountId != draftBaselineAccountId ||
+            resolvedCategoryId != draftBaselineCategoryId ||
+            selectedTransferFromId != draftBaselineFromAccountId ||
+            selectedTransferToId != draftBaselineToAccountId ||
+            selectedDate != draftBaselineTimestamp
+        ))
     fun dismissForm() {
         if (isExiting) return
         isExiting = true
@@ -405,6 +614,10 @@ fun AddTransactionScreen(
     }
 
     LaunchedEffect(note, selectedType, smartCategorizationEnabled, correctionMemory, categories, pastTransactions.value) {
+        if (draftWasRestored) {
+            categorySuggestion = null
+            return@LaunchedEffect
+        }
         if (categorySuggestionSkippedForTemplate == (note to selectedType)) {
             categorySuggestionSkippedForTemplate = null
             categorySuggestion = null
@@ -495,7 +708,23 @@ fun AddTransactionScreen(
         }
     }
 
-    LaunchedEffect(selectedType, categories) {
+    LaunchedEffect(selectedType, categories, draftRestoreVersion) {
+        if (restoringDraft) {
+            if (selectedType != "TRANSFER" && categories.isEmpty()) return@LaunchedEffect
+            val savedCategory = restoredDraftCategoryId?.let { id ->
+                categories.firstOrNull { it.id == id && it.type == selectedType }
+            }
+            val category = if (selectedType == "TRANSFER") null else savedCategory
+                ?: categories.firstOrNull { it.type == selectedType && it.parentCategoryId == null }
+            selectedParentCategory = category?.let { selected ->
+                if (selected.parentCategoryId == null) selected
+                else categories.firstOrNull { it.id == selected.parentCategoryId }
+            }
+            selectedChildCategory = category?.takeIf { it.parentCategoryId != null }
+            restoredDraftCategoryId = null
+            restoringDraft = false
+            return@LaunchedEffect
+        }
         if (categoryResetSkippedForEdit) {
             categoryResetSkippedForEdit = false
             return@LaunchedEffect
@@ -598,6 +827,7 @@ fun AddTransactionScreen(
                     entity = entity,
                     onSave = { saved ->
                         onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
+                        clearCurrentDraft()
                         fireCorrection()
                     },
                     onComplete = { completeSave() }
@@ -760,6 +990,31 @@ fun AddTransactionScreen(
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingMedium))
+
+            draftStatus?.let { status ->
+                val statusMessage = when (status) {
+                    TransactionDraftStatus.SAVING -> R.string.transaction_draft_saving
+                    TransactionDraftStatus.SAVED -> R.string.transaction_draft_saved
+                    TransactionDraftStatus.RESTORED -> R.string.transaction_draft_restored
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            RoundedCornerShape(dimens.shapeCornerSmall)
+                        )
+                        .padding(horizontal = dimens.spacingXLarge, vertical = dimens.spacingLarge),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(statusMessage),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
+            }
 
             if (isEditMode) {
                 OutlinedButton(
@@ -1154,7 +1409,9 @@ fun AddTransactionScreen(
                                 innerTextField()
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("transaction_draft_note")
                     )
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f),
@@ -1326,7 +1583,10 @@ fun AddTransactionScreen(
             onKeepEditing = { showDiscardConfirmation = false },
             onDiscard = {
                 showDiscardConfirmation = false
-                dismissForm()
+                scope.launch {
+                    clearCurrentDraft()
+                    dismissForm()
+                }
             }
         )
     }
@@ -1423,6 +1683,7 @@ fun AddTransactionScreen(
                             entity = entity,
                             onSave = { saved ->
                                 onSave(saved.amount, saved.type, saved.categoryId, saved.accountId, saved.note, saved.timestamp, saved.fromAccountId, saved.toAccountId, saved.destinationAmount)
+                                clearCurrentDraft()
                                 fireCorrection()
                             },
                             onComplete = { completeSave() }

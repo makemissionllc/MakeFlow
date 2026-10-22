@@ -11,6 +11,7 @@ val featureGuideEntries = listOf(
     FeatureGuideEntry("Transaction entry", listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
         "Use Save & add another to clear the amount, note, and date while keeping the type, account, and category ready for the next entry. Duplicate checks still apply.",
+        "Unfinished full-screen transaction entries autosave privately on this device and can be recovered after an unexpected app close or restart. Choosing Discard removes the draft.",
         "For an exact repeated note, the form can suggest the most-used account from recent categorized entries. Choose the suggestion to apply it; ties, deleted accounts, and transfers do not trigger a suggestion.",
         "The surfaced amount display and highlighted income, expense, or transfer choice make the current entry easier to scan before saving.",
         "Transaction type and account selection colors transition smoothly and respect reduced-motion settings. Amount fields adapt to the available width in quick-add, budget, and recurring-payment forms.",
@@ -61,6 +62,6 @@ val featureGuideEntries = listOf(
         "Finance records are stored locally. JSON backup and restore are user initiated; keep backup and shared statement files private.",
         "Hide or show the Home dashboard's total balance with the eye control. Your choice is remembered on this device.",
         "Community builds check GitHub Releases on launch and daily; Check for app updates in Settings starts a manual check. A newer compatible signed APK downloads in the background and notifies you when ready. Android asks you to allow this install source and confirm the update.",
-        "Settings includes app lock, light/dark and AMOLED modes, haptic strength, privacy information, and What's New. The interactive tour covers every feature guide section and can open transaction entry for practice. Setup allows an optional name and skippable tour; motion respects reduced-motion preferences. Some features need permissions or supported device services."
+        "Settings includes app lock, light/dark and AMOLED modes, haptic strength, privacy information, and What's New. System theme follows wallpaper colors on Android 12 and newer; explicit light or dark modes use MakeFlow's palette. The interactive tour covers every feature guide section and can open transaction entry for practice. Setup allows an optional name and skippable tour; motion respects reduced-motion preferences. Some features need permissions or supported device services."
     ))
 )

@@ -1,13 +1,17 @@
 package com.makemission.makeflow.ui.screens
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
@@ -20,6 +24,7 @@ import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
 import com.makemission.makeflow.domain.PastTransactionForSuggestion
 import com.makemission.makeflow.domain.TransactionCommitHandler
+import com.makemission.makeflow.domain.TransactionDraft
 import com.makemission.makeflow.ui.theme.MakeFlowTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -92,6 +97,51 @@ class TransactionExitGuardTest {
             assertEquals(1, dismissals)
             assertEquals(1, saves)
         }
+    }
+
+    @Test
+    fun fullScreenDraftAutosavesAndRestoresWhenFormReopens() {
+        var savedDraft: TransactionDraft? = null
+        val formOpen = mutableStateOf(true)
+        composeTestRule.setContent {
+            val context = LocalContext.current
+            val haptics = remember(context) { HapticManager(context).apply { strength = HapticStrength.OFF } }
+            MakeFlowTheme {
+                if (formOpen.value) {
+                    AddTransactionScreen(
+                        onDismiss = { formOpen.value = false },
+                        onSave = { _, _, _, _, _, _, _, _, _ -> },
+                        accounts = accounts,
+                        categories = categories,
+                        currencyCode = "KES",
+                        hapticManager = haptics,
+                        initialType = "EXPENSE",
+                        onLoadDraft = { savedDraft },
+                        onSaveDraft = { savedDraft = it }
+                    )
+                }
+            }
+        }
+
+        composeTestRule.onNodeWithText("+ Record Name (Optional)")
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNodeWithTag("transaction_draft_note")
+            .performScrollTo()
+            .performTextInput("Keep this entry")
+        composeTestRule.waitUntil(timeoutMillis = 4_000) {
+            savedDraft?.note == "Keep this entry"
+        }
+
+        composeTestRule.runOnIdle { formOpen.value = false }
+        composeTestRule.waitForIdle()
+        composeTestRule.runOnIdle { formOpen.value = true }
+        composeTestRule.waitUntil(timeoutMillis = 4_000) {
+            composeTestRule.onAllNodesWithText("Draft restored from this device").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.onNodeWithTag("transaction_draft_note")
+            .performScrollTo()
+            .assertTextEquals("Keep this entry")
     }
 
     @Test

@@ -30,6 +30,15 @@ class ThemeResolutionTest {
     }
 
     @Test
+    fun `dynamic color follows the wallpaper only for system mode on Android 12 and newer`() {
+        assertTrue(shouldUseDynamicColors("system", 31))
+        assertTrue(shouldUseDynamicColors("system", 36))
+        assertFalse(shouldUseDynamicColors("system", 30))
+        assertFalse(shouldUseDynamicColors("light", 36))
+        assertFalse(shouldUseDynamicColors("dark", 36))
+    }
+
+    @Test
     fun `brand accent is fixed across light and dark themes with readable ink`() {
         val light = resolveColorScheme(darkTheme = false)
         val dark = resolveColorScheme(darkTheme = true)

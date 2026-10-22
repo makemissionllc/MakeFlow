@@ -451,13 +451,12 @@ fun HomeDashboard(
                 Spacer(modifier = Modifier.height(dimens.spacingXSmall))
                 Text(
                     text = "Edit cards",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showReorderSheet = true }
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = dimens.spacingLarge),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(80.dp))
@@ -956,7 +955,7 @@ fun TotalBalanceCard(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(dimens.cornerRadiusLarge))
-            .padding(20.dp)
+            .padding(dimens.spacingXXLarge)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -966,14 +965,13 @@ fun TotalBalanceCard(
             Text(
                 text = label,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleMedium
             )
             Icon(
                 imageVector = Icons.Rounded.AccountBalanceWallet,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(dimens.iconSizeMedium)
             )
         }
 
@@ -982,8 +980,7 @@ fun TotalBalanceCard(
         Text(
             text = balance,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.SemiBold)
         )
 
         Spacer(modifier = Modifier.height(dimens.spacingMedium))
@@ -1001,7 +998,7 @@ fun TotalBalanceCard(
             Text(
                 text = supportingLabel,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.72f),
-                fontSize = 13.sp
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }
@@ -1023,8 +1020,7 @@ fun AccountsCard(
             Text(
                 text = "Accounts",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                style = MaterialTheme.typography.titleMedium
             )
             val chevronInteractionSource = remember { MutableInteractionSource() }
             Icon(
@@ -1056,8 +1052,8 @@ fun AccountsCard(
         ) {
             Text(
                 text = "Savings Goals",
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                fontSize = 14.sp
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodyMedium
             )
             Icon(
                 imageVector = Icons.Rounded.ChevronRight,

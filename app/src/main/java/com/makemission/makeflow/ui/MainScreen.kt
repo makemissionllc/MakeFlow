@@ -1287,7 +1287,9 @@ fun MainScreen(
                 },
                 mpesaTransactionCost = mpesaTransactionCost,
                 mpesaAiAssisted = mpesaAiAssisted,
-                logMpesaCosts = logMpesaCosts
+                logMpesaCosts = logMpesaCosts,
+                onLoadDraft = { userPrefDataStore.getTransactionDraft() },
+                onSaveDraft = { draft -> userPrefDataStore.saveTransactionDraft(draft) }
             )
         }
     }

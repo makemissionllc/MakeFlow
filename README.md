@@ -42,6 +42,8 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   saved templates restore their category, repeated notes can suggest the usual account without
   changing it automatically, and the surfaced amount display and consistent type selection make
   entries easier to review before saving.
+  Full-screen transaction drafts autosave on this device and recover after an unexpected close;
+  intentionally discarding a draft clears it.
   Frequent category chips are available on phones and tablets. Expanded tablet forms show saved templates in quick-pick layouts,
   with current account balances beside the entry controls.
 - **History** — search notes, amounts, accounts, categories, and references; combine
@@ -86,7 +88,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
 - **Reminders** — optional weekly finance-review reminders, scheduled locally and disabled
   until the user opts in.
 - **System integration** — DND-aware notification gate with queue, bill reminders, biometric
-  app lock, adjustable haptic strength, a unified chartreuse brand theme with light/dark + AMOLED modes, a saved Home balance visibility control, changelog screen,
+  app lock, adjustable haptic strength, chartreuse colors in explicit light/dark modes and wallpaper-based Material You colors in system mode on Android 12+, AMOLED mode, a saved Home balance visibility control, changelog screen,
   skippable onboarding tour, one-time widget pin offer, adaptive phone/tablet navigation. Community
   builds check GitHub Releases on launch and daily, download newer compatible APKs, and notify
   when Android is ready to install an update.
@@ -106,7 +108,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   M-PESA listener. Build its GitHub APK with `:app:assembleRelease`; its application ID is
   `com.makemission.makeflow.community`. GitHub updates require a published, signed APK built with
   the same signing key as the installed app; Android asks the user to allow this source and confirm.
-- The current Community build is `2.0.20-community` / code 23.
+- The current Community build is `2.0.21-community` / code 24.
 - Keep Play policy restrictions on the `play` branch. Do not submit the Community artifact
   to Google Play.
 - SMS Retriever is not used for M-PESA: it only returns messages containing this app's

@@ -3,10 +3,13 @@ package com.makemission.makeflow.ui.theme
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -14,9 +17,9 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 
 @Immutable
@@ -101,7 +104,7 @@ private val MakeFlowLightColorScheme = lightColorScheme(
     onErrorContainer = LightOnErrorContainer,
     background = MindfulLightBackground,
     onBackground = MindfulLightText,
-    surface = Color(0xFFF9F8EF),
+    surface = LightSurfaceContainerLow,
     onSurface = MindfulLightText,
     surfaceVariant = LightSurfaceContainerHigh,
     onSurfaceVariant = MindfulLightMutedText,
@@ -126,6 +129,9 @@ internal fun resolveDarkTheme(themeMode: String, isSystemDark: Boolean): Boolean
 
 internal fun resolveColorScheme(darkTheme: Boolean): ColorScheme =
     if (darkTheme) MakeFlowDarkColorScheme else MakeFlowLightColorScheme
+
+internal fun shouldUseDynamicColors(themeMode: String, sdkInt: Int): Boolean =
+    themeMode == "system" && sdkInt >= Build.VERSION_CODES.S
 
 internal fun ColorScheme.applyAmoledOverlay(): ColorScheme = copy(
     background = AmoledBackground,
@@ -155,6 +161,7 @@ fun MakeFlowTheme(
     val darkTheme = resolveDarkTheme(themeMode, isSystemInDarkTheme())
 
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
     val activity = remember(context) { context.findActivity() }
     SideEffect {
         activity?.window?.let { window ->
@@ -165,11 +172,17 @@ fun MakeFlowTheme(
         }
     }
 
-    val baseScheme = resolveColorScheme(darkTheme)
+    val baseScheme = remember(context, configuration, themeMode, darkTheme) {
+        if (shouldUseDynamicColors(themeMode, Build.VERSION.SDK_INT)) {
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        } else {
+            resolveColorScheme(darkTheme)
+        }
+    }
     val colorScheme = if (amoledMode && darkTheme) baseScheme.applyAmoledOverlay() else baseScheme
     val makeFlowColors = if (darkTheme) DarkMakeFlowColors else LightMakeFlowColors
 
-    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenWidth = configuration.screenWidthDp
     val dimens = when {
         screenWidth < 600 -> compactDimens
         screenWidth < 840 -> mediumDimens

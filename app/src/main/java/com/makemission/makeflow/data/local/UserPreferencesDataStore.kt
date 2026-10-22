@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.makemission.makeflow.core.haptics.HapticStrength
+import com.makemission.makeflow.domain.TransactionDraft
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 val Context.userPrefDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
@@ -195,6 +197,20 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    suspend fun getTransactionDraft(): TransactionDraft? = dataStore.data
+        .map { prefs -> TransactionDraft.decode(prefs[TRANSACTION_DRAFT_KEY]) }
+        .first()
+
+    suspend fun saveTransactionDraft(draft: TransactionDraft?) {
+        dataStore.edit { prefs ->
+            if (draft == null) {
+                prefs.remove(TRANSACTION_DRAFT_KEY)
+            } else {
+                prefs[TRANSACTION_DRAFT_KEY] = draft.encode()
+            }
+        }
+    }
+
     suspend fun clearProfile() {
         dataStore.edit { prefs ->
             prefs.remove(PREF_USER_NAME)
@@ -274,5 +290,6 @@ class UserPreferencesDataStore(private val dataStore: DataStore<Preferences>) {
         private val MPESA_AUTO_IMPORT_ENABLED_KEY = booleanPreferencesKey("mpesa_auto_import_enabled")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val AMOLED_MODE_KEY = booleanPreferencesKey("amoled_mode")
+        private val TRANSACTION_DRAFT_KEY = stringPreferencesKey("transaction_draft")
     }
 }

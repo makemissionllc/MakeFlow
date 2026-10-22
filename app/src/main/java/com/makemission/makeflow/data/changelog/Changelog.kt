@@ -15,6 +15,9 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-22",
         changes = listOf(
+            "Autosave unfinished full-screen transaction entries on this device and restore them when you return",
+            "Use wallpaper-based Material You colors when following the system theme on Android 12 and newer",
+            "Use the shared typography and spacing scale for the Home balance and account cards",
             "Suggest the usual existing account for an exact repeat transaction note, with a one-tap choice",
             "Use the same themed, accessible, reduced-motion-aware type selector in quick-add and full-screen transaction entry",
         )

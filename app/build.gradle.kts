@@ -16,8 +16,8 @@ android {
         applicationId = "com.makemission.makeflow.community"
         minSdk = 28
         targetSdk = 36
-        versionCode = 23
-        versionName = "2.0.20-community"
+        versionCode = 24
+        versionName = "2.0.21-community"
         buildConfigField("boolean", "MPESA_SMS_AUTO_IMPORT_ENABLED", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

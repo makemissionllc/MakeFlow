@@ -15,6 +15,15 @@ import kotlin.math.floor
  */
 class CalculatorEngine {
 
+    data class Snapshot(
+        val displayValue: String,
+        val pendingOperator: Operator?,
+        val storedOperand: Double,
+        val waitingForOperand: Boolean,
+        val hasError: Boolean,
+        val expression: String?
+    )
+
     enum class Operator(val symbol: Char) {
         ADD('+'),
         SUBTRACT('−'),
@@ -40,6 +49,24 @@ class CalculatorEngine {
     val displayValue: String get() = _displayValue
     val expression: String? get() = _expression
     val hasUnconfirmedOperation: Boolean get() = pendingOperator != null
+
+    fun snapshot(): Snapshot = Snapshot(
+        displayValue = _displayValue,
+        pendingOperator = pendingOperator,
+        storedOperand = storedOperand,
+        waitingForOperand = waitingForOperand,
+        hasError = hasError,
+        expression = _expression
+    )
+
+    fun restore(snapshot: Snapshot) {
+        _displayValue = snapshot.displayValue
+        pendingOperator = snapshot.pendingOperator
+        storedOperand = snapshot.storedOperand
+        waitingForOperand = snapshot.waitingForOperand
+        hasError = snapshot.hasError
+        _expression = snapshot.expression
+    }
 
     fun onDigit(digit: Int) {
         require(digit in 0..9) { "Digit must be 0-9" }

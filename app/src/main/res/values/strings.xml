@@ -84,6 +84,9 @@
     <string name="add_available_balance">Available balance · %1$s</string>
     <string name="add_transfer_balance">%1$s balance · %2$s</string>
     <string name="add_update">Update</string>
+    <string name="transaction_draft_saving">Saving draft…</string>
+    <string name="transaction_draft_saved">Draft saved on this device</string>
+    <string name="transaction_draft_restored">Draft restored from this device</string>
     <string name="update_check_title">Check for app updates</string>
     <string name="update_check_summary">Check GitHub Releases and download a newer Community version</string>
     <string name="update_check_started">Checking GitHub for an update. You’ll be notified when one is ready.</string>

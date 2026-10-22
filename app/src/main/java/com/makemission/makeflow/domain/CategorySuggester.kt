@@ -10,8 +10,35 @@ data class CategorySuggestion(
 
 data class PastTransactionForSuggestion(
     val description: String,
-    val categoryId: String
+    val categoryId: String,
+    val accountId: String? = null
 )
+
+data class AccountSuggestion(
+    val accountId: String,
+    val matchingEntries: Int
+)
+
+object AccountSuggester {
+    fun suggest(
+        inputDescription: String,
+        pastTransactions: List<PastTransactionForSuggestion>,
+        availableAccountIds: Set<String>
+    ): AccountSuggestion? {
+        val normalized = CategorySuggester.normalize(inputDescription)
+        if (normalized.length < 2) return null
+
+        val matchingAccounts = pastTransactions.asSequence()
+            .filter { CategorySuggester.normalize(it.description) == normalized }
+            .mapNotNull { it.accountId?.takeIf(availableAccountIds::contains) }
+            .groupingBy { it }
+            .eachCount()
+        val mostCommon = matchingAccounts.maxByOrNull { it.value } ?: return null
+        if (matchingAccounts.values.count { it == mostCommon.value } > 1) return null
+
+        return AccountSuggestion(mostCommon.key, mostCommon.value)
+    }
+}
 
 object CategorySuggester {
     private const val MIN_DESCRIPTION_LENGTH = 2

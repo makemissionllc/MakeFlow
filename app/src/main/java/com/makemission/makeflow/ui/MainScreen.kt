@@ -1213,7 +1213,7 @@ fun MainScreen(
                 },
                 onGetPastTransactions = {
                     val pairs = repository.getRecentDescriptionsAndCategories()
-                    pairs.map { PastTransactionForSuggestion(it.description, it.categoryId) }
+                    pairs.map { PastTransactionForSuggestion(it.description, it.categoryId, it.accountId) }
                 },
                 onGetCategoryUsages = {
                     val cutoff = System.currentTimeMillis() - (90L * 24 * 60 * 60 * 1000)

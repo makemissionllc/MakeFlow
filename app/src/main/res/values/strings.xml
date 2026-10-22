@@ -63,6 +63,7 @@
     <string name="add_income">Income</string>
     <string name="add_transfer">Transfer</string>
     <string name="add_usual">Usual</string>
+    <string name="add_use_usual_account">Use usual account: %1$s</string>
     <string name="add_smart_pick">smart pick</string>
     <string name="add_account">Account</string>
     <string name="add_category">Category</string>

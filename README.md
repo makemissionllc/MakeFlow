@@ -39,7 +39,9 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   a "Log again" action that reuses transaction details with today's date, and an
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
   "Save & add another" keeps the type, account, and category ready for consecutive entries;
-  saved templates restore their category, and the surfaced amount display and clearer type selection make entries easier to review before saving.
+  saved templates restore their category, repeated notes can suggest the usual account without
+  changing it automatically, and the surfaced amount display and consistent type selection make
+  entries easier to review before saving.
   Frequent category chips are available on phones and tablets. Expanded tablet forms show saved templates in quick-pick layouts,
   with current account balances beside the entry controls.
 - **History** — search notes, amounts, accounts, categories, and references; combine
@@ -104,7 +106,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   M-PESA listener. Build its GitHub APK with `:app:assembleRelease`; its application ID is
   `com.makemission.makeflow.community`. GitHub updates require a published, signed APK built with
   the same signing key as the installed app; Android asks the user to allow this source and confirm.
-- The current Community build is `2.0.19-community` / code 22.
+- The current Community build is `2.0.20-community` / code 23.
 - Keep Play policy restrictions on the `play` branch. Do not submit the Community artifact
   to Google Play.
 - SMS Retriever is not used for M-PESA: it only returns messages containing this app's

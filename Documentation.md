@@ -6,6 +6,27 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Align transaction entry and suggest the usual account
+
+- **UI audit:** quick-add and full-screen transaction forms had different selected colors and
+  touch affordances. They now share the themed segmented type selector, radio-button semantics,
+  haptic feedback, and reduced-motion-aware color transitions. Account/category choices use the
+  same selected palette; suggestions are visually distinct and quick-add choices meet the shared
+  48dp minimum target.
+- **Quality of life:** when a new income or expense uses an exact note from recent categorized
+  entries, the form can suggest the most-used still-existing account. The user chooses whether to
+  apply it; ties, missing accounts, partial notes, and transfers do not produce a suggestion.
+- **Release:** Community advanced to `2.0.20-community` / code 23. Added the account suggestion to
+  the feature guide and README. No database schema or dependency changes.
+- **Verification:** `./gradlew test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed (502 unit tests and both Kotlin compilations). `./gradlew :app:connectedAndroidTest`
+  passed all 105 tests on the physical OPPO CPH2745 (Android 16); tests used a temporary isolated
+  debug package, and `com.makemission.makeflow.community` remained installed with its data intact.
+  `git diff --check` passed. Initial compile errors were missing Compose/resource imports and an
+  invalid test assertion import; both were fixed. Device assertions were corrected to scroll to
+  the suggestion and honor quick-add's Income default. One full run lost its ADB monitor at 47/105;
+  restarting ADB and retrying completed successfully.
+
 ## 2026-10-22 — Improve first-use History and dashboard privacy
 
 - **History UX:** the empty ledger now explains how to get started and offers an

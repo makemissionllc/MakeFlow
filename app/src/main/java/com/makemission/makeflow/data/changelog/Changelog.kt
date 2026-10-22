@@ -15,6 +15,14 @@ val changelogEntries = listOf(
         version = BuildConfig.VERSION_NAME,
         date = "2026-10-22",
         changes = listOf(
+            "Suggest the usual existing account for an exact repeat transaction note, with a one-tap choice",
+            "Use the same themed, accessible, reduced-motion-aware type selector in quick-add and full-screen transaction entry",
+        )
+    ),
+    ChangelogEntry(
+        version = "2.0.19-community",
+        date = "2026-10-22",
+        changes = listOf(
             "Hide or show the dashboard total balance with a saved privacy control",
             "Start the first transaction directly from History's empty state"
         )

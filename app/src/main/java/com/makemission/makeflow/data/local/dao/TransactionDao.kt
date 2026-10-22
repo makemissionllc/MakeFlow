@@ -84,7 +84,7 @@ interface TransactionDao {
     @Query("SELECT amount FROM transactions WHERE categoryId = :categoryId AND type = 'EXPENSE' AND id != COALESCE(:excludingTransactionId, '') ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecentAmountsForCategory(categoryId: String, excludingTransactionId: String? = null, limit: Int = 30): List<Double>
 
-    @Query("SELECT note AS description, categoryId FROM transactions WHERE note IS NOT NULL AND note != '' AND categoryId IS NOT NULL ORDER BY timestamp DESC LIMIT :limit")
+    @Query("SELECT note AS description, categoryId, accountId FROM transactions WHERE note IS NOT NULL AND note != '' AND categoryId IS NOT NULL ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecentDescriptionsAndCategories(limit: Int = 100): List<DescriptionCategoryPair>
 
     @Query("SELECT * FROM transactions WHERE timestamp >= :sinceMillis ORDER BY timestamp DESC")
@@ -99,5 +99,6 @@ interface TransactionDao {
 
 data class DescriptionCategoryPair(
     val description: String,
-    val categoryId: String
+    val categoryId: String,
+    val accountId: String
 )

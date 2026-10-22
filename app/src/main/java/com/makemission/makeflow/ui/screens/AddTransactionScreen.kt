@@ -13,8 +13,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.shrinkVertically
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +41,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -53,6 +56,7 @@ import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -82,6 +86,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.widthIn
@@ -106,6 +111,7 @@ import com.makemission.makeflow.domain.CalculatorEngine
 import com.makemission.makeflow.domain.CategoryLabelResolver
 import com.makemission.makeflow.domain.CategorySuggester
 import com.makemission.makeflow.domain.CategorySuggestion
+import com.makemission.makeflow.domain.AccountSuggester
 import com.makemission.makeflow.domain.DuplicateCheckResult
 import com.makemission.makeflow.domain.TransactionCommitHandler
 import com.makemission.makeflow.domain.TransactionExitGuard
@@ -204,6 +210,15 @@ fun AddTransactionScreen(
     val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
     var addAnotherAfterSave by remember { mutableStateOf(false) }
     var usualAmounts by remember { mutableStateOf<List<Double>>(emptyList()) }
+    val usualAccount = remember(note, selectedType, selectedAccountId, isEditMode, accounts, pastTransactions.value) {
+        if (isEditMode || selectedType == "TRANSFER") null
+        else AccountSuggester.suggest(
+            inputDescription = note,
+            pastTransactions = pastTransactions.value,
+            availableAccountIds = accounts.mapTo(mutableSetOf()) { it.id }
+        )?.takeUnless { it.accountId == selectedAccountId }
+            ?.let { suggestion -> accounts.firstOrNull { it.id == suggestion.accountId } }
+    }
 
     val receiptPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -918,11 +933,15 @@ fun AddTransactionScreen(
                                 segmentBackground,
                                 RoundedCornerShape(dimens.shapeCornerPill)
                             )
-                            .clickable {
-                                selectedType = value
-                                confirmedAmount = null
-                                hapticManager.fire(HapticEvent.TOGGLE)
-                            }
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = {
+                                    selectedType = value
+                                    confirmedAmount = null
+                                    hapticManager.fire(HapticEvent.TOGGLE)
+                                }
+                            )
                             .padding(horizontal = dimens.spacingSmall)
                     )
                 }
@@ -1162,6 +1181,35 @@ fun AddTransactionScreen(
                         .clickable { noteExpanded = true }
                         .padding(vertical = 12.dp)
                 )
+            }
+
+            AnimatedVisibility(
+                visible = usualAccount != null,
+                enter = if (reducedMotion) {
+                    fadeIn(OverlayTransition.reducedEnter)
+                } else {
+                    expandVertically(OverlayTransition.contentSizeChange) + fadeIn(OverlayTransition.fastEnter)
+                },
+                exit = if (reducedMotion) {
+                    fadeOut(OverlayTransition.reducedExit)
+                } else {
+                    shrinkVertically(OverlayTransition.contentSizeChange) + fadeOut(OverlayTransition.fastExit)
+                }
+            ) {
+                usualAccount?.let { account ->
+                    AssistChip(
+                        onClick = {
+                            selectedAccountId = account.id
+                            hapticManager.fire(HapticEvent.TOGGLE)
+                        },
+                        label = {
+                            Text(stringResource(R.string.add_use_usual_account, account.name))
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("usual_account_suggestion")
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(dimens.spacingLarge))

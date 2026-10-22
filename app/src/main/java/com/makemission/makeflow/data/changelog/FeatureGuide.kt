@@ -11,6 +11,7 @@ val featureGuideEntries = listOf(
     FeatureGuideEntry("Transaction entry", listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
         "Use Save & add another to clear the amount, note, and date while keeping the type, account, and category ready for the next entry. Duplicate checks still apply.",
+        "For an exact repeated note, the form can suggest the most-used account from recent categorized entries. Choose the suggestion to apply it; ties, deleted accounts, and transfers do not trigger a suggestion.",
         "The surfaced amount display and highlighted income, expense, or transfer choice make the current entry easier to scan before saving.",
         "Transaction type and account selection colors transition smoothly and respect reduced-motion settings. Amount fields adapt to the available width in quick-add, budget, and recurring-payment forms.",
         "Applying a saved template restores its saved amount, type, account, category, and note.",

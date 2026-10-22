@@ -1,6 +1,7 @@
 ﻿package com.makemission.makeflow.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -13,13 +14,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,6 +56,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.res.stringResource
+import com.makemission.makeflow.R
 import com.makemission.makeflow.core.layout.AdaptiveDatePickerSheet
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import com.makemission.makeflow.core.haptics.HapticEvent
@@ -77,6 +85,7 @@ import com.makemission.makeflow.domain.CurrencyConverter
 import com.makemission.makeflow.domain.CurrencyRate
 import com.makemission.makeflow.ui.theme.LocalAppDimens
 import com.makemission.makeflow.ui.theme.LocalMakeFlowColors
+import com.makemission.makeflow.ui.theme.LocalExpressiveMotion
 import com.makemission.makeflow.ui.theme.OverlayTransition
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -451,25 +460,51 @@ fun AddTransactionBottomSheet(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dimens.segmentedControlHeight + dimens.segmentedControlInset + dimens.segmentedControlInset)
+                    .clip(RoundedCornerShape(dimens.shapeCornerPill))
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                    .padding(dimens.segmentedControlInset),
+                horizontalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
             ) {
-                listOf("Income" to "INCOME", "Expense" to "EXPENSE", "Transfer" to "TRANSFER").forEach { (label, value) ->
+                listOf(
+                    stringResource(R.string.add_expense) to "EXPENSE",
+                    stringResource(R.string.add_income) to "INCOME",
+                    stringResource(R.string.add_transfer) to "TRANSFER"
+                ).forEach { (label, value) ->
                     val isSelected = selectedType == value
+                    val segmentBackground by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+                            else LocalExpressiveMotion.current.colorAnimationSpec,
+                        label = "quickTransactionTypeBackground"
+                    )
+                    val segmentContent by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                        animationSpec = if (reducedMotion) OverlayTransition.reducedColor
+                            else LocalExpressiveMotion.current.colorAnimationSpec,
+                        label = "quickTransactionTypeContent"
+                    )
                     Text(
                         text = label,
-                        color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = dimens.textM,
+                        color = segmentContent,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
                             .weight(1f)
-                            .background(
-                                if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                RoundedCornerShape(dimens.cornerRadiusMedium)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(dimens.shapeCornerPill))
+                            .background(segmentBackground, RoundedCornerShape(dimens.shapeCornerPill))
+                            .selectable(
+                                selected = isSelected,
+                                role = Role.RadioButton,
+                                onClick = {
+                                    selectedType = value
+                                    hapticManager.fire(HapticEvent.TOGGLE)
+                                }
                             )
-                            .clickable { selectedType = value }
-                            .padding(vertical = 12.dp)
+                            .padding(horizontal = dimens.spacingSmall)
                     )
                 }
             }
@@ -533,16 +568,20 @@ fun AddTransactionBottomSheet(
                             val isSelected = account.id == selectedTransferFromId
                             Text(
                                 text = "${account.name} · ${account.currencyCode ?: currencyCode}",
-                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
                                 modifier = Modifier
+                                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                                     .background(
-                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        RoundedCornerShape(dimens.cornerRadiusMedium)
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
                                     )
-                                    .clickable { selectedTransferFromId = account.id }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .heightIn(min = dimens.segmentedControlHeight)
+                                    .clickable {
+                                        selectedTransferFromId = account.id
+                                        hapticManager.fire(HapticEvent.TOGGLE)
+                                    }
+                                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
                             )
                         }
                     }
@@ -558,16 +597,20 @@ fun AddTransactionBottomSheet(
                             val isSelected = account.id == selectedTransferToId
                             Text(
                                 text = "${account.name} · ${account.currencyCode ?: currencyCode}",
-                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
                                 modifier = Modifier
+                                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                                     .background(
-                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        RoundedCornerShape(dimens.cornerRadiusMedium)
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
                                     )
-                                    .clickable { selectedTransferToId = account.id }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .heightIn(min = dimens.segmentedControlHeight)
+                                    .clickable {
+                                        selectedTransferToId = account.id
+                                        hapticManager.fire(HapticEvent.TOGGLE)
+                                    }
+                                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
                             )
                         }
                     }
@@ -593,19 +636,21 @@ fun AddTransactionBottomSheet(
                             val isSelected = account.id == selectedAccountId
                             Text(
                                 text = "${account.name} · ${account.currencyCode ?: currencyCode}",
-                                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
                                 modifier = Modifier
+                                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
                                     .background(
-                                        if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                        RoundedCornerShape(dimens.cornerRadiusMedium)
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
                                     )
+                                    .heightIn(min = dimens.segmentedControlHeight)
                                     .clickable {
                                         selectedAccountId = account.id
                                         accountSelectionTouched = true
+                                        hapticManager.fire(HapticEvent.TOGGLE)
                                     }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
                             )
                         }
                     }
@@ -624,13 +669,16 @@ fun AddTransactionBottomSheet(
                         val isSelected = parent.id == selectedParentCategory?.id
                         val isSuggested = !isSelected && categorySuggestion?.categoryId == parent.id
                         val bgColor = when {
-                            isSelected -> MaterialTheme.colorScheme.onSurface
-                            isSuggested -> MaterialTheme.colorScheme.surfaceContainerHigh
+                            isSelected -> MaterialTheme.colorScheme.primaryContainer
+                            isSuggested -> MaterialTheme.colorScheme.secondaryContainer
                             else -> MaterialTheme.colorScheme.surfaceContainerHigh
                         }
-                        val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface
-                        val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
-                            else Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
+                        val textColor = when {
+                            isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+                            isSuggested -> MaterialTheme.colorScheme.onSecondaryContainer
+                            else -> MaterialTheme.colorScheme.onSurface
+                        }
+                        val chipShape = RoundedCornerShape(dimens.cornerRadiusMedium)
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = parent.name,
@@ -638,12 +686,15 @@ fun AddTransactionBottomSheet(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = dimens.textSm,
                                 modifier = Modifier
-                                    .then(borderMod)
+                                    .clip(chipShape)
+                                    .background(bgColor)
+                                    .heightIn(min = dimens.segmentedControlHeight)
                                     .clickable {
                                         selectedParentCategory = parent
                                         selectedChildCategory = null
+                                        hapticManager.fire(HapticEvent.TOGGLE)
                                     }
-                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
                             )
                             if (isSuggested) {
                                 Text(
@@ -667,13 +718,16 @@ fun AddTransactionBottomSheet(
                             val isSelected = child.id == selectedChildCategory?.id
                             val isSuggested = !isSelected && categorySuggestion?.categoryId == child.id
                             val bgColor = when {
-                                isSelected -> MaterialTheme.colorScheme.onSurface
-                                isSuggested -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                isSelected -> MaterialTheme.colorScheme.primaryContainer
+                                isSuggested -> MaterialTheme.colorScheme.secondaryContainer
                                 else -> MaterialTheme.colorScheme.surfaceContainerHigh
                             }
-                            val textColor = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface
-                            val borderMod = if (isSuggested) Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
-                                else Modifier.background(bgColor, RoundedCornerShape(dimens.cornerRadiusMedium))
+                            val textColor = when {
+                                isSelected -> MaterialTheme.colorScheme.onPrimaryContainer
+                                isSuggested -> MaterialTheme.colorScheme.onSecondaryContainer
+                                else -> MaterialTheme.colorScheme.onSurface
+                            }
+                            val chipShape = RoundedCornerShape(dimens.cornerRadiusMedium)
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = child.name,
@@ -681,9 +735,14 @@ fun AddTransactionBottomSheet(
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = dimens.textSm,
                                     modifier = Modifier
-                                        .then(borderMod)
-                                        .clickable { selectedChildCategory = child }
-                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                        .clip(chipShape)
+                                        .background(bgColor)
+                                        .heightIn(min = dimens.segmentedControlHeight)
+                                        .clickable {
+                                            selectedChildCategory = child
+                                            hapticManager.fire(HapticEvent.TOGGLE)
+                                        }
+                                        .padding(horizontal = dimens.paddingMedium, vertical = dimens.spacingLarge)
                                 )
                                 if (isSuggested) {
                                     Text(

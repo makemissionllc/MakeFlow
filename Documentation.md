@@ -6,6 +6,19 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Align transaction entry on tablets
+
+- **Tablet layout:** transaction form content and fixed save actions now share centered,
+  adaptive maximum widths. The calculator keypad has its own narrower centered width, and
+  the usual-amount choices fit within the form. Medium and expanded widths come from the
+  shared dimension tokens; compact phone sizing stays full width.
+- **Verification:** visually reviewed the transaction screen on the connected OPPO CPH2745
+  phone and 25091RP04G tablet using an isolated debug package. The phone layout remained
+  aligned; on tablet the form and footer share a centered width and all usual-amount options
+  are visible. A system picture-in-picture window covered part of the tablet screen during
+  capture. `./gradlew test :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`
+  passed (506 unit tests and both Kotlin compilations); `git diff --check` passed.
+
 ## 2026-10-22 — Restore transaction drafts and tune dashboard styling
 
 - **Quality of life:** regular full-screen expense entries now autosave locally after a short

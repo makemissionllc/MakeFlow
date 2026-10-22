@@ -957,7 +957,7 @@ fun AddTransactionScreen(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .widthIn(max = dimens.navbarMaxWidth)
+                .widthIn(max = dimens.transactionFormMaxWidth)
                 .align(Alignment.CenterHorizontally)
                 .padding(horizontal = dimens.paddingMedium)
         ) {
@@ -1368,23 +1368,29 @@ fun AddTransactionScreen(
             Spacer(modifier = Modifier.height(dimens.spacingSmall))
 
             // === Calculator keypad ===
-            CalculatorKeypad(
-                engine = engine,
-                onDisplayChanged = {
-                    calculatorDisplay = engine.displayValue
-                    confirmedAmount = null
-                    calculatorRevision++
-                },
-                onConfirm = {
-                    val amt = engine.onConfirm()
-                    calculatorDisplay = engine.displayValue
-                    if (amt != null) {
-                        confirmedAmount = amt
-                        hapticManager.fire(HapticEvent.NAV_SELECT)
-                    }
-                },
-                hapticManager = hapticManager
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CalculatorKeypad(
+                    modifier = Modifier.widthIn(max = dimens.transactionKeypadMaxWidth),
+                    engine = engine,
+                    onDisplayChanged = {
+                        calculatorDisplay = engine.displayValue
+                        confirmedAmount = null
+                        calculatorRevision++
+                    },
+                    onConfirm = {
+                        val amt = engine.onConfirm()
+                        calculatorDisplay = engine.displayValue
+                        if (amt != null) {
+                            confirmedAmount = amt
+                            hapticManager.fire(HapticEvent.NAV_SELECT)
+                        }
+                    },
+                    hapticManager = hapticManager
+                )
+            }
 
             Spacer(modifier = Modifier.height(dimens.spacingXLarge))
 
@@ -1517,8 +1523,8 @@ fun AddTransactionScreen(
         // === Save button (fixed at bottom) ===
         Box(
             modifier = Modifier
+                .widthIn(max = dimens.transactionFormMaxWidth)
                 .fillMaxWidth()
-                .widthIn(max = dimens.navbarMaxWidth)
                 .align(Alignment.CenterHorizontally)
                 .padding(horizontal = dimens.paddingMedium)
                 .padding(bottom = dimens.paddingMedium + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
@@ -1799,6 +1805,7 @@ private fun decodeReceiptBitmap(context: Context, uri: Uri): Bitmap? {
 
 @Composable
 private fun CalculatorKeypad(
+    modifier: Modifier = Modifier,
     engine: CalculatorEngine,
     onDisplayChanged: () -> Unit,
     onConfirm: () -> Unit,
@@ -1821,6 +1828,7 @@ private fun CalculatorKeypad(
     }
 
     Column(
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

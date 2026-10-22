@@ -38,14 +38,15 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   custom numeric engine (`domain/CalculatorEngine.kt`), duplicate detection, anomaly alerts,
   a "Log again" action that reuses transaction details with today's date, and an
   accidental-exit confirmation for unfinished entries in the editor and widget quick-add.
-  "Save & add another" keeps the type, account, and category ready for consecutive entries;
+  “Save & add another” keeps the type, account, and category ready for consecutive entries;
   saved templates restore their category, repeated notes can suggest the usual account without
   changing it automatically, and the surfaced amount display and consistent type selection make
   entries easier to review before saving.
   Full-screen transaction drafts autosave on this device and recover after an unexpected close;
   intentionally discarding a draft clears it.
   Frequent category chips are available on phones and tablets. Expanded tablet forms show saved templates in quick-pick layouts,
-  with current account balances beside the entry controls.
+  with current account balances beside the entry controls. Expanded transaction entry places
+  calculator controls beside a live review of the amount and details.
 - **History** — search notes, amounts, accounts, categories, and references; combine
   date presets (today, last 7 days, this month, last month) with type/account filters.
   If there are no transactions yet, add the first one directly from the empty state.
@@ -60,7 +61,7 @@ minify + resource shrinking (`app/proguard-rules.pro`).
   fee logging enabled, charges are recorded separately and linked to the source in History. The optional new-message listener
   is enabled only on the `community` branch; the `play` branch does not request SMS permission.
   The listener is opt-in, sender-filtered, and review-before-save. On supported devices, Gemini Nano may
-  offer an on-device fallback for shared messages and receipt totals. Suggestions must be
+  offer an on-device fallback for shared messages. Suggestions must be
   reviewed before use. See `GOOGLE_PLAY_SMS_PERMISSION_REVIEW.md` for the release decision.
 - **Smart categorization** — 3-tier suggester (history → correction memory → on-device
   TFLite classifier), self-learning retraining from user corrections.
@@ -168,9 +169,8 @@ messages use deterministic local parsing first; the optional Gemini Nano fallbac
 Google's beta ML Kit Prompt API only for foreground shared text when the model is already
 available. The SMS itself is not used to train a model, uploaded, or passed to that fallback
 from the background SMS receiver. Nano suggestions are checked against the original message
-and remain subject to the usual review-before-save flow. Users can also request receipt
-amount/merchant suggestions from a selected image and monthly reflections from aggregate
-figures; neither feature stores the image or generated text, and both remain optional.
+and remain subject to the usual review-before-save flow. Users can also request optional
+monthly reflections from aggregate figures; generated text is not saved.
 
 1. Expand the seed data in `train_category_classifier.py` (aim for hundreds of real
    Kenya-market descriptions).

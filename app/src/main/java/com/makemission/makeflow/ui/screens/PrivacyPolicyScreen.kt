@@ -51,7 +51,7 @@ private val privacyPolicySections = listOf(
     ),
     PrivacyPolicySection(
         "Optional on-device assistance",
-        "On supported devices, optional receipt suggestions, shared-message classification, and monthly reflections use Gemini Nano through Android's on-device ML Kit Prompt API. The selected receipt image, shared text, or finance summary is processed on the device for that request; the app does not save the image or generated reflection. Suggestions remain yours to review."
+        "On supported devices, optional shared-message classification and monthly reflections use Gemini Nano through Android's on-device ML Kit Prompt API. Shared text or a finance summary is processed on the device for that request; the app does not save the generated reflection. Suggestions remain yours to review."
     ),
     PrivacyPolicySection(
         "Permissions and imports",

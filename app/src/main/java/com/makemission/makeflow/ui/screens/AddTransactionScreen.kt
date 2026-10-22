@@ -1,13 +1,6 @@
 package com.makemission.makeflow.ui.screens
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.spring
@@ -49,15 +42,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Repeat
-import androidx.compose.material.icons.rounded.Receipt
 import com.makemission.makeflow.core.layout.AdaptiveAlertSheet
 import com.makemission.makeflow.core.layout.AdaptiveSheetPrimaryButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -75,7 +65,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,7 +84,6 @@ import com.makemission.makeflow.core.haptics.HapticEvent
 import com.makemission.makeflow.core.haptics.HapticManager
 import com.makemission.makeflow.core.logging.AppLogger
 import com.makemission.makeflow.core.ml.CategoryClassifier
-import com.makemission.makeflow.core.ml.NanoReceiptScanner
 import com.makemission.makeflow.data.local.entity.AccountEntity
 import com.makemission.makeflow.data.local.entity.CategoryEntity
 import com.makemission.makeflow.data.local.entity.TransactionEntity
@@ -133,7 +121,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import java.math.BigDecimal
 import com.makemission.makeflow.R
 
 private const val ML_CONFIDENCE_THRESHOLD = 0.6f
@@ -179,7 +166,6 @@ fun AddTransactionScreen(
     val dimens = LocalAppDimens.current
     val layoutMode = LocalDeviceLayoutMode.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
     var isRepeatMode by rememberSaveable(editTransaction?.id) { mutableStateOf(false) }
     val isEditMode = editTransaction != null && !isRepeatMode
     val draftRecoveryEnabled = editTransaction == null && initialType == "EXPENSE" &&
@@ -188,6 +174,10 @@ fun AddTransactionScreen(
         mpesaTransactionCost == null && !mpesaAiAssisted
     var draftLoaded by remember(draftRecoveryEnabled) { mutableStateOf(!draftRecoveryEnabled) }
     var draftWasRestored by remember { mutableStateOf(false) }
+    val showStartingGuidance = draftLoaded && !isEditMode && !isRepeatMode && !draftWasRestored &&
+        initialAmount.isBlank() && initialNote.isBlank() && initialTimestamp == null &&
+        initialTransferFromId == null && initialTransferToId == null &&
+        mpesaTransactionCost == null && !mpesaAiAssisted
     var restoringDraft by remember { mutableStateOf(false) }
     var restoredDraftCategoryId by remember { mutableStateOf<String?>(null) }
     var draftRestoreVersion by remember { mutableIntStateOf(0) }
@@ -239,9 +229,6 @@ fun AddTransactionScreen(
         TransactionCommitHandler(onCheckDuplicate, onAnomalyCheck, hapticManager)
     }
     var templateNameInput by remember { mutableStateOf("") }
-    var isScanningReceipt by remember { mutableStateOf(false) }
-    var receiptScanMessage by remember { mutableStateOf<String?>(null) }
-    var receiptSuggestion by remember { mutableStateOf<NanoReceiptScanner.ReceiptSuggestion?>(null) }
     val pastTransactions = remember { mutableStateOf<List<PastTransactionForSuggestion>>(emptyList()) }
     val categoryUsages = remember { mutableStateOf<List<CategoryUsage>>(emptyList()) }
     var addAnotherAfterSave by remember { mutableStateOf(false) }
@@ -254,37 +241,6 @@ fun AddTransactionScreen(
             availableAccountIds = accounts.mapTo(mutableSetOf()) { it.id }
         )?.takeUnless { it.accountId == selectedAccountId }
             ?.let { suggestion -> accounts.firstOrNull { it.id == suggestion.accountId } }
-    }
-
-    val receiptPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        if (uri != null) {
-            scope.launch {
-                isScanningReceipt = true
-                receiptScanMessage = null
-                receiptSuggestion = null
-                val bitmap = withContext(Dispatchers.IO) { decodeReceiptBitmap(context, uri) }
-                if (bitmap == null) {
-                    receiptScanMessage = "Couldn't open that photo. You can still enter the transaction manually."
-                } else {
-                    val result = try {
-                        NanoReceiptScanner.suggest(bitmap)
-                    } finally {
-                        bitmap.recycle()
-                    }
-                    when (result) {
-                        is NanoReceiptScanner.Result.Suggested -> receiptSuggestion =
-                            NanoReceiptScanner.ReceiptSuggestion(result.amount, result.merchant)
-                        NanoReceiptScanner.Result.Unavailable -> receiptScanMessage =
-                            "Gemini Nano isn't available on this device right now. You can still enter the transaction manually."
-                        NanoReceiptScanner.Result.Unreadable -> receiptScanMessage =
-                            "Couldn't read a clear total from that receipt. You can still enter it manually."
-                    }
-                }
-                isScanningReceipt = false
-            }
-        }
     }
 
     // === Category state ===
@@ -952,16 +908,33 @@ fun AddTransactionScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Scrollable area
-        Column(
+        Row(
             modifier = Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .widthIn(max = dimens.transactionFormMaxWidth)
-                .align(Alignment.CenterHorizontally)
-                .padding(horizontal = dimens.paddingMedium)
+                .fillMaxWidth()
+                .widthIn(
+                    max = if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                        dimens.transactionWorkspaceMaxWidth
+                    } else {
+                        dimens.transactionFormMaxWidth
+                    }
+                )
+                .align(Alignment.CenterHorizontally),
+            horizontalArrangement = if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                Arrangement.spacedBy(dimens.spacingXXLarge)
+            } else {
+                Arrangement.Start
+            }
         ) {
-            Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+                    .widthIn(max = dimens.transactionFormMaxWidth)
+                    .padding(horizontal = dimens.paddingMedium)
+            ) {
+                Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
 
             // === Title + Back ===
             Row(
@@ -989,7 +962,17 @@ fun AddTransactionScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(dimens.spacingMedium))
+                if (showStartingGuidance) {
+                    Spacer(modifier = Modifier.height(dimens.spacingSmall))
+                    Text(
+                        text = stringResource(R.string.transaction_start_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(dimens.spacingMedium))
 
             draftStatus?.let { status ->
                 val statusMessage = when (status) {
@@ -1054,41 +1037,6 @@ fun AddTransactionScreen(
                         )
                         .padding(dimens.spacingMedium)
                 )
-                Spacer(modifier = Modifier.height(dimens.spacingMedium))
-            }
-
-            if (!isEditMode && !isRepeatMode) {
-                OutlinedButton(
-                    onClick = {
-                        hapticManager.fire(HapticEvent.NAV_SELECT)
-                        receiptPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                    },
-                    enabled = !isScanningReceipt,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isScanningReceipt) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(dimens.iconSizeSmall),
-                            strokeWidth = dimens.progressTrackHeight
-                        )
-                    } else {
-                        Icon(Icons.Rounded.Receipt, contentDescription = null)
-                    }
-                    Spacer(Modifier.width(dimens.spacingMedium))
-                    Text(if (isScanningReceipt) "Reading receipt" else "Scan receipt")
-                }
-                Text(
-                    text = "Choose a photo. It stays on this device and is not saved.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                receiptScanMessage?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
                 Spacer(modifier = Modifier.height(dimens.spacingMedium))
             }
 
@@ -1175,11 +1123,8 @@ fun AddTransactionScreen(
                             else LocalExpressiveMotion.current.colorAnimationSpec,
                         label = "transactionTypeContent"
                     )
-                    Text(
-                        text = label,
-                        color = segmentContent,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        textAlign = TextAlign.Center,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -1197,44 +1142,56 @@ fun AddTransactionScreen(
                                     hapticManager.fire(HapticEvent.TOGGLE)
                                 }
                             )
+                            .testTag("transaction_type_$value")
                             .padding(horizontal = dimens.spacingSmall)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(dimens.spacingXXLarge))
-
-            // === Amount display ===
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingMedium),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
-                ) {
-                    calculatorExpression?.let { expression ->
+                    ) {
                         Text(
-                            text = expression,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
-                            style = MaterialTheme.typography.titleMedium,
-                            textAlign = TextAlign.Center,
+                            text = label,
+                            color = segmentContent,
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            textAlign = TextAlign.Center
                         )
                     }
-                    FittedAmountText(
-                        text = CurrencyFormatter.format(amountForDisplay.toDoubleOrNull() ?: 0.0, amountCurrencyCode),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(dimens.spacingLarge))
+            if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                Spacer(modifier = Modifier.height(dimens.spacingLarge))
+            } else {
+                Spacer(modifier = Modifier.height(dimens.spacingXXLarge))
+
+                // === Amount display ===
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
+                            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                            .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingMedium),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+                    ) {
+                        calculatorExpression?.let { expression ->
+                            Text(
+                                text = expression,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f),
+                                style = MaterialTheme.typography.titleMedium,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                        FittedAmountText(
+                            text = CurrencyFormatter.format(amountForDisplay.toDoubleOrNull() ?: 0.0, amountCurrencyCode),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(dimens.spacingLarge))
+            }
 
             if (selectedType == "TRANSFER") {
                 Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
@@ -1243,41 +1200,25 @@ fun AddTransactionScreen(
                 }
                 val receivedAmount = transferDestinationAmount
                 val transferMessage = when {
-                    receivedAmount == null -> "A rate for $amountCurrencyCode to $destinationCurrencyCode is unavailable. Refresh exchange rates to continue."
-                    amountCurrencyCode == destinationCurrencyCode -> "The destination account receives the same amount."
-                    else -> "Estimated to receive ${CurrencyFormatter.format(receivedAmount, destinationCurrencyCode)} using the latest saved rate."
+                    receivedAmount == null -> stringResource(
+                        R.string.transaction_transfer_rate_unavailable,
+                        amountCurrencyCode,
+                        destinationCurrencyCode
+                    )
+                    amountCurrencyCode == destinationCurrencyCode -> stringResource(
+                        R.string.transaction_transfer_same_currency
+                    )
+                    else -> stringResource(
+                        R.string.transaction_transfer_estimated_receive,
+                        CurrencyFormatter.format(receivedAmount, destinationCurrencyCode)
+                    )
                 }
-                Text(
-                    text = transferMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (receivedAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (layoutMode == DeviceLayoutMode.EXPANDED) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium)
-                    ) {
-                        Text(
-                            text = stringResource(
-                                R.string.add_transfer_balance,
-                                stringResource(R.string.add_from),
-                                CurrencyFormatter.format(fromAccountForAmount?.balance ?: 0.0, amountCurrencyCode)
-                            ),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.add_transfer_balance,
-                                stringResource(R.string.add_to),
-                                CurrencyFormatter.format(toAccountForAmount?.balance ?: 0.0, destinationCurrencyCode)
-                            ),
-                            modifier = Modifier.weight(1f),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                if (layoutMode != DeviceLayoutMode.EXPANDED) {
+                    Text(
+                        text = transferMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (receivedAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: stringResource(R.string.add_category)
@@ -1291,16 +1232,6 @@ fun AddTransactionScreen(
                         showCategoryPicker = true
                     }
                     PickerChip("${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
-                }
-                if (layoutMode == DeviceLayoutMode.EXPANDED) {
-                    Text(
-                        text = stringResource(
-                            R.string.add_available_balance,
-                            CurrencyFormatter.format(fromAccountForAmount?.balance ?: 0.0, amountCurrencyCode)
-                        ),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
                 if (frequentCategories.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(dimens.spacingMedium))
@@ -1520,17 +1451,80 @@ fun AddTransactionScreen(
             Spacer(modifier = Modifier.height(dimens.spacingXLarge))
         }
 
+        if (layoutMode == DeviceLayoutMode.EXPANDED) {
+            TransactionReviewPane(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = dimens.paddingMedium),
+                transactionType = selectedType,
+                amountText = CurrencyFormatter.format(
+                    amountForDisplay.toDoubleOrNull() ?: 0.0,
+                    amountCurrencyCode
+                ),
+                amountExpression = calculatorExpression,
+                isAmountEntered = (parsedAmount ?: 0.0) > 0.0,
+                categoryName = selectedChildCategory?.name
+                    ?: selectedParentCategory?.name
+                    ?: stringResource(R.string.add_category),
+                accountName = accounts.firstOrNull { it.id == selectedAccountId }?.name
+                    ?: stringResource(R.string.add_account),
+                accountCurrency = amountCurrencyCode,
+                accountBalance = CurrencyFormatter.format(
+                    fromAccountForAmount?.balance ?: 0.0,
+                    amountCurrencyCode
+                ),
+                note = note,
+                displayDate = displayDate,
+                transferFromName = fromAccountForAmount?.name
+                    ?: stringResource(R.string.add_account),
+                transferFromCurrency = amountCurrencyCode,
+                transferFromBalance = CurrencyFormatter.format(
+                    fromAccountForAmount?.balance ?: 0.0,
+                    amountCurrencyCode
+                ),
+                transferToName = toAccountForAmount?.name
+                    ?: stringResource(R.string.add_account),
+                transferToCurrency = destinationCurrencyCode,
+                transferToBalance = CurrencyFormatter.format(
+                    toAccountForAmount?.balance ?: 0.0,
+                    destinationCurrencyCode
+                ),
+                estimatedDestinationAmount = transferDestinationAmount?.let {
+                    CurrencyFormatter.format(it, destinationCurrencyCode)
+                },
+                isTransferRateUnavailable = selectedType == "TRANSFER" &&
+                    transferDestinationAmount == null
+            )
+        }
+        }
+
         // === Save button (fixed at bottom) ===
         Box(
             modifier = Modifier
-                .widthIn(max = dimens.transactionFormMaxWidth)
+                .widthIn(
+                    max = if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                        dimens.transactionWorkspaceMaxWidth
+                    } else {
+                        dimens.transactionFormMaxWidth
+                    }
+                )
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally)
                 .padding(horizontal = dimens.paddingMedium)
                 .padding(bottom = dimens.paddingMedium + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth(if (layoutMode == DeviceLayoutMode.EXPANDED) 0.5f else 1f)
+                    .align(
+                        if (layoutMode == DeviceLayoutMode.EXPANDED) {
+                            Alignment.CenterEnd
+                        } else {
+                            Alignment.CenterStart
+                        }
+                    ),
                 horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
             ) {
                 Button(
@@ -1710,96 +1704,200 @@ fun AddTransactionScreen(
         )
     }
 
-    receiptSuggestion?.let { suggestion ->
-        AdaptiveAlertSheet(
-            onDismissRequest = { receiptSuggestion = null },
-            confirmButton = {
-                AdaptiveSheetPrimaryButton(
-                    label = "Use these details",
-                    onClick = {
-                        selectedType = "EXPENSE"
-                        engine.onClear()
-                        BigDecimal.valueOf(suggestion.amount)
-                            .stripTrailingZeros()
-                            .toPlainString()
-                            .forEach { char ->
-                                if (char == '.') engine.onDecimalPoint()
-                                else if (char.isDigit()) engine.onDigit(char.digitToInt())
-                            }
-                        calculatorDisplay = engine.displayValue
-                        confirmedAmount = null
-                        calculatorRevision++
-                        suggestion.merchant?.let { merchant ->
-                            note = merchant
-                            noteExpanded = true
-                        }
-                        receiptSuggestion = null
-                    },
-                    hapticManager = hapticManager
+}
+
+@Composable
+private fun TransactionReviewPane(
+    modifier: Modifier = Modifier,
+    transactionType: String,
+    amountText: String,
+    amountExpression: String?,
+    isAmountEntered: Boolean,
+    categoryName: String,
+    accountName: String,
+    accountCurrency: String,
+    accountBalance: String,
+    note: String,
+    displayDate: String,
+    transferFromName: String,
+    transferFromCurrency: String,
+    transferFromBalance: String,
+    transferToName: String,
+    transferToCurrency: String,
+    transferToBalance: String,
+    estimatedDestinationAmount: String?,
+    isTransferRateUnavailable: Boolean
+) {
+    val dimens = LocalAppDimens.current
+    val typeLabel = when (transactionType) {
+        "INCOME" -> stringResource(R.string.add_income)
+        "TRANSFER" -> stringResource(R.string.add_transfer)
+        else -> stringResource(R.string.add_expense)
+    }
+
+    Column(modifier = modifier.testTag("transaction_review_pane")) {
+        Spacer(modifier = Modifier.height(WindowInsets.statusBars.asPaddingValues().calculateTopPadding()))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
+                .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                .padding(dimens.paddingLarge),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingLarge)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)) {
+                Text(
+                    text = typeLabel,
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
-            },
-            dismissButton = {
-                TextButton(onClick = { receiptSuggestion = null }) {
-                    Text("Not now")
-                }
-            },
-            icon = {
-                Icon(
-                    Icons.Outlined.AutoAwesome,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                Text(
+                    text = stringResource(R.string.transaction_review_title),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
-            },
-            title = {
-                Text("Check the receipt details", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)) {
-                    Text(
-                        CurrencyFormatter.format(suggestion.amount, amountCurrencyCode),
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        suggestion.merchant ?: "Merchant not recognized",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Verify the total and account currency before saving.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.transaction_review_subtitle),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
-        )
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingMedium),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+            ) {
+                Text(
+                    text = stringResource(R.string.transaction_review_amount),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium
+                )
+                amountExpression?.let { expression ->
+                    Text(
+                        text = expression,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+                FittedAmountText(
+                    text = amountText,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            if (!isAmountEntered) {
+                Text(
+                    text = stringResource(R.string.transaction_review_empty_amount),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            if (transactionType == "TRANSFER") {
+                TransactionReviewDetailRow(
+                    label = stringResource(R.string.add_from),
+                    value = "$transferFromName · $transferFromCurrency",
+                    supportingText = stringResource(
+                        R.string.add_transfer_balance,
+                        stringResource(R.string.add_from),
+                        transferFromBalance
+                    )
+                )
+                TransactionReviewDetailRow(
+                    label = stringResource(R.string.add_to),
+                    value = "$transferToName · $transferToCurrency",
+                    supportingText = stringResource(
+                        R.string.add_transfer_balance,
+                        stringResource(R.string.add_to),
+                        transferToBalance
+                    )
+                )
+                if (isTransferRateUnavailable) {
+                    Text(
+                        text = stringResource(R.string.transaction_review_rate_unavailable),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                } else if (estimatedDestinationAmount != null) {
+                    TransactionReviewDetailRow(
+                        label = stringResource(R.string.transaction_review_estimated_receive),
+                        value = estimatedDestinationAmount
+                    )
+                }
+            } else {
+                TransactionReviewDetailRow(
+                    label = stringResource(R.string.add_category),
+                    value = categoryName
+                )
+                TransactionReviewDetailRow(
+                    label = stringResource(R.string.add_account),
+                    value = "$accountName · $accountCurrency",
+                    supportingText = stringResource(R.string.add_available_balance, accountBalance)
+                )
+            }
+
+            TransactionReviewDetailRow(
+                label = stringResource(R.string.transaction_review_note),
+                value = note.ifBlank { stringResource(R.string.transaction_review_note_optional) }
+            )
+            TransactionReviewDetailRow(
+                label = stringResource(R.string.transaction_review_date),
+                value = displayDate
+            )
+
+            Text(
+                text = stringResource(R.string.transaction_review_ready),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
-private fun decodeReceiptBitmap(context: Context, uri: Uri): Bitmap? {
-    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-    try {
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, bounds)
-        } ?: return null
-    } catch (_: Exception) {
-        return null
-    }
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-
-    val longestEdge = maxOf(bounds.outWidth, bounds.outHeight)
-    var sampleSize = 1
-    while (longestEdge / sampleSize > 1600) sampleSize *= 2
-    val options = BitmapFactory.Options().apply {
-        inSampleSize = sampleSize
-        inPreferredConfig = Bitmap.Config.RGB_565
-    }
-    return try {
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            BitmapFactory.decodeStream(stream, null, options)
+@Composable
+private fun TransactionReviewDetailRow(
+    label: String,
+    value: String,
+    supportingText: String? = null
+) {
+    val dimens = LocalAppDimens.current
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+        verticalAlignment = Alignment.Top
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(0.42f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Column(
+            modifier = Modifier.weight(0.58f),
+            verticalArrangement = Arrangement.spacedBy(dimens.spacingXSmall)
+        ) {
+            Text(
+                text = value,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+            )
+            supportingText?.let {
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
-    } catch (_: Exception) {
-        null
     }
 }
 

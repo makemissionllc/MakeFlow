@@ -6,6 +6,23 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-22 — Refine transaction entry and tablet review
+
+- **Transaction start:** removed receipt-photo scanning from entry, deleted its on-device
+  scanner and focused unit test, and updated the README, feature guide, and privacy copy. The
+  Expense, Income, and Transfer selectors now center their labels vertically. A short
+  first-use prompt appears for a blank new entry after draft recovery has resolved.
+- **Tablet workspace:** expanded layouts place the calculator and transaction controls beside
+  a live review of amount, account, category, note, date, balances, and transfer conversion.
+  Save actions align beneath the review pane; compact and medium layouts remain single-column.
+- **Verification:** `./gradlew test :app:compileDebugKotlin
+  :app:compileDebugAndroidTestKotlin` passed (503 unit tests and both Kotlin compilations).
+  On the connected phone, the type labels were centered and Transfer controls appeared
+  correctly. On the tablet, a usual amount updated the review live without saving. A system
+  picture-in-picture window covered part of the lower review in the screenshot; UI hierarchy
+  inspection confirmed the covered note, date, and review guidance were present. `git diff
+  --check` passed. The isolated `.codextest` package and temporary device captures were removed.
+
 ## 2026-10-22 — Align transaction entry on tablets
 
 - **Tablet layout:** transaction form content and fixed save actions now share centered,

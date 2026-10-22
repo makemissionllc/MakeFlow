@@ -12,6 +12,7 @@ val featureGuideEntries = listOf(
         "Record income, expenses, and transfers with the calculator, category, account, note, and date controls. Duplicate and unusual-amount checks help review entries.",
         "Use Save & add another to clear the amount, note, and date while keeping the type, account, and category ready for the next entry. Duplicate checks still apply.",
         "Unfinished full-screen transaction entries autosave privately on this device and can be recovered after an unexpected app close or restart. Choosing Discard removes the draft.",
+        "Expanded transaction entry keeps the calculator and editing controls beside a live review of the amount, account, category, note, and date.",
         "For an exact repeated note, the form can suggest the most-used account from recent categorized entries. Choose the suggestion to apply it; ties, deleted accounts, and transfers do not trigger a suggestion.",
         "The surfaced amount display and highlighted income, expense, or transfer choice make the current entry easier to scan before saving.",
         "Transaction type and account selection colors transition smoothly and respect reduced-motion settings. Amount fields adapt to the available width in quick-add, budget, and recurring-payment forms.",
@@ -29,7 +30,7 @@ val featureGuideEntries = listOf(
         "The expanded Quick Action widget on tablets includes a Repeat last transaction action, with the recent amount and note shown before you open the prefilled form.",
         "Choose frequently used categories from the transaction form without opening the category picker on phones or tablets.",
         "Expanded transaction forms show saved templates in a two-column grid with their amount and account currency.",
-        "Expanded transaction forms show the selected account's available balance, and both balances for transfers.",
+        "Transaction entry keeps calculator controls on one side and a live amount, account, category, note, date, and balance review on the other. Transfers include both account balances and the estimated destination amount.",
         "Settings > What's New opens an interactive tour. Expanded tablets show a feature list beside animated step details; phones use Previous and Next controls.",
         "In expanded History, an M-PESA transaction shows its logged fee beside the original amount, even when the current search or filters hide the separate fee entry.",
         "Scroll details independently, select notes and references to copy, and open Edit from the pane. Selection survives resizing and saved-state restoration."
@@ -47,7 +48,7 @@ val featureGuideEntries = listOf(
     )),
     FeatureGuideEntry("M-PESA and on-device assistance", listOf(
         "Share or paste M-PESA messages for review before saving. Parsed transaction costs are logged as a separate expense when Log M-PESA fees is enabled and linked back in History. Community builds also offer an opt-in new-message listener after SMS permission and disclosure; the Play build does not include it.",
-        "Category suggestions use history, corrections, and on-device classification. Supported devices may offer optional Gemini Nano message suggestions, receipt hints, and monthly reflections. Review suggestions before use."
+        "Category suggestions use history, corrections, and on-device classification. Supported devices may offer optional Gemini Nano message suggestions and monthly reflections. Review suggestions before use."
     )),
     FeatureGuideEntry("Insights, reviews, and exports", listOf(
         "Explore charts, trends, forecasts, and cash-flow estimates in Insights. The shareable monthly finance review covers income, spending, top categories, and month-over-month context.",

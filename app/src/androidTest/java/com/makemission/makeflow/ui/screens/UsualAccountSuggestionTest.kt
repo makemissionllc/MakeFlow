@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -86,6 +87,40 @@ class UsualAccountSuggestionTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Use usual account: M-PESA").assertDoesNotExist()
+    }
+
+    @Test
+    fun switchingFromTransferToExpenseReplacesTransferChipsImmediately() {
+        composeTestRule.setContent {
+            val context = LocalContext.current
+            val haptics = remember(context) { HapticManager(context).apply { strength = HapticStrength.OFF } }
+            MakeFlowTheme {
+                AddTransactionScreen(
+                    onDismiss = {},
+                    onSave = { _, _, _, _, _, _, _, _, _ -> },
+                    accounts = accounts,
+                    categories = categories,
+                    currencyCode = "KES",
+                    hapticManager = haptics,
+                    initialType = "TRANSFER",
+                    initialTransferFromId = "cash",
+                    initialTransferToId = "mpesa"
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("From · Cash · KES").assertIsDisplayed()
+        composeTestRule.onNodeWithText("To · M-PESA · KES").assertIsDisplayed()
+
+        composeTestRule.onNodeWithTag("transaction_type_EXPENSE").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("From · Cash · KES").assertDoesNotExist()
+        composeTestRule.onNodeWithText("To · M-PESA · KES").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("transaction_type_EXPENSE").assertIsSelected()
+        composeTestRule.onNodeWithText("Food").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Cash · KES").assertIsDisplayed()
     }
 
     @Test

@@ -6,6 +6,24 @@ plus verification status.
 
 Conventions: `path:line` for code refs, commit hashes where available.
 
+## 2026-10-24 — Prevent transaction suggestion overlap
+
+- **Type changes:** transaction details now use one composed branch for Transfer or
+  category/account suggestions. Switching types removes the old chips immediately;
+  only the surrounding content height animates. This prevents the outgoing “From/To”
+  labels and pill backgrounds from overlapping the new suggestion row. Existing chip
+  color, selection, and haptic feedback remain active.
+- **Compact alignment:** retained the centered account/category labels, themed selected
+  suggestion surface, 48dp compact calculator keys, tightened amount spacing, and opaque
+  fixed Save background. The keypad stays clear of the Save actions on phones.
+- **Verification:** clean unit tests, debug and Android-test Kotlin compilation, and APK
+  assembly passed. Four focused Compose instrumentation tests passed on the connected
+  OPPO CPH2745 (Android 16), including a Transfer-to-Expense regression check that the
+  old chips disappear and the category suggestion and account chip appear. Tests used
+  an isolated `.codextest` application ID; no transaction was saved. A previous
+  incremental build reported a missing generated class, and the clean build then passed.
+  Only the phone was enumerated for this pass. `git diff --check` passed.
+
 ## 2026-10-22 — Polish widgets and transaction motion
 
 - **Widget polish:** aligned widget light/dark surfaces with app surfaces, improved

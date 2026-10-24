@@ -1,10 +1,8 @@
 package com.makemission.makeflow.ui.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.fadeIn
@@ -13,8 +11,6 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.animation.using
 import com.makemission.makeflow.core.device.LocalReducedMotion
 import androidx.compose.foundation.background
 import androidx.compose.foundation.LocalIndication
@@ -1210,7 +1206,7 @@ fun AddTransactionScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(dimens.cornerRadiusLarge))
                             .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                            .padding(horizontal = dimens.paddingLarge, vertical = dimens.paddingMedium),
+                            .padding(horizontal = dimens.paddingLarge, vertical = dimens.spacingLarge),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
                     ) {
@@ -1241,97 +1237,104 @@ fun AddTransactionScreen(
                 Spacer(modifier = Modifier.height(dimens.spacingLarge))
             }
 
-            Column(modifier = Modifier.fillMaxWidth()) {
-                AnimatedContent(
-                    targetState = selectedType == "TRANSFER",
-                    transitionSpec = {
-                        val contentEnter = if (reducedMotion) {
-                            OverlayTransition.reducedSequentialContentEnter
-                        } else {
-                            OverlayTransition.sequentialContentEnter
-                        }
-                        val contentExit = if (reducedMotion) {
-                            OverlayTransition.reducedSequentialContentExit
-                        } else {
-                            OverlayTransition.sequentialContentExit
-                        }
-                        (fadeIn(contentEnter) togetherWith fadeOut(contentExit)).using(
-                            SizeTransform(clip = false) { _, _ ->
-                                if (reducedMotion) OverlayTransition.reducedContentSize
-                                else OverlayTransition.contentSizeChange
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .animateAppContentSize()
+            ) {
+                if (selectedType == "TRANSFER") {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        PickerChip(
+                            "${stringResource(R.string.add_from)} · ${fromAccountForAmount?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode",
+                            Modifier.weight(1f)
+                        ) { showAccountPicker = true }
+                        PickerChip(
+                            "${stringResource(R.string.add_to)} · ${toAccountForAmount?.name ?: stringResource(R.string.add_account)} · $destinationCurrencyCode",
+                            Modifier.weight(1f)
+                        ) { showCategoryPicker = true }
+                    }
+                    val receivedAmount = transferDestinationAmount
+                    val transferMessage = when {
+                        receivedAmount == null -> stringResource(
+                            R.string.transaction_transfer_rate_unavailable,
+                            amountCurrencyCode,
+                            destinationCurrencyCode
+                        )
+                        amountCurrencyCode == destinationCurrencyCode -> stringResource(
+                            R.string.transaction_transfer_same_currency
+                        )
+                        else -> stringResource(
+                            R.string.transaction_transfer_estimated_receive,
+                            CurrencyFormatter.format(receivedAmount, destinationCurrencyCode)
+                        )
+                    }
+                    if (layoutMode != DeviceLayoutMode.EXPANDED) {
+                        Text(
+                            text = transferMessage,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (receivedAmount == null) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
                             }
                         )
-                    },
-                    label = "transactionDetails"
-                ) { isTransfer ->
-            if (isTransfer) {
-                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
-                    PickerChip("${stringResource(R.string.add_from)} · ${fromAccountForAmount?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
-                    PickerChip("${stringResource(R.string.add_to)} · ${toAccountForAmount?.name ?: stringResource(R.string.add_account)} · $destinationCurrencyCode", Modifier.weight(1f)) { showCategoryPicker = true }
-                }
-                val receivedAmount = transferDestinationAmount
-                val transferMessage = when {
-                    receivedAmount == null -> stringResource(
-                        R.string.transaction_transfer_rate_unavailable,
-                        amountCurrencyCode,
-                        destinationCurrencyCode
-                    )
-                    amountCurrencyCode == destinationCurrencyCode -> stringResource(
-                        R.string.transaction_transfer_same_currency
-                    )
-                    else -> stringResource(
-                        R.string.transaction_transfer_estimated_receive,
-                        CurrencyFormatter.format(receivedAmount, destinationCurrencyCode)
-                    )
-                }
-                if (layoutMode != DeviceLayoutMode.EXPANDED) {
-                    Text(
-                        text = transferMessage,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (receivedAmount == null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                val categoryName = selectedChildCategory?.name ?: selectedParentCategory?.name ?: stringResource(R.string.add_category)
-                val isSmartPick = resolvedCategoryId != null && categorySuggestion?.categoryId == resolvedCategoryId
-                Row(horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium), modifier = Modifier.fillMaxWidth()) {
-                    PickerChip(
-                        text = if (isSmartPick) "$categoryName · ${stringResource(R.string.add_smart_pick)}" else categoryName,
-                        modifier = Modifier.weight(1f),
-                        emphasized = true
-                    ) {
-                        showCategoryPicker = true
                     }
-                    PickerChip("${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode", Modifier.weight(1f)) { showAccountPicker = true }
-                }
-                if (frequentCategories.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(dimens.spacingMedium))
-                    Text(
-                        text = stringResource(R.string.add_frequent_categories),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.labelMedium
-                    )
+                } else {
+                    val categoryName = selectedChildCategory?.name
+                        ?: selectedParentCategory?.name
+                        ?: stringResource(R.string.add_category)
+                    val isSmartPick = resolvedCategoryId != null &&
+                        categorySuggestion?.categoryId == resolvedCategoryId
                     Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+                        horizontalArrangement = Arrangement.spacedBy(dimens.spacingMedium),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        frequentCategories.forEach { category ->
-                            PickerChip(
-                                text = category.name,
-                                modifier = Modifier.testTag("frequent_category_${category.id}"),
-                                emphasized = category.id == resolvedCategoryId,
-                                onClick = {
-                                    selectedParentCategory = if (category.parentCategoryId == null) category
-                                    else categories.find { it.id == category.parentCategoryId }
-                                    selectedChildCategory = category.takeIf { it.parentCategoryId != null }
-                                    categorySuggestion = null
-                                    hapticManager.fire(HapticEvent.NAV_SELECT)
-                                }
-                            )
+                        PickerChip(
+                            text = if (isSmartPick) {
+                                "$categoryName · ${stringResource(R.string.add_smart_pick)}"
+                            } else {
+                                categoryName
+                            },
+                            modifier = Modifier.weight(1f),
+                            emphasized = true
+                        ) {
+                            showCategoryPicker = true
+                        }
+                        PickerChip(
+                            "${accounts.find { it.id == selectedAccountId }?.name ?: stringResource(R.string.add_account)} · $amountCurrencyCode",
+                            Modifier.weight(1f)
+                        ) { showAccountPicker = true }
+                    }
+                    if (frequentCategories.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(dimens.spacingMedium))
+                        Text(
+                            text = stringResource(R.string.add_frequent_categories),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(dimens.spacingSmall)
+                        ) {
+                            frequentCategories.forEach { category ->
+                                PickerChip(
+                                    text = category.name,
+                                    modifier = Modifier.testTag("frequent_category_${category.id}"),
+                                    emphasized = category.id == resolvedCategoryId,
+                                    onClick = {
+                                        selectedParentCategory = if (category.parentCategoryId == null) category
+                                        else categories.find { it.id == category.parentCategoryId }
+                                        selectedChildCategory = category.takeIf { it.parentCategoryId != null }
+                                        categorySuggestion = null
+                                        hapticManager.fire(HapticEvent.NAV_SELECT)
+                                    }
+                                )
+                            }
                         }
                     }
-                }
-            }
                 }
             }
 
@@ -1629,6 +1632,7 @@ fun AddTransactionScreen(
                 )
                 .fillMaxWidth()
                 .align(Alignment.CenterHorizontally)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(horizontal = dimens.paddingMedium)
                 .padding(bottom = dimens.paddingMedium + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
         ) {
